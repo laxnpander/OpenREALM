@@ -1,0 +1,8 @@
+%YAML:1.0
+#-----------------------------------------
+# Parameters for Dummy Parameter Densifier
+#-----------------------------------------
+# type of the parameter file, here dummy type
+type: DUMMY
+# Downsizing of image
+resizing: 0.3

@@ -1,0 +1,193 @@
+/**
+* This file is part of OpenREALM.
+*
+* Copyright (C) 2018 Alexander Kern <laxnpander at gmail dot com> (Braunschweig University of Technology)
+* For more information see <https://github.com/laxnpander/OpenREALM>
+*
+* OpenREALM is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* OpenREALM is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <realm_cv/stereo.h>
+
+void realm::stereo::computeRectification(const Frame::Ptr &frame_left,
+                                         const Frame::Ptr &frame_right,
+                                         cv::Mat &R1,
+                                         cv::Mat &P1,
+                                         cv::Mat &R2,
+                                         cv::Mat &P2,
+                                         cv::Mat &Q)
+{
+  assert(frame_left->isImageResizeSet() && frame_right->isImageResizeSet());
+  // inner calib
+  cv::Mat K_l = frame_left->getResizedCalibration();
+  cv::Mat K_r = frame_right->getResizedCalibration();
+  // distortion
+  cv::Mat D_l = frame_left->getCamera().distCoeffs();
+  cv::Mat D_r = frame_right->getCamera().distCoeffs();
+  // exterior calib
+  cv::Mat T_l_w2c = frame_left->getCamera().Tw2c();
+  cv::Mat T_r_c2w = frame_right->getCamera().Tc2w();
+  cv::Mat T_lr = T_l_w2c*T_r_c2w;
+  // Now calculate transformation between the cameras
+  // Formula: R = R_1^T * R_2
+  //          t = R_1^T * t_2 - R_1^T*t_1
+  cv::Mat R = T_lr.rowRange(0, 3).colRange(0, 3);
+  cv::Mat t = T_lr.rowRange(0, 3).col(3);
+  // Compute rectification parameters
+  cv::Rect* roi_left = nullptr;
+  cv::Rect* roi_right = nullptr;
+  cv::stereoRectify(K_l, D_l, K_r, D_r, frame_left->getResizedImageSize(), R, t, R1, R2, P1, P2, Q,
+                    cv::CALIB_ZERO_DISPARITY, -1, frame_left->getResizedImageSize(), roi_left, roi_right);
+}
+
+void realm::stereo::remap(const Frame::Ptr &frame,
+                          const cv::Mat &R,
+                          const cv::Mat &P,
+                          cv::Mat &img_remapped)
+{
+  // inner calib
+  cv::Mat K = frame->getResizedCalibration();
+  // distortion
+  cv::Mat D = frame->getCamera().distCoeffs();
+  // remapping
+  cv::Mat map11, map12;
+  initUndistortRectifyMap(K, D, R, P, frame->getResizedImageSize(), CV_16SC2, map11, map12);
+  // Get image and convert to grayscale
+  cv::Mat img = frame->getResizedImageUndistorted();
+  cvtColor(img, img, CV_BGR2GRAY);
+  // Compute remapping
+  cv::remap(img, img_remapped, map11, map12, cv::INTER_LINEAR);
+}
+
+cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole &cam,
+                                         const cv::Mat &depthmap)
+{
+  // Chosen formula for reprojection follows the linear projection model:
+  // x = K*(R|t)*X
+  // R^T*K^-1*x-R^T*t = X
+  // If pose is defined as "camera to world", then this formula simplifies to
+  // R*K^-1*x+t=X
+
+  assert(depthmap.rows > 0 && depthmap.cols > 0);
+
+  // Implementation is chosen to be raw array, because it saves round about 30% computation time
+  double fx = cam.fx();
+  double fy = cam.fy();
+  double cx = cam.cx();
+  double cy = cam.cy();
+  cv::Mat R_c2w = cam.R();
+  cv::Mat t_c2w = cam.t();
+
+  assert(fx > 0 && fy > 0 && cx > 0 && cy > 0);
+  assert(R_c2w.cols == 3 && R_c2w.rows == 3);
+  assert(t_c2w.cols == 1 && t_c2w.rows == 3);
+
+  // Array preparation
+  double ar_R_c2w[3][3];
+  for (uint8_t r = 0; r < 3; ++r)
+    for (uint8_t c = 0; c < 3; ++c)
+      ar_R_c2w[r][c] = R_c2w.at<double>(r, c);
+
+  double ar_t_c2w[3];
+  for (uint8_t r = 0; r < 3; ++r)
+      ar_t_c2w[r] = t_c2w.at<double>(r);
+
+  // Iteration
+  cv::Mat img3d(depthmap.rows, depthmap.cols, CV_64FC3);
+  for (int r = 0; r < depthmap.rows; ++r)
+    for (int c = 0; c < depthmap.cols; ++c)
+    {
+      cv::Vec3d pt(0, 0, 0);
+
+      auto depth = static_cast<double>(depthmap.at<float>(r, c));
+
+      if (depth > 0)
+      {
+        // K^-1*(dc,dr,d)
+        double u = (c - cx)*depth/fx;
+        double v = (r - cy)*depth/fy;
+
+        pt[0] = ar_R_c2w[0][0]*u + ar_R_c2w[0][1]*v + ar_R_c2w[0][2]*depth + ar_t_c2w[0];
+        pt[1] = ar_R_c2w[1][0]*u + ar_R_c2w[1][1]*v + ar_R_c2w[1][2]*depth + ar_t_c2w[1];
+        pt[2] = ar_R_c2w[2][0]*u + ar_R_c2w[2][1]*v + ar_R_c2w[2][2]*depth + ar_t_c2w[2];
+      }
+      img3d.at<cv::Vec3d>(r, c) = pt;
+    }
+  return img3d;
+}
+
+void realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole &cam,
+                                                  const cv::Mat &points,
+                                                  cv::Mat &depth_map)
+{
+  /*
+   * Depth computation according to [Hartley2004] "Multiple View Geometry in Computer Vision", S.162 for normalized
+   * camera matrix
+   */
+
+  // Prepare depthmap dimensions
+  uint32_t width = cam.width();
+  uint32_t height = cam.height();
+
+  // Prepare output data
+  depth_map = cv::Mat(height, width, CV_32F, -1.0);
+
+  // Prepare extrinsics
+  cv::Mat T_w2c = cam.Tw2c();
+  cv::Mat Rwc2 = T_w2c.row(2).colRange(0, 3).t();
+  double zwc = T_w2c.at<double>(2, 3);
+
+  // Prepare projection
+  cv::Mat P_cv = cam.P();
+  double P[3][4]{P_cv.at<double>(0, 0), P_cv.at<double>(0, 1), P_cv.at<double>(0, 2), P_cv.at<double>(0, 3),
+                 P_cv.at<double>(1, 0), P_cv.at<double>(1, 1), P_cv.at<double>(1, 2), P_cv.at<double>(1, 3),
+                 P_cv.at<double>(2, 0), P_cv.at<double>(2, 1), P_cv.at<double>(2, 2), P_cv.at<double>(2, 3)};
+
+  for (int i = 0; i < points.rows; ++i)
+  {
+    cv::Mat pt = points.row(i).t();
+
+    // Depth calculation
+    double depth = Rwc2.dot(pt) + zwc;
+
+    // Projection to image with x = P * X
+    double w = P[2][0]*pt.at<double>(0) + P[2][1]*pt.at<double>(1) + P[2][2]*pt.at<double>(2) + P[2][3]*1.0;
+    auto u = (int)((P[0][0]*pt.at<double>(0) + P[0][1]*pt.at<double>(1) + P[0][2]*pt.at<double>(2) + P[0][3]*1.0)/w);
+    auto v = (int)((P[1][0]*pt.at<double>(0) + P[1][1]*pt.at<double>(1) + P[1][2]*pt.at<double>(2) + P[1][3]*1.0)/w);
+    if (u > 0 && u < width && v > 0 && v < height)
+    {
+      if (depth > 0)
+        depth_map.at<float>(v, u) = static_cast<float>(depth);
+      else
+        depth_map.at<float>(v, u) = -1.0f;
+    }
+  }
+  //depth_map = cam.undistort(depth_map, CV_INTER_NN);
+}
+
+cv::Mat realm::stereo::computeNormalsFromDepthMap(const cv::Mat& depth)
+{
+  cv::Mat normals(depth.size(), CV_32FC3);
+
+  for(int x = 0; x < depth.rows; ++x)
+    for(int y = 0; y < depth.cols; ++y)
+    {
+      float dzdx = (depth.at<float>(x+1, y) - depth.at<float>(x-1, y)) / 2.0f;
+      float dzdy = (depth.at<float>(x, y+1) - depth.at<float>(x, y-1)) / 2.0f;
+
+      cv::Vec3f d(-dzdx, -dzdy, 1.0f);
+      normals.at<cv::Vec3f>(x, y) = cv::normalize(d);
+    }
+  return normals;
+}

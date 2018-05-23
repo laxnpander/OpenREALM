@@ -1,0 +1,35 @@
+%YAML:1.0
+#--------------------------------------
+# Parameters for plane sweep 
+#--------------------------------------
+# type of the parameter file, here plane sweep
+type: PSL
+# Downsizing of image
+resizing: 0.35
+# Nrof camera per dense reconstruction
+n_cams: 3
+enable_subpix: 0
+enable_color_match: 1
+# currently irrelevant
+enable_out_best_depth: 0
+enable_out_best_cost: 0
+enable_out_cost_vol: 0
+enable_out_uniq_ratio: 0
+scale: 1.0
+#
+nrof_planes: 32
+match_window_size_x: 20
+match_window_size_y: 20
+# 0 - PLANE_SWEEP_OCCLUSION_NONE
+# 1 - PLANE_SWEEP_OCCLUSION_BEST_K
+# 2 - PLANE_SWEEP_OCCLUSION_REF_SPLIT
+occlusion_mode: 1
+# 0 - PLANE_SWEEP_PLANEMODE_UNIFORM_DEPTH
+# 1 - PLANE_SWEEP_PLANEMODE_UNIFORM_DISPARITY
+plane_gen_mode: 1
+# 0 - PLANE_SWEEP_SAD
+# 1 - PLANE_SWEEP_ZNCC
+match_cost: 0
+# 0 - PLANE_SWEEP_SUB_PIXEL_INTERP_DIRECT
+# 1 - PLANE_SWEEP_SUB_PIXEL_INTERP_INVERSE
+subpx_interp_mode: 1

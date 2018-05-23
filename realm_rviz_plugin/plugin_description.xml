@@ -1,0 +1,10 @@
+<library path="lib/librealm_rviz_plugin">
+  <class name="realm_rviz_plugin/GroundImage"
+         type="realm_rviz_plugin::GroundImageDisplay"
+         base_class_type="rviz::Display">
+    <description>
+      Displays a GroundImageCompressed 
+    </description>
+    <message_type>realm_msgs/GroundImageCompressed</message_type>
+  </class>
+</library>

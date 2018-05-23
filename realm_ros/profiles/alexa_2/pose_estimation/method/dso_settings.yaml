@@ -1,0 +1,17 @@
+%YAML:1.0
+
+type: DSO
+#resizing: 0.403
+resizing: 0.6
+desiredImmatureDensity: 1000
+desiredPointDensity: 1200
+minFrames: 5
+maxFrames: 7
+maxOptIterations: 4
+minOptIterations: 1
+logStuff: 0
+kfGlobalWeight: 1.3
+# MODE WITH CALIBRATION, but without exposure time
+photometricCalibration: 2
+affineOptModeA: 0
+affineOptModeB: 0

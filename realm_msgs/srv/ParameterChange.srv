@@ -1,0 +1,12 @@
+# Name of the parameter
+string name
+
+# Value of the parameter
+# Must be parsed inside node
+string val
+
+---
+
+# True if parameter was set to value
+bool success
+string message

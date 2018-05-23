@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package>
+  <name>realm_stages</name>
+  <version>1.0.0</version>
+  <description>The realm_stages package</description>
+
+  <maintainer email="al.kern@tu-bs.de">laxn_pander</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+    <build_depend>realm_core</build_depend>
+    <build_depend>realm_vslam_base</build_depend>
+    <build_depend>realm_densifier_base</build_depend>
+    <build_depend>realm_ortho</build_depend>
+
+    <run_depend>realm_core</run_depend>
+    <run_depend>realm_vslam_base</run_depend>
+    <run_depend>realm_densifier_base</run_depend>
+    <run_depend>realm_ortho</run_depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+ <export>
+   <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lrealm_stages"/>
+ </export>
+
+</package>

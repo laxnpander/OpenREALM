@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+  <name>realm_core</name>
+  <version>1.0.0</version>
+  <description>The realm_core package</description>
+
+  <maintainer email="al.kern@tu-bs.de">laxn_pander</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+ <export>
+   <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lrealm_core"/>
+ </export>
+
+</package>

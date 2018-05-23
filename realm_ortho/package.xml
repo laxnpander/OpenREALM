@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+  <name>realm_ortho</name>
+  <version>0.0.0</version>
+  <description>The realm ortho generation package</description>
+
+  <maintainer email="al.kern@tu-bs.de">lachs</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>realm_io</build_depend>
+  <build_depend>realm_core</build_depend>
+
+  <run_depend>realm_io</run_depend>
+  <run_depend>realm_core</run_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lrealm_ortho"/>
+  </export>
+</package>
