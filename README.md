@@ -5,6 +5,10 @@ a polished and bugfree application.
 
 Feel free to fork and contribute. Let's make mapping fast again! :)
 
+## Demonstration
+
+[![Demonstration Video](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](https://www.youtube.com/results?search_query=open+realm+slam+visual)
+
 ## Introduction
 
 The proposed framework stands on the shoulders of giants, namely the open source implementation for
