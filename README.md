@@ -7,7 +7,7 @@ Feel free to fork and contribute. Let's make mapping fast again! :)
 
 ## Demonstration
 
-[![Demonstration Video](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](https://www.youtube.com/results?search_query=open+realm+slam+visual)
+[![Demonstration Video](https://img.youtube.com/vi/9MvPTHP0r0c/0.jpg)](https://www.youtube.com/watch?v=9MvPTHP0r0c)
 
 ## Introduction
 
