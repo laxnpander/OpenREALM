@@ -1,0 +1,18 @@
+%YAML:1.0
+
+type: pose_estimation
+queue_size: 1
+
+use_vslam: 0
+use_fallback: 1
+update_georef: 0
+th_error_georef: 1.0
+overlap_max: 90
+overlap_max_fallback: 50
+suppress_outdated_pose_pub: 0
+
+save_trajectory_gnss: 1
+save_trajectory_visual: 1
+save_frames: 0
+save_keyframes: 0
+save_keyframes_full: 0

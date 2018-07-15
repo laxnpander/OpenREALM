@@ -47,15 +47,16 @@ QT5 for RVIZ plugin
 
 -> Refer to http://doc.qt.io/qt-5/qt5-intro.html
 
+Exiv2 installation from source for image reading and writing with meta infos
+
+-> https://github.com/Exiv2/exiv2
+
 ```sh
 # Catkin tools for build process
 sudo apt-get install python-catkin-tools
 
 # Eigen3 for several linear algebra problems
 sudo apt-get install libeigen3-dev
-
-# Exiv2 for image reading and writing with meta infos
-sudo apt-get install exiv2
 
 # Gdal library for conversions between UTM and WGS84
 sudo apt-get install gdal-bin

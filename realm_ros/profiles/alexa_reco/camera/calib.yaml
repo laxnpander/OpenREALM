@@ -1,0 +1,23 @@
+%YAML:1.0
+#--------------------------------------
+# Camera Parameters for pinhole camera 
+#--------------------------------------
+# Type of the camera model
+type: pinhole
+# Frames per second
+fps: 10.0
+# Image size
+width: 1228
+height: 1026
+# Principal point
+cx: 610.323586
+cy: 516.917327
+# Focal length
+fx: 1209.065736
+fy: 1210.661758
+# Distortion
+k1: -0.198806
+k2: 0.122544
+p1: -0.000221
+p2: -0.000877
+k3: 0.0

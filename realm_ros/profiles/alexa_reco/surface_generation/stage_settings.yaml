@@ -1,0 +1,19 @@
+%YAML:1.0
+
+type: surface_generation
+queue_size: 5
+
+try_use_elevation: 1
+
+knn_radius_factor: 1.0
+
+# Mode for surface normal computation:
+# 0 - None,
+# 1 - Random neighbours,
+# 2 - Furthest neighbours,
+# 3 - Best-fit
+mode_surface_normals: 0
+
+save_valid: 0
+save_elevation: 0
+save_normals: 0

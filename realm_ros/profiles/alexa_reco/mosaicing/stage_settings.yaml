@@ -1,0 +1,34 @@
+%YAML:1.0
+
+type: mosaicing
+queue_size: 5
+
+th_elevation_min_nobs: 2
+th_elevation_variance: 1.0
+
+publish_mesh_every_nth_kf: 0
+publish_mesh_at_finish: 0
+downsample_publish_mesh: 0.5
+
+# Ortho
+save_ortho_rgb_one: 0
+save_ortho_rgb_all: 0
+save_ortho_gtiff_one: 1
+save_ortho_gtiff_all: 0
+
+# Elevaion
+save_elevation_one: 1
+save_elevation_all: 0
+save_elevation_var_one: 0
+save_elevation_var_all: 0
+save_elevation_obs_angle_one: 1
+save_elevation_obs_angle_all: 0
+save_elevation_mesh_one: 0
+
+# Etc
+save_valid: 0
+save_num_obs_one: 1
+save_num_obs_all: 0
+
+# 3D-Data
+save_dense_ply: 0

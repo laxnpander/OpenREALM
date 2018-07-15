@@ -1,0 +1,25 @@
+%YAML:1.0
+
+type: ORB_SLAM2
+
+# Resize factor for images, should always be <= 1.0
+resizing: 1.0
+
+# ORB Extractor: Number of features per image
+nrof_features: 3000
+
+# ORB Extractor: Scale factor between levels in the scale pyramid
+scale_factor: 1.2
+
+# ORB Extractor: Number of levels in the scale pyramid
+n_pyr_levels: 8
+
+# ORB Extractor: Fast threshold
+# Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
+# Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
+# You can lower these values if your images have low contrast
+ini_th_FAST: 15
+min_th_FAST: 3
+
+# Path to the vocabulary file for place recognition
+path_vocabulary: /orb_slam2/ORBvoc.bin

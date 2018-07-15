@@ -158,10 +158,16 @@ class PoseEstimationIO : public WorkerThreadBase
   public:
     PoseEstimationIO(PoseEstimation* stage, bool do_delay_keyframes);
     bool process() override;
+    void setOutputPath(const std::string &path);
+    void initLog(const std::string &filepath);
 
   private:
     bool _is_time_ref_set;
     bool _do_delay_keyframes;
+    bool _is_new_output_path_set;
+
+    std::string _path_output;
+
     PoseEstimation* _stage_handle;
 
     std::mutex _mutex_schedule;

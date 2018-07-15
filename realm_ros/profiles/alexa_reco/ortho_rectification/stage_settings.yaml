@@ -1,0 +1,14 @@
+%YAML:1.0
+
+type: ortho_rectification
+queue_size: 5
+
+# Ground sampling distance [m/pix]
+GSD: 0.1
+
+# Save settings
+save_valid: 0
+save_ortho_rgb: 0
+save_ortho_gtiff: 0
+save_elevation: 0
+save_elevation_angle: 0

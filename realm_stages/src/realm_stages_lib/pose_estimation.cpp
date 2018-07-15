@@ -60,7 +60,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
   }
 
   // Create Pose Estimation publisher
-  _stage_publisher.reset(new PoseEstimationIO(this, false));
+  _stage_publisher.reset(new PoseEstimationIO(this, true));
   _stage_publisher->start();
 
   // Creation of reference plane, currently only the one below is supported
@@ -111,6 +111,8 @@ bool PoseEstimation::process()
     // Grab frame from buffer with no poses
     Frame::Ptr frame = getNewFrameTracking();
 
+    LOG_F(INFO, "Processing frame #%i with timestamp %llu!", frame->getFrameId(), frame->getTimestamp());
+
     // Track current frame -> compute visual accurate pose
     track(frame);
 
@@ -135,30 +137,33 @@ bool PoseEstimation::process()
   }
 
   // Handles georeference initialization and georeferencing of frame poses
-  if (!_is_georef_initialized && !_buffer_pose_init.empty() && !_georef->isBuisy())
+  if (_use_vslam)
   {
-    // Branch: Georef is not calculated yet
-    std::thread t(std::bind(&GeospatialReferencerIF::init, _georef, _buffer_pose_init));
-    t.detach();
-    has_processed = true;
-  }
-  else if (_is_georef_initialized && !_buffer_pose_all.empty())
-  {
-    // Branch: Georef was successfully initialized and data waits to be georeferenced
-    // Process all measurements in seperate thread
-    if (!_buffer_pose_init.empty())
-      _buffer_pose_init.clear();
+    if (!_is_georef_initialized && !_buffer_pose_init.empty() && !_georef->isBuisy())
+    {
+      // Branch: Georef is not calculated yet
+      std::thread t(std::bind(&GeospatialReferencerIF::init, _georef, _buffer_pose_init));
+      t.detach();
+      has_processed = true;
+    }
+    else if (_is_georef_initialized && !_buffer_pose_all.empty())
+    {
+      // Branch: Georef was successfully initialized and data waits to be georeferenced
+      // Process all measurements in seperate thread
+      if (!_buffer_pose_init.empty())
+        _buffer_pose_init.clear();
 
-    std::thread t(std::bind(&PoseEstimation::applyGeoreferenceToBuffer, this));
-    t.detach();
-    has_processed = true;
+      std::thread t(std::bind(&PoseEstimation::applyGeoreferenceToBuffer, this));
+      t.detach();
+      has_processed = true;
+    }
   }
   return has_processed;
 }
 
 void PoseEstimation::track(Frame::Ptr &frame)
 {
-  LOG_F(INFO, "Processing frame #%i with timestamp %llu!", frame->getFrameId(), frame->getTimestamp());
+  LOG_F(INFO, "Tracking frame #%i in visual SLAM...!", frame->getFrameId());
 
   // Compute visual pose
   _mutex_vslam.lock();
@@ -221,7 +226,8 @@ void PoseEstimation::reset()
   _buffer_pose_init.clear();
 
   // Reset georeferencing
-  _georef.reset(new GeometricReferencer(_th_error_georef));
+  if (_use_vslam)
+    _georef.reset(new GeometricReferencer(_th_error_georef));
   _stage_publisher->requestReset();
   _is_georef_initialized = false;
   _reset_requested = false;
@@ -253,6 +259,8 @@ void PoseEstimation::initStageCallback()
     io::createDir(_stage_path + "/keyframes_full");
   if (!io::dirExists(_stage_path + "/frames"))
     io::createDir(_stage_path + "/frames");
+
+  _stage_publisher->setOutputPath(_stage_path);
 }
 
 void PoseEstimation::printSettingsToLog()
@@ -273,7 +281,8 @@ void PoseEstimation::printSettingsToLog()
   LOG_F(INFO, "- save_keyframes: %i", _settings_save.save_keyframes);
   LOG_F(INFO, "- save_keyframes_full: %i", _settings_save.save_keyframes_full);
 
-  _vslam->printSettingsToLog();
+  if (_use_vslam)
+    _vslam->printSettingsToLog();
 }
 
 void PoseEstimation::pushToBufferNoPose(const Frame::Ptr &frame)
@@ -363,7 +372,9 @@ double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
 
 cv::Rect2d PoseEstimation::estimateProjectedRoi(const Frame::Ptr &frame)
 {
-  return frame->getCamera().projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
+  camera::Pinhole cam = frame->getCamera();
+  cam.setPose(frame->getPose());
+  return cam.projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
 }
 
 Frame::Ptr PoseEstimation::getNewFrameTracking()
@@ -407,7 +418,9 @@ void PoseEstimation::applyGeoreferenceToBuffer()
 void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
 {
   UTMPose utm = frame->getGnssUtm();
-  cv::Mat t = frame->getCamera().t();
+  camera::Pinhole cam = frame->getCamera();
+  cam.setPose(frame->getPose());
+  cv::Mat t = cam.t();
 
   LOG_F(INFO, "Georeferenced pose:");
   LOG_F(INFO, "GNSS: [%10.2f, %10.2f, %4.2f]", utm.easting, utm.northing, utm.altitude);
@@ -418,6 +431,7 @@ void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
 PoseEstimationIO::PoseEstimationIO(PoseEstimation* stage, bool do_delay_keyframes)
     : WorkerThreadBase("Publisher [pose_estimation]", true),
       _is_time_ref_set(false),
+      _is_new_output_path_set(false),
       _do_delay_keyframes(do_delay_keyframes),
       _t_ref({0, 0}),
       _stage_handle(stage)
@@ -426,8 +440,26 @@ PoseEstimationIO::PoseEstimationIO(PoseEstimation* stage, bool do_delay_keyframe
     throw(std::invalid_argument("Error: Could not create PoseEstimationIO. Stage handle points to NULL."));
 }
 
+void PoseEstimationIO::setOutputPath(const std::string &path)
+{
+  _path_output = path;
+  _is_new_output_path_set = true;
+}
+
+void PoseEstimationIO::initLog(const std::string &filepath)
+{
+  loguru::add_file((filepath + "/publisher.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+  LOG_F(INFO, "Successfully initialized %s publisher!", _stage_handle->_stage_name.c_str());
+}
+
 bool PoseEstimationIO::process()
 {
+  if (_is_new_output_path_set)
+  {
+    initLog(_path_output);
+    _is_new_output_path_set = false;
+  }
+
   if (!_stage_handle->_buffer_do_publish.empty())
   {
     // Grab frame from pose estimation geoereferenced mmts
@@ -440,6 +472,7 @@ bool PoseEstimationIO::process()
 
     // Keyframes to be published (big data packages -> publish only if needed)
     if ((_stage_handle->_use_fallback && !frame->hasAccuratePose() && _stage_handle->estimatePercOverlap(frame) < _stage_handle->_overlap_max_fallback)
+         ||(!_stage_handle->_use_vslam && _stage_handle->estimatePercOverlap(frame) < _stage_handle->_overlap_max_fallback)
          || (frame->isKeyframe() && _stage_handle->estimatePercOverlap(frame) < _stage_handle->_overlap_max))
     {
       _stage_handle->updatePreviousRoi(frame);
@@ -500,6 +533,7 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
   LOG_IF_F(INFO, !frame->isKeyframe(), "Publishing frame #%llu...", frame->getFrameId());
 
   publishSurfacePoints(frame);
+
   _stage_handle->_transport_frame(frame, "output/frame");
   _stage_handle->printGeoReferenceInfo(frame);
 

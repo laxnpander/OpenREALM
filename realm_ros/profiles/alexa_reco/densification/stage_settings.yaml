@@ -1,0 +1,21 @@
+%YAML:1.0
+# General stage settings
+type: densification
+queue_size: 5
+
+# Flag to use sparse disparity map for pseudo densification
+use_sparse_disparity: 1
+# Flag to use bilateral filter for disparity map
+use_filter_bilat: 1
+# Flag to use guided filter. Only possible with stereo reconstruction
+use_filter_guided: 0
+
+compute_normals: 1
+
+save_bilat: 1
+save_dense: 1
+save_guided: 0
+save_imgs: 0
+save_sparse: 1
+save_thumb: 0
+save_normals: 0

@@ -466,7 +466,9 @@ void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, cons
 
   if (_publish_mesh_every_nth_kf > 0 && _publish_mesh_every_nth_kf == _publish_mesh_nth_iter)
   {
-    _transport_mesh(createMeshFaces(map), "output/mesh");
+    std::vector<Face> faces = createMeshFaces(map);
+    std::thread t(_transport_mesh, faces, "output/mesh");
+    t.detach();
     _publish_mesh_nth_iter = 0;
   }
   else if (_publish_mesh_every_nth_kf > 0)
