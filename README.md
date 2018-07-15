@@ -12,7 +12,8 @@ Feel free to fork and contribute. Let's make mapping fast again! :)
 ## Introduction
 
 The proposed framework stands on the shoulders of giants, namely the open source implementation for
-visual SLAM and stereo reconstruction. Please read the references below.
+visual SLAM and stereo reconstruction. Please read the references below. For a detailed description of the underlying ideas refer to my thesis:
+https://drive.google.com/open?id=1zXxuCVN4wzlC-ZAZBz5qI4wLkv1b6CbH
 
 **Beforehand**
 
