@@ -95,7 +95,7 @@ mkdir -p catkin_ws/src
 cd catkin/src
 
 # Clone Open REALM git and compile
-git clone https://github.com/laxnpander/realm_v2.git
+git clone https://github.com/laxnpander/OpenREALM.git
 ```
 
 **Option 1:** Configuration WITHOUT cuda
