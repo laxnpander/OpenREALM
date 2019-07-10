@@ -12,7 +12,7 @@
         <param name="config/id" type="string" value="$(arg camera_id)"/>
         <param name="config/input" type="string" value="/media/lachs/2aba9048-bfb9-4c30-9a82-d9b005f6ac2c/Entwicklung/Bilddaten/Alexa/edm_big_overlap_50p"/>
         <param name="config/rate" type="double" value="10.0"/>
-        <param name="config/profile" type="string" value="alexa"/>
+        <param name="config/profile" type="string" value="alexa_reco"/>
         <!--param name="config/opt/poses" type="string" value=""/-->
         <!--param name="config/opt/surface_pts" type="string" value=""/-->
         <!--param name="config/opt/set_all_keyframes" type="bool" value="True"/-->
