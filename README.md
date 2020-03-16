@@ -41,11 +41,11 @@ but at the moment I won't recommend to use it on any other.
 
 ## Dependencies
 
-Linux (tested with Ubuntu 16.04)
+Linux (tested with Ubuntu 18.04)
 
-ROS Kinetic with OpenCV 3.3.1
+ROS Melodic
 
--> Refer to http://wiki.ros.org/kinetic/Installation
+-> Refer to http://wiki.ros.org/melodic/Installation
 
 Pangolin for ORB SLAM 2
 
@@ -74,9 +74,7 @@ sudo apt-get install libcgal-dev
 sudo apt-get install libcgal-qt5-dev
 
 # PCL for writing point clouds and mesh data
-sudo add-apt-repository ppa:v-launchpad-jochen-sprickerhof-de/pcl
-sudo apt-get update
-sudo apt-get install libpcl-all
+sudo apt-get install libpcl-dev
 ```
 
 ## Optional Dependencies
@@ -87,7 +85,7 @@ CUDA for stereo reconstruction with plane sweep lib
 
 ## Installation
 
-Linux (tested with Ubuntu 16.04)
+Linux (tested with Ubuntu 18.04)
 
 ```sh
 # Create and init a catkin workspace
