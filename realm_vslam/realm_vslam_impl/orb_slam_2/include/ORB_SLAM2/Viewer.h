@@ -22,7 +22,6 @@
 #ifndef VIEWER_H
 #define VIEWER_H
 
-#include <unistd.h>
 #include "Settings.h"
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
@@ -30,6 +29,7 @@
 #include "System.h"
 
 #include <mutex>
+#include <unistd.h>
 
 namespace ORB_SLAM2
 {

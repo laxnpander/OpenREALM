@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
         realm_stages
         )
 
-find_package(OpenCV 3.3.1 EXACT)
+find_package(OpenCV 3.2)
 find_package(cmake_modules REQUIRED)
 
 catkin_package(

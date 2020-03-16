@@ -4,9 +4,13 @@ project(realm_io)
 find_package(catkin REQUIRED COMPONENTS
         realm_core
         )
-find_package(OpenCV 3.3.1 EXACT)
+find_package(OpenCV 3.2)
 find_package(cmake_modules REQUIRED)
-find_package(Exiv2)
+
+# Fix to find Exiv2, otherwise it really causes some nerves
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+find_package(Exiv2 REQUIRED)
+
 find_package(GDAL REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS

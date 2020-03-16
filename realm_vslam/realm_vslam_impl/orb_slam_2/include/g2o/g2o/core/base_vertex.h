@@ -27,6 +27,8 @@
 #ifndef G2O_BASE_VERTEX_H
 #define G2O_BASE_VERTEX_H
 
+#include<unistd.h>
+
 #include "optimizable_graph.h"
 #include "creators.h"
 #include "../stuff/macros.h"

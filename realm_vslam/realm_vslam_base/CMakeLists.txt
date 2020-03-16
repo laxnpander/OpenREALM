@@ -32,7 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
 		)
 
 # GENERAL REQUIRED
-find_package(OpenCV 3.3.1 EXACT)
+find_package(OpenCV 3.2)
 find_package(cmake_modules REQUIRED)
 
 #fix to find eigen3

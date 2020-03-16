@@ -7,7 +7,7 @@ th_elevation_min_nobs: 2
 th_elevation_variance: 1.0
 
 publish_mesh_every_nth_kf: 0
-publish_mesh_at_finish: 0
+publish_mesh_at_finish: 1
 downsample_publish_mesh: 0.5
 
 # Ortho

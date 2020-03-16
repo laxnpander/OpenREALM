@@ -30,6 +30,7 @@
 #include "KeyFrameDatabase.h"
 
 #include <thread>
+#include <unistd.h>
 #include <mutex>
 #include "g2o/g2o/types/types_seven_dof_expmap.h"
 

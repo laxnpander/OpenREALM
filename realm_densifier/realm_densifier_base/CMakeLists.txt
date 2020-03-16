@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
         ${DENSIFIER_LIBS}
         )
 
-find_package(OpenCV 3.3.1 EXACT)
+find_package(OpenCV 3.2)
 
 catkin_package(
         INCLUDE_DIRS include

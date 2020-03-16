@@ -23,6 +23,7 @@
 #define SYSTEM_H
 
 #include<string>
+#include<unistd.h>
 #include<thread>
 #include<functional>
 #include<opencv2/core/core.hpp>

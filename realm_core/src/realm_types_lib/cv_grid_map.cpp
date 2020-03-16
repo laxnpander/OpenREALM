@@ -148,7 +148,7 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
 
 bool CvGridMap::empty() const
 {
-  return (_roi.empty() || _size.empty());
+  return _size.width == 0 || _size.height == 0;
 }
 
 bool CvGridMap::exists(const std::string &layer_name) const
@@ -310,7 +310,7 @@ void CvGridMap::setLayerInterpolation(const std::string& layer_name, int interpo
 
 void CvGridMap::extend(const cv::Rect2d &roi)
 {
-  assert(!roi.empty());  // false if roi empty -> function called, without valid argument
+  assert(roi.width > 0 && roi.height > 0);  // false if roi empty -> function called, without valid argument
   checkInit();
   // keep track if dimensions changed
   bool changed_roi = false;
@@ -406,7 +406,7 @@ cv::Point2d CvGridMap::atPosition2d(const uint32_t &r, const uint32_t &c) const
   // check validity
   assert(r < _size.height && r > 0);
   assert(c < _size.width && c > 0);
-  assert(!_roi.empty());
+  assert(_roi.width > 0 && _roi.height > 0);
   assert(_resolution > 0.0);
   // calculate position of grid element centroid
   cv::Point2d pos;
@@ -421,7 +421,7 @@ cv::Point3d CvGridMap::atPosition3d(const int &r, const int &c, const std::strin
   // check validity
   assert(r < _size.height && r > 0);
   assert(c < _size.width && c > 0);
-  assert(!_roi.empty());
+  assert(_roi.width > 0 && _roi.height > 0);
   assert(_resolution > 0.0);
   assert(!layer_data.empty());
   // create position and set data
@@ -479,7 +479,7 @@ void CvGridMap::checkValid(const Layer &layer)
 void CvGridMap::checkInit()
 {
   assert(!_size.empty());
-  assert(!_roi.empty());
+  assert(_roi.width > 0 && _roi.height > 0);
   assert(_resolution > 0.0);
 }
 

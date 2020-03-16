@@ -22,6 +22,7 @@
 #define PROJECT_GEOMETRIC_REFERENCER_H
 
 #include <memory>
+#include <numeric>
 
 #include <realm_common/loguru.hpp>
 

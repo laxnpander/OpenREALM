@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(realm_core)
 
 find_package(catkin REQUIRED)
-find_package(OpenCV 3.3.1 EXACT)
+find_package(OpenCV 3.2)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Eigen3 REQUIRED)

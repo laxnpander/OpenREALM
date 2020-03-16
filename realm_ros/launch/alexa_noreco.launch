@@ -10,7 +10,7 @@
 
     <node pkg="realm_ros" type="realm_exiv2_grabber" name="realm_exiv2_grabber" output="screen">
         <param name="config/id" type="string" value="$(arg camera_id)"/>
-        <param name="config/input" type="string" value="/media/lachs/2aba9048-bfb9-4c30-9a82-d9b005f6ac2c/Entwicklung/Bilddaten/Alexa/edm_big_overlap_50p"/>
+        <param name="config/input" type="string" value="/home/alex/Documents/Datasets/edm_big_overlap_50p"/>
         <param name="config/rate" type="double" value="10.0"/>
         <param name="config/profile" type="string" value="alexa_noreco"/>
         <!--param name="config/opt/poses" type="string" value=""/-->
@@ -20,6 +20,7 @@
 
     <node pkg="realm_ros" type="realm_stage_node" name="realm_pose_estimation" output="screen">
         <param name="stage/type" type="string" value="pose_estimation"/>
+	<param name="stage/master" type="bool" value="true"/>
         <param name="topics/input" type="string" value="$(arg topic_adapter)"/>
         <param name="topics/output" type="string" value="$(arg topic_pose_est)"/>
         <param name="config/id" type="string" value="$(arg camera_id)"/>
@@ -54,7 +55,6 @@
 
     <node pkg="realm_ros" type="realm_stage_node" name="realm_mosaicing" output="screen">
         <param name="stage/type" type="string" value="mosaicing"/>
-        <param name="stage/master" type="bool" value="true"/>
         <param name="topics/input" type="string" value="$(arg topic_rect)"/>
         <param name="config/id" type="string" value="$(arg camera_id)"/>
         <param name="config/profile" type="string" value="alexa_noreco"/>

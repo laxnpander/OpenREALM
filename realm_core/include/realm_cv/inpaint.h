@@ -49,6 +49,7 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/utility.hpp>
+#include <opencv2/core/types_c.h>
 
 namespace realm
 {

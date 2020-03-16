@@ -30,7 +30,7 @@ io::Exiv2FrameReader::Exiv2FrameReader(const FrameTags &tags)
 
 Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id, const camera::Pinhole &cam, const std::string &filepath)
 {
-  Exiv2::Image::AutoPtr exif_img = Exiv2::ImageFactory::open(filepath);
+  Exiv2::Image::UniquePtr exif_img = Exiv2::ImageFactory::open(filepath);
   if (exif_img.get())
   {
     // Read exif and xmp metadata
@@ -41,7 +41,7 @@ Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id
       throw(std::invalid_argument("Error loading Exiv2 frame from filepath '" + filepath + "'."));
 
     // Read image data
-    cv::Mat img = cv::imread(filepath, CV_LOAD_IMAGE_COLOR);
+    cv::Mat img = cv::imread(filepath, cv::IMREAD_COLOR);
 
     /*========== MUST HAVE KEYS ==========*/
     uint32_t frame_id = io::extractFrameIdFromFilepath(filepath);

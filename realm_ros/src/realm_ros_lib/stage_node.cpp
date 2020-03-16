@@ -542,5 +542,5 @@ void StageNode::setTfBaseFrame(const UTMPose &utm)
   _gnss_base.longitude = wgs.longitude;
   _gnss_base.altitude = wgs.altitude;
 
-  ROS_INFO("STAGE_NODE [%s]: Frame reference set at: %d, %d", _gnss_base.latitude, _gnss_base.longitude, _type_stage.c_str());
+  ROS_INFO("STAGE_NODE [%s]: Frame reference set at: %f, %f", _type_stage.c_str(), _gnss_base.latitude, _gnss_base.longitude);
 }

@@ -22,6 +22,7 @@
 #define PROJECT_DSM_H
 
 #include <memory>
+#include <numeric>
 
 #include <eigen3/Eigen/Eigen>
 #include <opencv2/core.hpp>

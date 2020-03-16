@@ -3,7 +3,7 @@
 type: surface_generation
 queue_size: 5
 
-try_use_elevation: 1
+try_use_elevation: 0
 
 knn_radius_factor: 1.0
 

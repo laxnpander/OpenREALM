@@ -26,6 +26,7 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
 
 #include <realm_types/consts.h>
 #include <realm_types/enums.h>
