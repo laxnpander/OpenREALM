@@ -1,24 +1,12 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.2)
+project(OpenREALM)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-set(PROJECT_NAME OpenREALM)
-
-project(${PROJECT_NAME})
-
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
-ENDIF()
+# This is a toplevel CMake file which will be ignored by the catkin build system.
+# However, it is useful if you want to use CMake based IDEs like CLion for complete
+# indexing of all sources and header. 
+# ! Do not set any flags here !
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-#set(CMAKE_CXX_STANDARD 11)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_EXTENSIONS ON)
-
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SSE_FLAGS} -O2 -pthread -march=native")
-endif()
 
 add_subdirectory(realm_core)
 add_subdirectory(realm_densifier/realm_densifier_base)
