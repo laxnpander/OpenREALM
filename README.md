@@ -87,6 +87,15 @@ CUDA for stereo reconstruction with plane sweep lib
 
 -> Refer to https://developer.nvidia.com/cuda-downloads?target_os=Linux
 
+Please note, that installing CUDA can sometimes be troublesome. If you are facing an error like 
+```sh
+*fatal error: cuda_runtime.h: No such file or directory*
+```
+often times adding the CUDA directory to the .bashrc does the trick. If you use CUDA 9.0 for example, you should 
+```sh
+echo 'export CPATH=/usr/local/cuda-9.0/include:$CPATH' >> ~/.bashrc 
+```
+
 ## Installation
 
 Linux (tested with Ubuntu 18.04)
