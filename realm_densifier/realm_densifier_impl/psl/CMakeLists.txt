@@ -1,16 +1,19 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(psl)
 
+#-arch=compute_62 -code=sm_62
+
 find_package(catkin REQUIRED)
 find_package(CUDA REQUIRED)
-find_package(OpenCV 3.2)
+find_package(OpenCV 3.3.1 EXACT)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 find_package(cmake_modules REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Eigen3 REQUIRED)
 
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3 -use_fast_math -D_FORCE_INLINES)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CUDA_Helper.cmake)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 --generate-code ${CUDA_GENCODE} -use_fast_math -D_FORCE_INLINES)
 set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 set(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE OFF)
 
