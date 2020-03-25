@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(psl)
 
-#-arch=compute_62 -code=sm_62
-
 find_package(catkin REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(OpenCV 3.2)
