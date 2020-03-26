@@ -52,6 +52,9 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
 
 void Densification::addFrame(const Frame::Ptr &frame)
 {
+  // First update statistics about incoming frame rate
+  updateFpsStatisticsIncoming();
+
   // Check if frame and settings are fulfilled to process/densify incoming frames
   // if not, redirect to next stage
   if (   !frame->isKeyframe()
@@ -298,6 +301,9 @@ Densification::ProcessingElement Densification::getProcessingElement()
 
 void Densification::publish(const Frame::Ptr &frame, const cv::Mat &depthmap)
 {
+  // First update statistics about outgoing frame rate
+  updateFpsStatisticsOutgoing();
+
   _transport_frame(frame, "output/frame");
   _transport_pose(frame->getCamera().pose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose");
   _transport_img(frame->getResizedImageUndistorted(), "output/img_rectified");

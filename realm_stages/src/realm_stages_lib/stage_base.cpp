@@ -29,7 +29,11 @@ StageBase::StageBase(const std::string &name, const std::string &path, int queue
   _stage_name(name),
   _stage_path(path),
   _queue_size(queue_size),
-  _is_output_dir_initialized(false)
+  _is_output_dir_initialized(false),
+  _t_statistics_period(10),
+  _counter_frames_in(0),
+  _counter_frames_out(0),
+  _timer_statistics_fps(new Timer(std::chrono::seconds(_t_statistics_period), std::bind(&StageBase::evaluateFpsStatistic, this)))
 {
 }
 
@@ -48,7 +52,7 @@ void StageBase::initStagePath(const std::string &abs_path)
 
   // Init logging
   loguru::add_file((_stage_path + "/stage.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
-  LOG_F(INFO, "Successfully initialized!", _stage_name.c_str());
+  LOG_F(INFO, "Successfully initialized!");
   LOG_F(INFO, "Stage path set to: %s", _stage_path.c_str());
   printSettingsToLog();
 }
@@ -86,4 +90,34 @@ void StageBase::registerMeshTransport(const std::function<void(const std::vector
 void StageBase::registerCvGridMapTransport(const std::function<void(const CvGridMap &, uint8_t zone, char band, const std::string&)> &func)
 {
   _transport_cvgridmap = func;
+}
+
+void StageBase::setStatisticsPeriod(uint32_t s)
+{
+    std::unique_lock<std::mutex> lock(_mutex_statistics_fps);
+    _t_statistics_period = s;
+}
+
+void StageBase::updateFpsStatisticsIncoming()
+{
+    std::unique_lock<std::mutex> lock(_mutex_statistics_fps);
+    _counter_frames_in++;
+}
+
+void StageBase::updateFpsStatisticsOutgoing()
+{
+    std::unique_lock<std::mutex> lock(_mutex_statistics_fps);
+    _counter_frames_out++;
+}
+
+void StageBase::evaluateFpsStatistic()
+{
+    std::unique_lock<std::mutex> lock(_mutex_statistics_fps);
+    float fps_in = static_cast<float>(_counter_frames_in)/_t_statistics_period;
+    float fps_out = static_cast<float>(_counter_frames_out)/_t_statistics_period;
+
+    _counter_frames_in = 0;
+    _counter_frames_out = 0;
+
+    LOG_F(INFO, "FPS in: %f, out: %f", fps_in, fps_out);
 }

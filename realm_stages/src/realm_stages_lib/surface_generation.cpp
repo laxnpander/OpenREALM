@@ -39,6 +39,9 @@ SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &stage_set)
 
 void SurfaceGeneration::addFrame(const Frame::Ptr &frame)
 {
+  // First update statistics about incoming frame rate
+  updateFpsStatisticsIncoming();
+
   std::unique_lock<std::mutex> lock(_mutex_buffer);
   _buffer.push_back(frame);
   // Ringbuffer implementation
@@ -109,6 +112,8 @@ void SurfaceGeneration::reset()
 
 void SurfaceGeneration::publish(const Frame::Ptr &frame)
 {
+  // First update statistics about outgoing frame rate
+  updateFpsStatisticsOutgoing();
   _transport_frame(frame, "output/frame");
 }
 

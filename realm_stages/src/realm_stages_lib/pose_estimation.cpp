@@ -79,6 +79,9 @@ PoseEstimation::~PoseEstimation()
 
 void PoseEstimation::addFrame(const Frame::Ptr &frame)
 {
+  // First update statistics about incoming frame rate
+  updateFpsStatisticsIncoming();
+
   // Push to buffer for visual tracking
   if (_use_vslam)
     pushToBufferNoPose(frame);
@@ -111,7 +114,7 @@ bool PoseEstimation::process()
     // Grab frame from buffer with no poses
     Frame::Ptr frame = getNewFrameTracking();
 
-    LOG_F(INFO, "Processing frame #%i with timestamp %llu!", frame->getFrameId(), frame->getTimestamp());
+    LOG_F(INFO, "Processing frame #%i with timestamp %lu!", frame->getFrameId(), frame->getTimestamp());
 
     // Track current frame -> compute visual accurate pose
     track(frame);
@@ -235,10 +238,10 @@ void PoseEstimation::reset()
 
 bool PoseEstimation::changeParam(const std::string& name, const std::string &val)
 {
-  std::unique_lock<std::mutex> lock();
+  std::unique_lock<std::mutex> lock;
   if (name == "use_vslam")
   {
-    _use_vslam = (val == "true" || val == "1" ? true : false);
+    _use_vslam = (val == "true" || val == "1");
     return true;
   }
   return false;
@@ -502,7 +505,7 @@ void PoseEstimationIO::reset()
 
 void PoseEstimationIO::publishPose(const Frame::Ptr &frame)
 {
-  LOG_F(INFO, "Publishing pose of frame #%llu...", frame->getFrameId());
+  LOG_F(INFO, "Publishing pose of frame #%u...", frame->getFrameId());
 
   // Save trajectories
   if (_stage_handle->_settings_save.save_trajectory_gnss || _stage_handle->_settings_save.save_trajectory_visual)
@@ -526,11 +529,14 @@ void PoseEstimationIO::publishSurfacePoints(const Frame::Ptr &frame)
 
 void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 {
+  // First update statistics about outgoing frame rate
+  _stage_handle->updateFpsStatisticsOutgoing();
+
   // Two situation can occure, when publishing a frame is triggered
   // 1) Frame is marked as keyframe by the SLAM -> publish directly
   // 2) Frame is not marked as keyframe -> mostly in GNSS only situations.
-  LOG_IF_F(INFO, frame->isKeyframe(), "Publishing keyframe #%llu...", frame->getFrameId());
-  LOG_IF_F(INFO, !frame->isKeyframe(), "Publishing frame #%llu...", frame->getFrameId());
+  LOG_IF_F(INFO, frame->isKeyframe(), "Publishing keyframe #%u...", frame->getFrameId());
+  LOG_IF_F(INFO, !frame->isKeyframe(), "Publishing frame #%u...", frame->getFrameId());
 
   publishSurfacePoints(frame);
 
@@ -569,7 +575,7 @@ void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
 
   // Time until schedule
   long t_remain = ((long)dt) - (getCurrentTimeMilliseconds()-_t_ref.first);
-  LOG_F(INFO, "Scheduled publish frame #%llu in %4.2fs", frame->getFrameId(), (double)t_remain/1000);
+  LOG_F(INFO, "Scheduled publish frame #%u in %4.2fs", frame->getFrameId(), (double)t_remain/1000);
 }
 
 void PoseEstimationIO::publishScheduled()

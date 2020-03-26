@@ -57,6 +57,9 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set)
 
 void Mosaicing::addFrame(const Frame::Ptr &frame)
 {
+  // First update statistics about incoming frame rate
+  updateFpsStatisticsIncoming();
+
   if (frame->getObservedMap()->empty())
   {
     LOG_F(INFO, "Input frame missing observed map. Dropping!");
@@ -459,6 +462,9 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
 
 void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, const CvGridMap::Ptr &update, uint64_t timestamp)
 {
+  // First update statistics about outgoing frame rate
+  updateFpsStatisticsOutgoing();
+
   _transport_img((*_global_map)["color_rgb"], "output/rgb");
   _transport_img(analysis::convertToColorMapFromCVFC1((*_global_map)["elevation"],
                                                       (*_global_map)["valid"],

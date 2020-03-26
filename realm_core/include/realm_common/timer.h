@@ -28,7 +28,12 @@
 
 namespace realm {
 
-    class Timer {
+    class Timer
+    {
+    public:
+        using Ptr = std::shared_ptr<Timer>;
+        using ConstPtr = std::shared_ptr<const Timer>;
+
     public:
         explicit Timer(const std::chrono::milliseconds &period, const std::function<void()> &func);
         ~Timer();
