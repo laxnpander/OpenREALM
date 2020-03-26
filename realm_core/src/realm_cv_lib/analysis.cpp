@@ -18,6 +18,8 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <opencv2/imgproc/imgproc_c.h>
+
 #include <realm_cv/analysis.h>
 
 using namespace realm;

@@ -18,6 +18,11 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
+
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
+
 #include <realm_cv/mat_overwrite.h>
 
 void realm::addMat(const cv::Mat &from, const cv::Mat &to, cv::Mat &result, const int &flag)

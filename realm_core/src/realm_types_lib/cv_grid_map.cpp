@@ -18,6 +18,14 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
+#include <cmath>
+#include <opencv2/highgui.hpp>
+
+#include <realm_types/camera.h>
+#include <realm_types/structs.h>
+#include <realm_types/enums.h>
+
 #include <realm_types/cv_grid_map.h>
 
 using namespace realm;

@@ -18,6 +18,7 @@ catkin_package(
 ###################
 
 add_library(${PROJECT_NAME} SHARED
+        src/realm_common/timer.cpp
         src/realm_cv_lib/mat_overwrite.cpp
         src/realm_cv_lib/analysis.cpp
         src/realm_cv_lib/stereo.cpp

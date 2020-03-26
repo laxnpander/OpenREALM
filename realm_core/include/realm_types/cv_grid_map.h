@@ -21,18 +21,14 @@
 #ifndef PROJECT_CV_GRID_MAP_H
 #define PROJECT_CV_GRID_MAP_H
 
-#include <cmath>
 #include <vector>
-#include <iostream>
+#include <memory>
 
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
-#include <realm_types/camera.h>
-#include <realm_types/structs.h>
-#include <realm_types/consts.h>
-#include <realm_types/enums.h>
 #include <realm_cv/mat_overwrite.h>
+#include <realm_types/consts.h>
 
 namespace realm
 {

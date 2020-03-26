@@ -18,6 +18,9 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <eigen3/Eigen/Eigen>
+#include <opencv2/core.hpp>
+
 #include <realm_maths/plane_fitter.h>
 
 namespace realm

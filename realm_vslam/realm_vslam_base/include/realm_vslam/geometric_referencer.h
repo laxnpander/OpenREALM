@@ -27,6 +27,7 @@
 #include <realm_common/loguru.hpp>
 
 #include <realm_vslam/geospatial_referencer_IF.h>
+#include <realm_maths/plane_fitter.h>
 #include <realm_maths/sim2_solver.h>
 
 namespace realm

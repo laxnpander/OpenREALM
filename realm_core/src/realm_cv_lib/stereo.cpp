@@ -18,6 +18,9 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <opencv2/calib3d.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
+
 #include <realm_cv/stereo.h>
 
 void realm::stereo::computeRectification(const Frame::Ptr &frame_left,

@@ -22,8 +22,6 @@
 #define PROJECT_STEREO_H
 
 #include <opencv2/core.hpp>
-#include <opencv2/calib3d.hpp>
-#include <opencv2/imgproc/imgproc_c.h>
 
 #include <realm_types/frame.h>
 #include <realm_types/camera.h>

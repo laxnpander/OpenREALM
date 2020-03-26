@@ -21,9 +21,6 @@
 #ifndef PROJECT_PLANE_FITTER_H
 #define PROJECT_PLANE_FITTER_H
 
-#include <eigen3/Eigen/Eigen>
-#include <opencv2/core.hpp>
-
 #include <realm_types/structs.h>
 
 namespace realm

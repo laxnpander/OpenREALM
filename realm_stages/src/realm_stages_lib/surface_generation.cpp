@@ -18,6 +18,8 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <realm_common/loguru.hpp>
+
 #include <realm_stages/surface_generation.h>
 
 using namespace realm;

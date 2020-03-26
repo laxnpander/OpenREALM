@@ -21,6 +21,8 @@
 #define LOGURU_IMPLEMENTATION 1
 #include <realm_common/loguru.hpp>
 
+#include <functional>
+
 #include <realm_types/worker_thread_base.h>
 
 using namespace realm;

@@ -18,6 +18,8 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <eigen3/Eigen/Eigen>
+
 #include <realm_maths/se3_solver.h>
 
 using namespace realm;

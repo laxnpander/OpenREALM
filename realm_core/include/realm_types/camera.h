@@ -23,12 +23,9 @@
 
 #include <memory>
 #include <iostream>
-#include <cassert>
-
 #include <eigen3/Eigen/Eigen>
+
 #include <opencv2/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/calib3d.hpp>
 
 namespace realm
 {

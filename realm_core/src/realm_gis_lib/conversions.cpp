@@ -18,6 +18,8 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <gdal/ogr_spatialref.h>
+
 #include <realm_gis/conversions.h>
 
 using namespace realm;

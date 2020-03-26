@@ -21,10 +21,6 @@
 #ifndef PROJECT_GIS_CONVERSIONS_H
 #define PROJECT_GIS_CONVERSIONS_H
 
-#include <gdal/gdal_priv.h>
-#include <gdal/ogr_spatialref.h>
-#include <gdal/cpl_conv.h>
-
 #include <realm_types/utm32.h>
 #include <realm_types/wgs84.h>
 

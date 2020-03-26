@@ -18,6 +18,10 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cassert>
+
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include <realm_types/camera.h>
 
 namespace realm

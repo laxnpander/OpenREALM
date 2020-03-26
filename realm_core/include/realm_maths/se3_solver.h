@@ -21,7 +21,6 @@
 #ifndef PROJECT_SE3_SOLVER_H
 #define PROJECT_SE3_SOLVER_H
 
-#include <eigen3/Eigen/Eigen>
 #include <opencv2/core.hpp>
 
 #include <realm_maths/solver_IF.h>

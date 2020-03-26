@@ -21,14 +21,12 @@
 #ifndef PROJECT_WORKER_THREAD_H
 #define PROJECT_WORKER_THREAD_H
 
-#include <iostream>
-#include <functional>
 #include <thread>
 #include <chrono>
 #include <mutex>
 #include <string>
 
-#include <realm_common/loguru.hpp>
+
 
 namespace realm
 {
