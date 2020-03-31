@@ -12,12 +12,10 @@
 
     <build_depend>realm_core</build_depend>
     <build_depend>realm_io</build_depend>
-    <build_depend>libelas</build_depend>
     <build_depend>psl</build_depend>
 
     <run_depend>realm_core</run_depend>
     <run_depend>realm_io</run_depend>
-    <run_depend>libelas</run_depend>
     <run_depend>psl</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->

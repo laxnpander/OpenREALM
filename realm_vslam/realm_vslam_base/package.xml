@@ -14,13 +14,11 @@
   <build_depend>realm_io</build_depend>
   <build_depend>orb_slam_2</build_depend>
   <build_depend>svo_ros</build_depend>
-  <build_depend>dso</build_depend>
 
   <run_depend>realm_core</run_depend>
   <run_depend>realm_io</run_depend>
   <run_depend>orb_slam_2</run_depend>
   <run_depend>svo_ros</run_depend>
-  <run_depend>dso</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
