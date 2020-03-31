@@ -25,6 +25,35 @@ sudo apt install -y -q libpcl-dev
 sudo apt install -y -q exiv2 libexiv2-dev apt-utils
 
 # Pangolin
+echo "Step1"
+echo $(pwd)
+cd ~
+echo "Step2"
+echo $(pwd)
+mkdir Pangolin
+echo "Step3"
+echo $(pwd)
+cd Pangolin
+echo "Step4"
+echo $(pwd)
 git clone https://github.com/stevenlovegrove/Pangolin.git
-cd Pangolin && mkdir build && cd build && cmake ..
-make -j && sudo make install
+echo "Step5"
+echo $(pwd)
+cd Pangolin
+echo "Step6"
+echo $(pwd)
+mkdir build
+echo "Step7"
+echo $(pwd)
+cd build
+echo "Step8"
+echo $(pwd)
+cmake ..
+echo "Step9"
+echo $(pwd)
+make -j
+echo "Step10"
+echo $(pwd)
+sudo make install
+echo "Step11"
+echo $(pwd)
