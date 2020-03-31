@@ -47,39 +47,8 @@ ROS Melodic
 
 -> Refer to http://wiki.ros.org/melodic/Installation
 
-Pangolin for ORB SLAM 2
-
--> https://github.com/stevenlovegrove/Pangolin
-
-QT5 for RVIZ plugin
-
--> Refer to http://doc.qt.io/qt-5/qt5-intro.html
-
-Exiv2 installation from source for image reading and writing with meta infos
-
--> https://github.com/Exiv2/exiv2
-
-```sh
-# Catkin tools for build process
-sudo apt-get install python-catkin-tools
-
-# Additional ROS package dependencies
-sudo apt-get install ros-melody-geographic-msgs
-sudo apt-get install ros-melody-geodesy
-
-# Eigen3 for several linear algebra problems
-sudo apt-get install libeigen3-dev
-
-# Gdal library for conversions between UTM and WGS84
-sudo apt-get install gdal-bin
-
-# Cgal library for delauney 2.5D triangulation and mesh creation
-sudo apt-get install libcgal-dev
-sudo apt-get install libcgal-qt5-dev
-
-# PCL for writing point clouds and mesh data
-sudo apt-get install libpcl-dev
-```
+Please refer to the script ```install_deps.sh``` in order to install the core dependencies before
+going to the next step.
 
 ## Optional Dependencies
 
