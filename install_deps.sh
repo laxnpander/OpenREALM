@@ -24,8 +24,8 @@ sudo apt install -y -q libpcl-dev
 # Exiv2 for Exif tagging.
 sudo apt install -y -q exiv2 libexiv2-dev apt-utils
 
-# Used by Pangolin
-sudo apt install -y -q libglew-dev libxkbcommon-dev
+# Used by Pangolin/OpenGL
+sudo apt install -y -q libglew-dev libxkbcommon-dev libglu1-mesa-dev freeglut3-dev mesa-common-dev
 
 # Pangolin
 
