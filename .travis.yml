@@ -22,6 +22,7 @@ env:
     - ROS_REPO=ros
     - CCACHE_DIR=$HOME/.ccache # enables C/C++ caching in industrial_ci
     - BEFORE_INIT='sh ./install_deps.sh'
+    - UPSTREAM_WORKSPACE='github:iff-dronelab/custom_msgs'
   matrix: # each line is a job
     - ROS_DISTRO="kinetic"
     - ROS_DISTRO="melodic"
