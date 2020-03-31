@@ -32,4 +32,4 @@ sudo apt install -y -q libglew-dev libxkbcommon-dev
 cd ~ && mkdir Pangolin && cd Pangolin
 git clone https://github.com/stevenlovegrove/Pangolin.git
 cd Pangolin && mkdir build && cd build && cmake ..
-make -j && sudo make install
+make -j 1 && sudo make install
