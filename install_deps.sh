@@ -25,7 +25,7 @@ sudo apt install -y -q libpcl-dev
 sudo apt install -y -q exiv2 libexiv2-dev apt-utils
 
 # Used by Pangolin
-sudo apt install -y -q libglew-dev
+sudo apt install -y -q libglew-dev libxkbcommon-dev
 
 # Pangolin
 
