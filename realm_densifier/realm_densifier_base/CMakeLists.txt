@@ -18,7 +18,7 @@ find_package(OpenCV 3.2)
 
 catkin_package(
         INCLUDE_DIRS include
-        DEPENDS OpenCV ${DENSIFIER_LIBS}
+        DEPENDS OpenCV ${DENSIFIER_LIBS} realm_core realm_io
         LIBRARIES ${PROJECT_NAME}
 )
 

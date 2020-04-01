@@ -30,7 +30,7 @@ io::Exiv2FrameReader::Exiv2FrameReader(const FrameTags &tags)
 
 Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id, const camera::Pinhole &cam, const std::string &filepath)
 {
-  Exiv2::Image::UniquePtr exif_img = Exiv2::ImageFactory::open(filepath);
+  Exiv2ImagePointer exif_img = Exiv2::ImageFactory::open(filepath);
   if (exif_img.get())
   {
     // Read exif and xmp metadata

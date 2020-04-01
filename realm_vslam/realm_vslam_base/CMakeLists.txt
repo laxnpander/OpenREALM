@@ -42,6 +42,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} ${VSLAM_LIB}
+		DEPENDS realm_core realm_io ${VSLAM_LIB}
 )
 
 ###########

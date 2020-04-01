@@ -10,7 +10,6 @@ find_package(cmake_modules REQUIRED)
 # Fix to find Exiv2, otherwise it really causes some nerves
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 find_package(Exiv2 REQUIRED)
-
 find_package(GDAL REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS
@@ -20,6 +19,7 @@ find_package(Boost REQUIRED COMPONENTS
 catkin_package(
         INCLUDE_DIRS include ${PCL_INCLUDE_DIRS}
         LIBRARIES ${PROJECT_NAME}
+        DEPENDS realm_core
 )
 
 ###################

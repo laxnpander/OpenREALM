@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME}
-        DEPENDS realm_core realm_vslam_base realm_densifier_base realm_ortho
+        DEPENDS realm_core realm_io realm_vslam_base realm_densifier_base realm_ortho
 )
 
 ###################

@@ -11,11 +11,13 @@
   <buildtool_depend>catkin</buildtool_depend>
 
     <build_depend>realm_core</build_depend>
+    <build_depend>realm_io</build_depend>
     <build_depend>realm_vslam_base</build_depend>
     <build_depend>realm_densifier_base</build_depend>
     <build_depend>realm_ortho</build_depend>
 
     <run_depend>realm_core</run_depend>
+    <run_depend>realm_io</run_depend>
     <run_depend>realm_vslam_base</run_depend>
     <run_depend>realm_densifier_base</run_depend>
     <run_depend>realm_ortho</run_depend>

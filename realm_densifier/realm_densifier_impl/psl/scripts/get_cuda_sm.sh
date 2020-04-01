@@ -26,8 +26,6 @@ CUDA_CUDART_LIBRARY=${CUDA_CUDART_LIBRARY:-${cuda_root}/lib64/libcudart.so}
 generated_binary="/tmp/cuda-compute-version-helper-$$-$timestamp"
 
 # create a 'here document' that is code we compile and use to probe the card
-echo "Creating cuda helper to determine computation capability at ${generated_binary}..."
-
 source_code="$(cat << EOF 
 #include <stdio.h>
 #include <cuda_runtime_api.h>
@@ -36,8 +34,6 @@ int main()
         cudaDeviceProp prop;
         cudaError_t status;
         int device_count;
-
-        printf("Getting cuda device status...\n");
         status = cudaGetDeviceCount(&device_count);
         if (status != cudaSuccess) { 
                 fprintf(stderr,"cudaGetDeviceCount() failed: %s\n", cudaGetErrorString(status)); 
@@ -47,28 +43,21 @@ int main()
                 fprintf(stderr, "Specified device index %d exceeds the maximum (the device count on this system is %d)\n", ${device_index}, device_count);
                 return -1;
         }
-
-        printf("Getting cuda device properties...\n");
         status = cudaGetDeviceProperties(&prop, ${device_index});
         if (status != cudaSuccess) { 
                 fprintf(stderr,"cudaGetDeviceProperties() for device ${device_index} failed: %s\n", cudaGetErrorString(status)); 
                 return -1;
         }
         int v = prop.major * 10 + prop.minor;
-        printf("Computation capabilities arch_compute=%d,code=%d\\n", v, v);
-	return 0;
+        printf("%d\\n", v);
+	return v;
 }
 EOF
 )"
 
 # Make source code and make binary
-echo "Compiling cuda helper..."
-
-timeout 5s echo "$source_code" | $gcc_binary -x c++ -I"$CUDA_INCLUDE_DIRS" -o "$generated_binary" - -x none "$CUDA_CUDART_LIBRARY" || echo "Error: Compilation timed out..."
+echo "$source_code" | $gcc_binary -x c++ -I"$CUDA_INCLUDE_DIRS" -o "$generated_binary" - -x none "$CUDA_CUDART_LIBRARY"
 
 # Run binary and clean
-echo "Compilation successful. Running cuda helper..."
-
-timeout 5s $generated_binary || echo "Error: Executing cuda helper timed out. There might be a problem with your CUDA setup."
-
+$generated_binary
 rm $generated_binary

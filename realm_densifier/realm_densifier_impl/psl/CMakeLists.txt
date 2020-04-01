@@ -24,7 +24,6 @@ catkin_package(
         INCLUDE_DIRS include include/psl
         LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_cuda
         DEPENDS OpenCV Eigen3 Boost
-        LIBRARIES
 )
 
 ###################
