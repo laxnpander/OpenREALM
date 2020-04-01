@@ -7,6 +7,9 @@ sudo apt install -y -q python-catkin-tools
 # Additional ROS package dependencies
 sudo apt install -y -q ros-melodic-geographic-msgs
 sudo apt install -y -q ros-melodic-geodesy
+sudo apt install -y -q ros-melodic-cv-bridge
+sudo apt install -y -q ros-melodic-rviz
+sudo apt install -y -q ros-melodic-pcl-ros
 
 # Eigen3 for several linear algebra problems
 sudo apt install -y -q libeigen3-dev
