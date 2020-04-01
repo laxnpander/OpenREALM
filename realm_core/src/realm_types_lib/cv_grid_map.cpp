@@ -486,7 +486,7 @@ void CvGridMap::checkValid(const Layer &layer)
 
 void CvGridMap::checkInit()
 {
-  assert(!_size.empty());
+  assert(_size.width > 0 && _size.height > 0);
   assert(_roi.width > 0 && _roi.height > 0);
   assert(_resolution > 0.0);
 }
