@@ -12,11 +12,7 @@
 
   <build_depend>cmake_modules</build_depend>
 
-  <exec_depend>OpenCV</exec_depend>
   <exec_depend>cmake_modules</exec_depend>
-  <exec_depend>OpenGL</exec_depend>
-  <exec_depend>Glut</exec_depend>
-  <exec_depend>Pangolin</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

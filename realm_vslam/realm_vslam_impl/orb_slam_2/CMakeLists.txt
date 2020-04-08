@@ -16,7 +16,8 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} g2o DBoW2
-        DEPENDS OpenCV cmake_modules OpenGL GLUT Pangolin
+        CATKIN_DEPENDS cmake_modules
+        DEPENDS OpenCV OpenGL GLUT Pangolin Eigen3
 )
 
 ###########
