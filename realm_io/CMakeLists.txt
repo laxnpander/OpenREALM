@@ -79,5 +79,5 @@ install(
 install(
         DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-        FILES_MATCHING PATTERN "*.hpp"
+        FILES_MATCHING PATTERN "*.h"
 )
