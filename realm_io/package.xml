@@ -1,18 +1,30 @@
-<?xml version="1.0"?>
-<package>
+<package format="2">
     <name>realm_io</name>
     <version>1.0.0</version>
     <description>The realm_io package</description>
 
+    <author>Alexander Kern</author>
     <maintainer email="al.kern@tu-bs.de">laxn_pander</maintainer>
 
-    <license>TODO</license>
+    <license>GPL</license>
 
     <buildtool_depend>catkin</buildtool_depend>
 
     <build_depend>realm_core</build_depend>
+    <build_depend>OpenCV</build_depend>
+    <build_depend>cmake_modules</build_depend>
+    <build_depend>Exiv2</build_depend>
+    <build_depend>GDAL</build_depend>
+    <build_depend>PCL</build_depend>
+    <build_depend>Boost</build_depend>
 
-    <run_depend>realm_core</run_depend>
+    <exec_depend>realm_core</exec_depend>
+    <exec_depend>OpenCV</exec_depend>
+    <exec_depend>cmake_modules</exec_depend>
+    <exec_depend>Exiv2</exec_depend>
+    <exec_depend>GDAL</exec_depend>
+    <exec_depend>PCL</exec_depend>
+    <exec_depend>Boost</exec_depend>
 
     <!-- The export tag contains other, unspecified, tags -->
     <export>

@@ -1,22 +1,26 @@
-<?xml version="1.0"?>
-<package>
+<package format="2">
   <name>realm_densifier_base</name>
   <version>1.0.0</version>
   <description>The realm_densifier_base package</description>
 
+  <author>Alexander Kern</author>
   <maintainer email="al.kern@tu-bs.de">Alexander Kern</maintainer>
 
-  <license>TODO</license>
+  <license>GPL</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-    <build_depend>realm_core</build_depend>
-    <build_depend>realm_io</build_depend>
-    <build_depend>psl</build_depend>
+  <build_depend>realm_core</build_depend>
+  <build_depend>realm_io</build_depend>
+  <build_depend>psl</build_depend>
+  <build_depend>cmake_modules</build_depend>
+  <build_depend>OpenCV</build_depend>
 
-    <run_depend>realm_core</run_depend>
-    <run_depend>realm_io</run_depend>
-    <run_depend>psl</run_depend>
+  <exec_depend>realm_core</exec_depend>
+  <exec_depend>realm_io</exec_depend>
+  <exec_depend>psl</exec_depend>
+  <exec_depend>cmake_modules</exec_depend>
+  <exec_depend>OpenCV</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
  <export>

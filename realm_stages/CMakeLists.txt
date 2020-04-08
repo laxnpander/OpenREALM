@@ -5,6 +5,7 @@ find_package(OpenCV 3.2)
 find_package(cmake_modules REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
         realm_core
+        realm_io
         realm_vslam_base
         realm_densifier_base
         realm_ortho
@@ -13,7 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME}
-        DEPENDS realm_core realm_io realm_vslam_base realm_densifier_base realm_ortho
+        CATKIN_DEPENDS realm_core realm_io realm_vslam_base realm_densifier_base realm_ortho
+        DEPENDS OpenCV cmake_modules
 )
 
 ###################
@@ -42,3 +44,11 @@ target_link_libraries(${PROJECT_NAME}
         ${cmake_modules_LIBRARIES}
 )
 add_definitions(-std=c++11)
+
+#####################
+## Install Library ##
+#####################
+install(
+        DIRECTORY include/${PROJECT_NAME}
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

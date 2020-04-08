@@ -11,6 +11,7 @@ find_package(GDAL REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME}
+        DEPENDS OpenCV Eigen3 GDAL
 )
 
 ###################
@@ -47,3 +48,11 @@ target_link_libraries(${PROJECT_NAME}
         ${GDAL_LIBRARY}
 )
 add_definitions(-std=c++11)
+
+#####################
+## Install Library ##
+#####################
+install(
+        DIRECTORY include/realm_common include/realm_cv include/realm_gis include/realm_maths include/realm_types
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

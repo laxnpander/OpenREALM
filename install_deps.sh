@@ -5,11 +5,11 @@ sudo apt update
 sudo apt install -y -q python-catkin-tools
 
 # Additional ROS package dependencies
-sudo apt install -y -q ros-melodic-geographic-msgs
-sudo apt install -y -q ros-melodic-geodesy
-sudo apt install -y -q ros-melodic-cv-bridge
-sudo apt install -y -q ros-melodic-rviz
-sudo apt install -y -q ros-melodic-pcl-ros
+sudo apt install -y -q ros-$ROS_DISTRO-geographic-msgs
+sudo apt install -y -q ros-$ROS_DISTRO-geodesy
+sudo apt install -y -q ros-$ROS_DISTRO-cv-bridge
+sudo apt install -y -q ros-$ROS_DISTRO-rviz
+sudo apt install -y -q ros-$ROS_DISTRO-pcl-ros
 
 # Eigen3 for several linear algebra problems
 sudo apt install -y -q libeigen3-dev
@@ -35,4 +35,4 @@ sudo apt install -y -q libglew-dev libxkbcommon-dev libglu1-mesa-dev freeglut3-d
 cd ~ && mkdir Pangolin && cd Pangolin
 git clone https://github.com/stevenlovegrove/Pangolin.git
 cd Pangolin && mkdir build && cd build && cmake ..
-make -j 1 && sudo make install
+make -j $(nproc --all) && sudo make install

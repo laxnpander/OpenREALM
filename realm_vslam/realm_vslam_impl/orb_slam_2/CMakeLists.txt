@@ -16,6 +16,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} g2o DBoW2
+        DEPENDS OpenCV cmake_modules OpenGL GLUT Pangolin Eigen3
 )
 
 ###########
@@ -138,3 +139,11 @@ target_link_libraries(${PROJECT_NAME}
         ${cmake_modules_LIBRARIES}
         )
 add_definitions(-std=c++11)
+
+#####################
+## Install Library ##
+#####################
+install(
+        DIRECTORY ${DBoW2_INCLUDE_DIRS} ${g2o_INCLUDE_DIRS} include include/ORB_SLAM2
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

@@ -1,4 +1,4 @@
-<package>
+<package format="2">
   <name>realm_rviz_plugin</name>
   <version>1.0.0</version>
   <description>
@@ -10,10 +10,18 @@
   <author>Hannes Harms</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+
   <build_depend>rviz</build_depend>
   <build_depend>cv_bridge</build_depend>
+  <build_depend>geographic_msgs</build_depend>
+  <build_depend>geodesy</build_depend>
   <build_depend>realm_msgs</build_depend>
-  <run_depend>rviz</run_depend>
+
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>geographic_msgs</exec_depend>
+  <exec_depend>geodesy</exec_depend>
+  <exec_depend>realm_msgs</exec_depend>
 
   <export>
       <rviz plugin="${prefix}/plugin_description.xml"/>

@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
         realm_core
         realm_io
         realm_stages
-        )
+)
 
 find_package(OpenCV 3.2)
 find_package(cmake_modules REQUIRED)
@@ -25,7 +25,9 @@ find_package(cmake_modules REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME}
-        DEPENDS realm_msgs realm_core realm_io realm_stages
+        CATKIN_DEPENDS roscpp roslib pcl_ros geodesy cv_bridge tf tf_geometry_msgs std_msgs nav_msgs sensor_msgs
+                        geographic_msgs realm_msgs realm_core realm_io realm_stages
+        DEPENDS OpenCV cmake_modules
 )
 
 ###################
@@ -59,13 +61,21 @@ add_definitions(-std=c++11)
 
 add_executable(realm_exiv2_grabber src/grabber_exiv2_node_main.cpp)
 add_dependencies(realm_exiv2_grabber ${catkin_EXPORTED_TARGETS})
-target_link_libraries(realm_exiv2_grabber ${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(realm_exiv2_grabber ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${cmake_modules_LIBRARIES})
 
 add_executable(realm_stage_node src/stage_node_main.cpp)
 add_dependencies(realm_stage_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(realm_stage_node ${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(realm_stage_node ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${cmake_modules_LIBRARIES})
 
 ## Compile Orb vocabulary
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tools)
 #add_executable(bin_vocabulary tools/bin_vocabulary.cc)
 #target_link_libraries(bin_vocabulary ${PROJECT_NAME} ${catkin_LIBRARIES})
+
+#####################
+## Install Library ##
+#####################
+install(
+        DIRECTORY include/${PROJECT_NAME}
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

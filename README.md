@@ -41,14 +41,16 @@ but at the moment I won't recommend to use it on any other.
 
 ## Dependencies
 
-Linux (tested with Ubuntu 18.04)
+Linux:
 
-ROS Melodic
+-> Ubuntu 16.04 with ROS Kinetic
 
--> Refer to http://wiki.ros.org/melodic/Installation
+-> Ubuntu 18.04 with ROS Melodic
 
-Please refer to the script ```install_deps.sh``` in order to install the core dependencies before
-going to the next step.
+For ROS installation please refer to: http://wiki.ros.org/
+
+Other dependencies are installed using the  ```install_deps.sh``` script. Do not proceed to the next step before 
+you executed this script.
 
 ## Optional Dependencies
 
@@ -67,7 +69,7 @@ echo 'export CPATH=/usr/local/cuda-9.0/include:$CPATH' >> ~/.bashrc
 
 ## Installation
 
-Linux (tested with Ubuntu 18.04)
+Linux (both Ubuntu 16.04 and 18.04)
 
 ```sh
 # Create and init a catkin workspace

@@ -18,7 +18,8 @@ find_package(OpenCV 3.2)
 
 catkin_package(
         INCLUDE_DIRS include
-        DEPENDS OpenCV ${DENSIFIER_LIBS} realm_core realm_io
+        CATKIN_DEPENDS cmake_modules realm_core realm_io ${DENSIFIER_LIBS}
+        DEPENDS OpenCV
         LIBRARIES ${PROJECT_NAME}
 )
 
@@ -47,3 +48,11 @@ target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
         )
 add_definitions(-std=c++11)
+
+#####################
+## Install Library ##
+#####################
+install(
+        DIRECTORY include/realm_densifier
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

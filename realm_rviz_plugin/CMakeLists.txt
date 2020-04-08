@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(realm_rviz_plugin)
 find_package(catkin REQUIRED COMPONENTS rviz cv_bridge geographic_msgs geodesy realm_msgs)
-
+find_package(OpenCV 3.2 REQUIRED)
 find_package(PCL 1.7 REQUIRED) 
 
-catkin_package()
+catkin_package(
+		LIBRARIES ${PROJECT_NAME}
+		DEPENDS OpenCV PCL
+		CATKIN_DEPENDS rviz cv_bridge geographic_msgs geodesy realm_msgs
+)
 
 include_directories(${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
@@ -31,7 +35,7 @@ set(SOURCE_FILES
 )
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} ${QT_LIBRARIES} ${catkin_LIBRARIES})
 
 add_dependencies(${PROJECT_NAME}
 	realm_msgs_generate_messages_cpp
@@ -44,13 +48,15 @@ add_executable(ground_image_test_node
 add_dependencies(ground_image_test_node
 	realm_msgs_generate_messages_cpp
 )
+target_link_libraries(ground_image_test_node
+		${catkin_LIBRARIES}
+		${OpenCV_LIBRARIES}
+		${PCL_LIBRARIES}
+		)
+
 
 add_definitions(-std=c++11)
 
-target_link_libraries(ground_image_test_node
-	${catkin_LIBRARIES}
-	${PCL_LIBRARIES}
-)
 
 
 install(TARGETS

@@ -1,12 +1,12 @@
-<?xml version="1.0"?>
-<package>
+<package format="2">
   <name>realm_ros</name>
   <version>1.0.0</version>
   <description>The realm_ros package</description>
 
+  <author>Alexander Kern</author>
   <maintainer email="al.kern@tu-bs.de">laxn_pander</maintainer>
 
-  <license>TODO</license>
+  <license>GPL</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -18,28 +18,34 @@
   <build_depend>geodesy</build_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>tf</build_depend>
+  <build_depend>tf_geometry_msgs</build_depend>
   <build_depend>geographic_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>realm_msgs</build_depend>
   <build_depend>realm_core</build_depend>
   <build_depend>realm_io</build_depend>
   <build_depend>realm_stages</build_depend>
+  <build_depend>OpenCV</build_depend>
+  <build_depend>cmake_modules</build_depend>
 
-  <run_depend>roscpp</run_depend>
-  <run_depend>roslib</run_depend>
-  <run_depend>pcl_ros</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>nav_msgs</run_depend>
-  <run_depend>geodesy</run_depend>
-  <run_depend>cv_bridge</run_depend>
-  <run_depend>tf</run_depend>
-  <run_depend>geographic_msgs</run_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <run_depend>custom_msgs</run_depend>
-  <run_depend>realm_msgs</run_depend>
-  <run_depend>realm_core</run_depend>
-  <run_depend>realm_io</run_depend>
-  <run_depend>realm_stages</run_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>roslib</exec_depend>
+  <exec_depend>pcl_ros</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geodesy</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>tf</exec_depend>
+  <exec_depend>tf_geometry_msgs</exec_depend>
+  <exec_depend>geographic_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>custom_msgs</exec_depend>
+  <exec_depend>realm_msgs</exec_depend>
+  <exec_depend>realm_core</exec_depend>
+  <exec_depend>realm_io</exec_depend>
+  <exec_depend>realm_stages</exec_depend>
+  <exec_depend>OpenCV</exec_depend>
+  <exec_depend>cmake_modules</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
  <export>

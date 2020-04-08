@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/image_encodings.h>
@@ -76,7 +77,7 @@ int main(int argc, char** argv) {
     pub = nh.advertise<realm_msgs::GroundImageCompressed>("camera/ground_image", 1);
 	ros::Subscriber sub = nh.subscribe("/stitched_image", 1000, stickCallback);
 
-	cv::Mat image = cv::imread("/home/blume/Bilder/231.png", CV_LOAD_IMAGE_UNCHANGED);
+	cv::Mat image = cv::imread("/home/blume/Bilder/231.png", cv::IMREAD_UNCHANGED);
 
 	std::cout << "Channels "<< image.channels() << std::endl;
 

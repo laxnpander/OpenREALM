@@ -27,8 +27,7 @@
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/xphoto.hpp>
-#include <opencv2/ximgproc.hpp>
+#include <opencv2/photo.hpp>
 
 #include <realm_stages/stage_base.h>
 #include <realm_stages/stage_settings.h>

@@ -23,7 +23,7 @@ add_definitions(-std=c++11)
 catkin_package(
         INCLUDE_DIRS include include/psl
         LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_cuda
-        DEPENDS OpenCV Eigen3 Boost
+        DEPENDS CUDA OpenCV Boost Eigen3 cmake_modules
 )
 
 ###################
@@ -88,3 +88,11 @@ target_link_libraries(${PROJECT_NAME}
         ${cmake_modules_LIBRARIES}
 )
 add_definitions(-std=c++11)
+
+#####################
+## Install Library ##
+#####################
+install(
+        DIRECTORY include/psl
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

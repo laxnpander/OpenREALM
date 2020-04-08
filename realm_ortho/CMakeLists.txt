@@ -15,7 +15,8 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME}
-        DEPENDS realm_core realm_io
+        CATKIN_DEPENDS realm_core realm_io
+        DEPENDS OpenCV CGAL cmake_modules Eigen3
 )
 
 ###################
@@ -42,3 +43,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${cmake_modules_INCLUDE_DIRS}
         )
 add_definitions(-std=c++11)
+
+#####################
+## Install Library ##
+#####################
+install(
+        DIRECTORY include/${PROJECT_NAME}
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

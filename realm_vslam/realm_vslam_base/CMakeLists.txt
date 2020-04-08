@@ -42,7 +42,8 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} ${VSLAM_LIB}
-		DEPENDS realm_core realm_io ${VSLAM_LIB}
+		CATKIN_DEPENDS realm_core realm_io ${VSLAM_LIB}
+		DEPENDS OpenCV cmake_modules Eigen3
 )
 
 ###########
@@ -69,3 +70,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         ${EIGEN3_INCLUDE_DIR}
 )
 add_definitions(-std=c++11)
+
+#####################
+## Install Library ##
+#####################
+install(
+		DIRECTORY include/realm_vslam
+		DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

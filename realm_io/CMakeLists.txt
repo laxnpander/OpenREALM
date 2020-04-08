@@ -19,7 +19,8 @@ find_package(Boost REQUIRED COMPONENTS
 catkin_package(
         INCLUDE_DIRS include ${PCL_INCLUDE_DIRS}
         LIBRARIES ${PROJECT_NAME}
-        DEPENDS realm_core
+        CATKIN_DEPENDS realm_core
+        DEPENDS OpenCV cmake_modules Exiv2 GDAL PCL Boost
 )
 
 ###################
@@ -61,3 +62,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 add_definitions(-std=c++11)
 add_definitions(${PCL_DEFINITIONS})
+
+#####################
+## Install Library ##
+#####################
+install(
+        DIRECTORY include/${PROJECT_NAME}
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
