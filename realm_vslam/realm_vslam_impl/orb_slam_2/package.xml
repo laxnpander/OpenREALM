@@ -9,13 +9,8 @@
   <license>GPL</license>
 
   <buildtool_depend>catkin</buildtool_depend>
-
-  <build_depend>OpenCV</build_depend>
+  
   <build_depend>cmake_modules</build_depend>
-  <build_depend>OpenGL</build_depend>
-  <build_depend>Glut</build_depend>
-  <build_depend>Pangolin</build_depend>
-  <build_depend>Eigen3</build_depend>
 
   <exec_depend>OpenCV</exec_depend>
   <exec_depend>cmake_modules</exec_depend>

@@ -13,9 +13,7 @@
   <build_depend>realm_core</build_depend>
   <build_depend>realm_io</build_depend>
   <build_depend>orb_slam_2</build_depend>
-  <build_depend>OpenCV</build_depend>
   <build_depend>cmake_modules</build_depend>
-  <build_depend>Eigen3</build_depend>
 
   <exec_depend>realm_core</exec_depend>
   <exec_depend>realm_io</exec_depend>

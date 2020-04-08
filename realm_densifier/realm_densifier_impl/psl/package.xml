@@ -10,10 +10,6 @@
 
     <buildtool_depend>catkin</buildtool_depend>
 
-    <build_depend>CUDA</build_depend>
-    <build_depend>OpenCV</build_depend>
-    <build_depend>Boost</build_depend>
-    <build_depend>Eigen3</build_depend>
     <build_depend>cmake_modules</build_depend>
 
     <exec_depend>CUDA</exec_depend>

@@ -11,12 +11,7 @@
     <buildtool_depend>catkin</buildtool_depend>
 
     <build_depend>realm_core</build_depend>
-    <build_depend>OpenCV</build_depend>
     <build_depend>cmake_modules</build_depend>
-    <build_depend>Exiv2</build_depend>
-    <build_depend>GDAL</build_depend>
-    <build_depend>PCL</build_depend>
-    <build_depend>Boost</build_depend>
 
     <exec_depend>realm_core</exec_depend>
     <exec_depend>OpenCV</exec_depend>

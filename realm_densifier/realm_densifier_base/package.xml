@@ -14,7 +14,6 @@
   <build_depend>realm_io</build_depend>
   <build_depend>psl</build_depend>
   <build_depend>cmake_modules</build_depend>
-  <build_depend>OpenCV</build_depend>
 
   <exec_depend>realm_core</exec_depend>
   <exec_depend>realm_io</exec_depend>
