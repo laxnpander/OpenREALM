@@ -23,7 +23,8 @@ add_definitions(-std=c++11)
 catkin_package(
         INCLUDE_DIRS include include/psl
         LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_cuda
-        DEPENDS CUDA OpenCV Boost Eigen3 cmake_modules
+        CATKIN_DEPENDS cmake_modules
+        DEPENDS CUDA OpenCV Boost Eigen3
 )
 
 ###################

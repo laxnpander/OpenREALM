@@ -12,10 +12,6 @@
 
     <build_depend>cmake_modules</build_depend>
 
-    <exec_depend>CUDA</exec_depend>
-    <exec_depend>OpenCV</exec_depend>
-    <exec_depend>Boost</exec_depend>
-    <exec_depend>Eigen3</exec_depend>
     <exec_depend>cmake_modules</exec_depend>
 
     <!-- The export tag contains other, unspecified, tags -->

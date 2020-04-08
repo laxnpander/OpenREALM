@@ -15,7 +15,6 @@
     <build_depend>realm_vslam_base</build_depend>
     <build_depend>realm_densifier_base</build_depend>
     <build_depend>realm_ortho</build_depend>
-    <build_depend>OpenCV</build_depend>
     <build_depend>cmake_modules</build_depend>
 
     <exec_depend>realm_core</exec_depend>
@@ -23,7 +22,6 @@
     <exec_depend>realm_vslam_base</exec_depend>
     <exec_depend>realm_densifier_base</exec_depend>
     <exec_depend>realm_ortho</exec_depend>
-    <exec_depend>OpenCV</exec_depend>
     <exec_depend>cmake_modules</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->

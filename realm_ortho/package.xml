@@ -16,10 +16,7 @@
 
   <exec_depend>realm_io</exec_depend>
   <exec_depend>realm_core</exec_depend>
-  <exec_depend>OpenCV</exec_depend>
-  <exec_depend>CGAL</exec_depend>
   <exec_depend>cmake_modules</exec_depend>
-  <exec_depend>Eigen3</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
