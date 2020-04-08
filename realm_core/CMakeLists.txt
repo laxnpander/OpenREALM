@@ -4,8 +4,14 @@ project(realm_core)
 find_package(catkin REQUIRED)
 find_package(OpenCV 3.2)
 
+# Solution to find Eigen3 with Saucy.
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 QUIET)
+if(NOT EIGEN3_FOUND)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(EIGEN3 REQUIRED eigen3)
+    set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
+endif()
 find_package(GDAL REQUIRED)
 
 catkin_package(
@@ -64,7 +70,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include
+        DIRECTORY include include/realm_common include/realm_cv include/realm_gis include/realm_maths include/realm_types
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )

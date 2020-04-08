@@ -8,7 +8,12 @@ find_package(Boost REQUIRED COMPONENTS system filesystem)
 find_package(cmake_modules REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 QUIET)
+if(NOT EIGEN3_FOUND)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(EIGEN3 REQUIRED eigen3)
+    set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
+endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CUDA_Helper.cmake)
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3 --generate-code ${CUDA_GENCODE} -use_fast_math -D_FORCE_INLINES)
