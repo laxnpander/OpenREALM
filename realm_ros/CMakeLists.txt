@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
         geodesy
         cv_bridge
         tf
-        tf2_geometry_msgs
         std_msgs
         nav_msgs
         sensor_msgs
@@ -25,9 +24,9 @@ find_package(cmake_modules REQUIRED)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME}
-        CATKIN_DEPENDS roscpp roslib pcl_ros geodesy cv_bridge tf tf_geometry_msgs std_msgs nav_msgs sensor_msgs
-                        geographic_msgs realm_msgs realm_core realm_io realm_stages
-        DEPENDS OpenCV cmake_modules
+        CATKIN_DEPENDS roscpp roslib pcl_ros geodesy cv_bridge tf std_msgs nav_msgs sensor_msgs
+                        geographic_msgs realm_msgs realm_core realm_io realm_stages cmake_modules
+        DEPENDS OpenCV
 )
 
 ###################

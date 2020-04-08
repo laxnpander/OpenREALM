@@ -18,7 +18,6 @@
   <build_depend>geodesy</build_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>tf</build_depend>
-  <build_depend>tf_geometry_msgs</build_depend>
   <build_depend>geographic_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>realm_msgs</build_depend>
@@ -35,7 +34,6 @@
   <exec_depend>geodesy</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>tf</exec_depend>
-  <exec_depend>tf_geometry_msgs</exec_depend>
   <exec_depend>geographic_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>custom_msgs</exec_depend>
