@@ -25,6 +25,13 @@ catkin_package(
 ## Build Library ##
 ###################
 
+include_directories(
+        include
+        ${catkin_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
+        ${EIGEN3_INCLUDE_DIRS}
+        ${GDAL_INCLUDE_DIR}
+)
 add_library(${PROJECT_NAME} SHARED
         src/realm_common/timer.cpp
         src/realm_cv_lib/mat_overwrite.cpp
@@ -42,13 +49,6 @@ add_library(${PROJECT_NAME} SHARED
         src/realm_maths_lib/se3_solver.cpp
         src/realm_maths_lib/plane_fitter.cpp
         )
-target_include_directories(${PROJECT_NAME} PUBLIC
-        include
-        ${catkin_INCLUDE_DIRS}
-        ${OpenCV_INCLUDE_DIRS}
-        ${EIGEN3_INCLUDE_DIRS}
-        ${GDAL_INCLUDE_DIR}
-)
 target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
         ${OpenCV_LIBRARIES}
