@@ -70,7 +70,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include include/realm_common include/realm_cv include/realm_gis include/realm_maths include/realm_types
+        DIRECTORY include/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )
