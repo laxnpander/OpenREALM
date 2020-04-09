@@ -32,7 +32,7 @@ include_directories(
         ${EIGEN3_INCLUDE_DIRS}
         ${GDAL_INCLUDE_DIR}
 )
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME}
         src/realm_common/timer.cpp
         src/realm_cv_lib/mat_overwrite.cpp
         src/realm_cv_lib/analysis.cpp
