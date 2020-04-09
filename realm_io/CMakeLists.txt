@@ -37,6 +37,8 @@ include_directories(
         ${Exiv2_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
         ${cmake_modules_INCLUDE_DIR}
+        ${realm_core_INCLUDE_DIR}
+        ${realm_core_INCLUDE_DIRS}
 )
 add_library(${PROJECT_NAME} SHARED
         src/realm_io_lib/exif_export.cpp
