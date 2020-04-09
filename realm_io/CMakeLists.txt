@@ -40,6 +40,10 @@ include_directories(
         ${realm_core_INCLUDE_DIR}
         ${realm_core_INCLUDE_DIRS}
 )
+message ("HI*****************************")
+message( ${realm_core_INCLUDE_DIR} )
+message( ${realm_core_INCLUDE_DIRS} )
+message ("HI*****************************")
 add_library(${PROJECT_NAME}
         src/realm_io_lib/exif_export.cpp
         src/realm_io_lib/exif_import.cpp
