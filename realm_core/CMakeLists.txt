@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 2.8.3)
 project(realm_core)
 
 find_package(catkin REQUIRED)
-find_package(OpenCV 3.2)
+find_package(OpenCV 3)
 
 # Solution to find Eigen3 with Saucy.
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Eigen3 QUIET)
+find_package(EIGEN3 QUIET)
 if(NOT EIGEN3_FOUND)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(EIGEN3 REQUIRED eigen3)
@@ -18,7 +18,7 @@ catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME}
         CATKIN_DEPENDS cmake_modules
-        DEPENDS OpenCV Eigen3 GDAL
+        DEPENDS OpenCV EIGEN3 GDAL
 )
 
 ###################
@@ -32,7 +32,7 @@ include_directories(
         ${EIGEN3_INCLUDE_DIRS}
         ${GDAL_INCLUDE_DIR}
 )
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
         src/realm_common/timer.cpp
         src/realm_cv_lib/mat_overwrite.cpp
         src/realm_cv_lib/analysis.cpp
@@ -54,7 +54,10 @@ target_link_libraries(${PROJECT_NAME}
         ${OpenCV_LIBRARIES}
         ${GDAL_LIBRARY}
 )
-add_definitions(-std=c++11)
+add_definitions(
+        -std=c++11
+        -Wno-deprecated-declarations
+)
 
 #####################
 ## Install Library ##

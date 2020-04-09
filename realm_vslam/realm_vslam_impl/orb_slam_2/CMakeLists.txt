@@ -3,7 +3,7 @@ project(orb_slam_2)
 
 # GENERAL REQUIRED
 find_package(catkin REQUIRED)
-find_package(OpenCV 3.2)
+find_package(OpenCV 3)
 find_package(cmake_modules REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
@@ -11,7 +11,7 @@ find_package(Pangolin REQUIRED)
 
 #fix to find eigen3
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
-find_package(Eigen3 QUIET)
+find_package(EIGEN3 QUIET)
 if(NOT EIGEN3_FOUND)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(EIGEN3 REQUIRED eigen3)
@@ -22,7 +22,7 @@ catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} g2o DBoW2
         CATKIN_DEPENDS cmake_modules
-        DEPENDS OpenCV OpenGL GLUT Pangolin Eigen3
+        DEPENDS OpenCV Pangolin EIGEN3
 )
 
 ###########
@@ -31,8 +31,24 @@ catkin_package(
 
 set(THIRDPARTY_LIBRARIES pangolin)
 
+include_directories(
+        include
+        include/DBoW2/DBoW2
+        include/DBoW2/DUtils
+        include/ORB_SLAM2/
+        ${EIGEN3_INCLUDE_DIRS}
+        "include/g2o/g2o/core"
+        "include/g2o/g2o/types"
+        "include/g2o/g2o/stuff"
+        ${OpenCV_INCLUDE_DIRS}
+        ${OpenGL_INCLUDE_DIRS}
+        ${GLUT_INCLUDE_DIRS}
+        ${Pangolin_INCLUDE_DIRS}
+        ${cmake_modules_INCLUDE_DIRS}
+)
+
 ## g2o Library shared
-add_library(g2o SHARED
+add_library(g2o
         #types
         src/g2o_lib/types/types_sba.cpp
         src/g2o_lib/types/types_six_dof_expmap.cpp
@@ -66,19 +82,13 @@ add_library(g2o SHARED
         src/g2o_lib/stuff/string_tools.cpp
         src/g2o_lib/stuff/property.cpp
         )
-target_include_directories(g2o PUBLIC
-        "include/g2o/g2o/core"
-        "include/g2o/g2o/types"
-        "include/g2o/g2o/stuff"
-        ${EIGEN3_INCLUDE_DIRS}
-        )
 set_target_properties(g2o PROPERTIES
-        CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native "
-        CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native"
+        CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native " -Wno-deprecated-declarations
+        CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native" -Wno-deprecated-declarations
         )
 
-## DBoW2 Library shared
-add_library(DBoW2 SHARED
+## DBoW2 Library
+add_library(DBoW2
         src/DBoW2_lib/DBoW2/BowVector.cpp
         src/DBoW2_lib/DBoW2/FORB.cpp
         src/DBoW2_lib/DBoW2/FeatureVector.cpp
@@ -86,20 +96,14 @@ add_library(DBoW2 SHARED
         src/DBoW2_lib/DUtils/Random.cpp
         src/DBoW2_lib/DUtils/Timestamp.cpp
         )
-target_include_directories(DBoW2 PUBLIC
-        include
-        include/DBoW2/DBoW2
-        include/DBoW2/DUtils
-        ${EIGEN3_INCLUDE_DIRS}
-        )
 target_link_libraries(DBoW2 ${OpenCV_LIBS})
 set_target_properties(DBoW2 PROPERTIES
-        CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native "
-        CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native"
+        CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native " -Wno-deprecated-declarations
+        CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native" -Wno-deprecated-declarations
         )
 
 ## ORB_SLAM2 Library
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
         src/ORB_SLAM2_lib/Converter.cc
         src/ORB_SLAM2_lib/Frame.cc
         src/ORB_SLAM2_lib/FrameDrawer.cc
@@ -120,18 +124,6 @@ add_library(${PROJECT_NAME}
         src/ORB_SLAM2_lib/Tracking.cc
         src/ORB_SLAM2_lib/Viewer.cc
         )
-target_include_directories(${PROJECT_NAME} PUBLIC
-        include
-        include/ORB_SLAM2/
-        ${EIGEN3_INCLUDE_DIRS}
-        ${g2o_INCLUDE_DIRS}
-        ${DBoW2_INCLUDE_DIRS}
-        ${OpenCV_INCLUDE_DIRS}
-        ${OpenGL_INCLUDE_DIRS}
-        ${GLUT_INCLUDE_DIRS}
-        ${Pangolin_INCLUDE_DIRS}
-        ${cmake_modules_INCLUDE_DIRS}
-        )
 target_link_libraries(${PROJECT_NAME}
         ${DBoW2_LIBRARIES}
         ${g2o_LIBRARIES}
@@ -144,7 +136,10 @@ target_link_libraries(${PROJECT_NAME}
         ${Pangolin_LIBRARIES}
         ${cmake_modules_LIBRARIES}
         )
-add_definitions(-std=c++11)
+add_definitions(
+        -std=c++11
+        -Wno-deprecated-declarations
+        )
 
 #####################
 ## Install Library ##

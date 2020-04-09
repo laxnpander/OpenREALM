@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(realm_stages)
 
-find_package(OpenCV 3.2)
+find_package(OpenCV 3)
 find_package(cmake_modules REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
         realm_core
@@ -22,6 +22,12 @@ catkin_package(
 ## Build Library ##
 ###################
 
+include_directories(
+        include
+        ${catkin_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
+        ${cmake_modules_INCLUDE_DIRS}
+)
 add_library(${PROJECT_NAME} SHARED
         src/realm_stages_lib/stage_base.cpp
         src/realm_stages_lib/conversions.cpp
@@ -32,18 +38,14 @@ add_library(${PROJECT_NAME} SHARED
         src/realm_stages_lib/ortho_rectification.cpp
         src/realm_stages_lib/mosaicing.cpp
         )
-target_include_directories(${PROJECT_NAME} PUBLIC
-        include
-        ${catkin_INCLUDE_DIRS}
-        ${OpenCV_INCLUDE_DIRS}
-        ${cmake_modules_INCLUDE_DIRS}
-)
 target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
-        ${OpenCV_LIBRARIES}
         ${cmake_modules_LIBRARIES}
+        ${OpenCV_LIBRARIES}
 )
-add_definitions(-std=c++11)
+add_definitions(
+        -std=c++11
+)
 
 #####################
 ## Install Library ##
@@ -59,7 +61,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include
+        DIRECTORY include/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )

@@ -31,7 +31,7 @@
 
 #include <realm_stages/stage_base.h>
 #include <realm_stages/stage_settings.h>
-#include "conversions.h"
+#include <realm_stages/conversions.h>
 #include <realm_io/cv_export.h>
 #include <realm_cv/stereo.h>
 #include <realm_types/cv_grid_map.h>

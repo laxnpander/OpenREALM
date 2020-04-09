@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(realm_densifier_base)
 
+find_package(CUDA QUIET)
+if(CUDA_FOUND)
+    message(STATUS "CUDA found. Compiling densification with CUDA support...\n")
+    set(DENSIFIER_WITH_CUDA True)
+else(NOT CUDA_FOUND)
+    message(STATUS "CUDA not found. Skipping PSL package...\n")
+    set(DENSIFIER_WITH_CUDA False)
+endif()
+
 IF (DENSIFIER_WITH_CUDA)
     add_definitions(-DUSE_CUDA)
     list(APPEND DENSIFIER_LIBS psl)
@@ -14,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
         ${DENSIFIER_LIBS}
         )
 
-find_package(OpenCV 3.2)
+find_package(OpenCV 3)
 
 catkin_package(
         INCLUDE_DIRS include
@@ -35,13 +44,13 @@ list(APPEND DENSIFIER_SOURCES
         )
 
 ## realm densifier
-add_library(${PROJECT_NAME}
-        ${DENSIFIER_SOURCES}
-        )
-target_include_directories(${PROJECT_NAME} PUBLIC
+include_directories(
         include
         ${OpenCV_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
+)
+add_library(${PROJECT_NAME} SHARED
+        ${DENSIFIER_SOURCES}
         )
 target_link_libraries(${PROJECT_NAME}
         ${OpenCV_LIBRARIES}

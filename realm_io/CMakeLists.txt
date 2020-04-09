@@ -4,7 +4,7 @@ project(realm_io)
 find_package(catkin REQUIRED COMPONENTS
         realm_core
         )
-find_package(OpenCV 3.2)
+find_package(OpenCV 3)
 find_package(cmake_modules REQUIRED)
 
 # Fix to find Exiv2, otherwise it really causes some nerves
@@ -38,7 +38,7 @@ include_directories(
         ${Boost_INCLUDE_DIR}
         ${cmake_modules_INCLUDE_DIR}
 )
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
         src/realm_io_lib/exif_export.cpp
         src/realm_io_lib/exif_import.cpp
         src/realm_io_lib/gis_export.cpp
@@ -60,8 +60,10 @@ target_link_libraries(${PROJECT_NAME}
         -lexiv2
         )
 
-add_definitions(-std=c++11)
-add_definitions(${PCL_DEFINITIONS})
+add_definitions(
+        -std=c++11
+        ${PCL_DEFINITIONS}
+        )
 
 #####################
 ## Install Library ##

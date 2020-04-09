@@ -1,14 +1,21 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(psl)
 
+
+
 find_package(catkin REQUIRED)
-find_package(CUDA REQUIRED)
-find_package(OpenCV 3.2)
+find_package(OpenCV 3)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 find_package(cmake_modules REQUIRED)
 
+find_package(CUDA)
+if(NOT CUDA_FOUND)
+    message(STATUS "CUDA not found. Skipping PSL package...\n")
+    return()
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Eigen3 QUIET)
+find_package(EIGEN3 QUIET)
 if(NOT EIGEN3_FOUND)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(EIGEN3 REQUIRED eigen3)
@@ -22,14 +29,13 @@ set(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE OFF)
 
 add_definitions(-DRMD_CORR_PATCH_SIDE=5)
 add_definitions(-DRMD_MAX_EXTENT_EPIPOLAR_SEARCH=100)
-add_definitions(-std=c++11)
 
 
 catkin_package(
         INCLUDE_DIRS include include/psl
         LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_cuda
         CATKIN_DEPENDS cmake_modules
-        DEPENDS CUDA OpenCV Boost Eigen3
+        DEPENDS CUDA OpenCV Boost EIGEN3
 )
 
 ###################
@@ -38,6 +44,12 @@ catkin_package(
 
 include_directories(
         include
+        include/psl
+        ${CUDA_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
+        ${Eigen3_INCLUDE_DIRS}
+        ${Boost_INCLUDE_DIRS}
+        ${cmake_modules_INCLUDE_DIRS}
 )
 
 ## psl_cuda
@@ -52,15 +64,12 @@ list(APPEND CU_SOURCE_FILES
         #-arch sm_10
         #-Xcompiler -fpic
 )
-cuda_add_library(${PROJECT_NAME}_cuda SHARED
+cuda_add_library(${PROJECT_NAME}_cuda
         ${CU_SOURCE_FILES}
-)
-target_include_directories(${PROJECT_NAME}_cuda PUBLIC
-        ${CUDA_INCLUDE_DIRS}
 )
 
 ## psl
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
         src/psl_lib/psl_base/cameraMatrix.cpp
         src/psl_lib/psl_base/colorMapJet.cpp
         src/psl_lib/psl_base/configFile.cpp
@@ -75,14 +84,6 @@ add_library(${PROJECT_NAME}
         src/psl_lib/psl_stereo/cudaFishEyePlaneSweep.cpp
         src/psl_lib/psl_stereo/cudaPlaneSweep.cpp
 )
-target_include_directories(${PROJECT_NAME} PUBLIC
-        include
-        include/psl
-        ${OpenCV_INCLUDE_DIRS}
-        ${Eigen3_INCLUDE_DIRS}
-        ${Boost_INCLUDE_DIRS}
-        ${cmake_modules_INCLUDE_DIRS}
-)
 target_link_libraries(${PROJECT_NAME}
         cuda
         ${CUDA_LIBRARIES}
@@ -93,7 +94,10 @@ target_link_libraries(${PROJECT_NAME}
         ${Boost_LIBRARIES}
         ${cmake_modules_LIBRARIES}
 )
-add_definitions(-std=c++11)
+add_definitions(
+        -std=c++11
+        -Wno-deprecated-declarations
+)
 
 #####################
 ## Install Library ##

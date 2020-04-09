@@ -32,7 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
 		)
 
 # GENERAL REQUIRED
-find_package(OpenCV 3.2)
+find_package(OpenCV 3)
 find_package(cmake_modules REQUIRED)
 
 #fix to find eigen3
@@ -48,7 +48,7 @@ catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} ${VSLAM_LIB}
 		CATKIN_DEPENDS realm_core realm_io cmake_modules ${VSLAM_LIB}
-		DEPENDS OpenCV Eigen3
+		DEPENDS OpenCV EIGEN3
 )
 
 ###########
@@ -56,25 +56,28 @@ catkin_package(
 ###########
 
 ## realm library
-add_library(${PROJECT_NAME}
+include_directories(
+		include
+		${catkin_INCLUDE_DIRS}
+		${OpenCV_INCLUDE_DIRS}
+		${cmake_modules_INCLUDE_DIRS}
+		${EIGEN3_INCLUDE_DIR}
+)
+add_library(${PROJECT_NAME} SHARED
         src/realm_vslam_lib/visual_slam_factory.cpp
         src/realm_vslam_lib/visual_slam_settings_factory.cpp
-	src/realm_vslam_lib/geometric_referencer.cpp
-	${VSLAM_SRC}
-        )
+		src/realm_vslam_lib/geometric_referencer.cpp
+		${VSLAM_SRC}
+)
 target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
         ${OpenCV_LIBRARIES}
         ${cmake_modules_LIBRARIES}
-        )
-target_include_directories(${PROJECT_NAME} PUBLIC
-        include
-        ${catkin_INCLUDE_DIRS}
-        ${OpenCV_INCLUDE_DIRS}
-        ${cmake_modules_INCLUDE_DIRS}
-        ${EIGEN3_INCLUDE_DIR}
 )
-add_definitions(-std=c++11)
+add_definitions(
+		-std=c++11
+		-Wno-deprecated-declarations
+)
 
 #####################
 ## Install Library ##

@@ -18,32 +18,48 @@ find_package(catkin REQUIRED COMPONENTS
         realm_stages
 )
 
-find_package(OpenCV 3.2)
+find_package(OpenCV 3)
 find_package(cmake_modules REQUIRED)
 
 catkin_package(
-        INCLUDE_DIRS include
-        LIBRARIES ${PROJECT_NAME}
-        CATKIN_DEPENDS roscpp roslib pcl_ros geodesy cv_bridge tf std_msgs nav_msgs sensor_msgs
-                        geographic_msgs realm_msgs realm_core realm_io realm_stages cmake_modules
-        DEPENDS OpenCV
+        INCLUDE_DIRS
+            include
+        LIBRARIES
+            ${PROJECT_NAME}
+        CATKIN_DEPENDS
+            roscpp
+            roslib
+            pcl_ros geodesy
+            cv_bridge
+            tf
+            std_msgs
+            nav_msgs
+            sensor_msgs
+            geographic_msgs
+            realm_msgs
+            realm_core
+            realm_io
+            realm_stages
+            cmake_modules
+        DEPENDS
+            OpenCV
 )
 
 ###################
 ## Build Library ##
 ###################
 
-add_library(${PROJECT_NAME} SHARED
-        src/realm_ros_lib/grabber_exiv2_node.cpp
-        src/realm_ros_lib/stage_node.cpp
-        src/realm_ros_lib/conversions.cpp
-        )
-target_include_directories(${PROJECT_NAME} PUBLIC
+include_directories(
         include
         ${catkin_INCLUDE_DIRS}
         ${OpenCV_INCLUDE_DIRS}
         ${cmake_modules_INCLUDE_DIRS}
 )
+add_library(${PROJECT_NAME} SHARED
+        src/realm_ros_lib/grabber_exiv2_node.cpp
+        src/realm_ros_lib/stage_node.cpp
+        src/realm_ros_lib/conversions.cpp
+        )
 target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
         ${OpenCV_LIBRARIES}

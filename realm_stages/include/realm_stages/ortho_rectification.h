@@ -25,10 +25,10 @@
 #include <chrono>
 
 #include <realm_io/cv_export.h>
-#include "../../../realm_io/include/realm_io/gis_export.h"
+#include <realm_io/gis_export.h>
 #include <realm_io/utilities.h>
 #include <realm_stages/stage_base.h>
-#include "conversions.h"
+#include <realm_stages/conversions.h>
 #include <realm_stages/stage_settings.h>
 #include <realm_types/frame.h>
 #include <realm_ortho/rectification.h>
