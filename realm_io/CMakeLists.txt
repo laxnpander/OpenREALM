@@ -27,7 +27,18 @@ catkin_package(
 ## Build Library ##
 ###################
 
-add_library(${PROJECT_NAME} SHARED
+include_directories(
+        include
+        ${OpenCV_INCLUDE_DIRS}
+        ${catkin_INCLUDE_DIRS}
+        ${PCL_INCLUDE_DIRS}
+        ${PCL_LIBRARY_DIRS}
+        ${GDAL_INCLUDE_DIR}
+        ${Exiv2_INCLUDE_DIRS}
+        ${Boost_INCLUDE_DIR}
+        ${cmake_modules_INCLUDE_DIR}
+)
+add_library(${PROJECT_NAME}
         src/realm_io_lib/exif_export.cpp
         src/realm_io_lib/exif_import.cpp
         src/realm_io_lib/gis_export.cpp
@@ -48,17 +59,6 @@ target_link_libraries(${PROJECT_NAME}
         ${cmake_modules_LIBRARIES}
         -lexiv2
         )
-target_include_directories(${PROJECT_NAME} PUBLIC
-        include
-        ${OpenCV_INCLUDE_DIRS}
-        ${catkin_INCLUDE_DIRS}
-        ${PCL_INCLUDE_DIRS}
-        ${PCL_LIBRARY_DIRS}
-        ${GDAL_INCLUDE_DIR}
-        ${Exiv2_INCLUDE_DIRS}
-        ${Boost_INCLUDE_DIR}
-        ${cmake_modules_INCLUDE_DIR}
-        )
 
 add_definitions(-std=c++11)
 add_definitions(${PCL_DEFINITIONS})
@@ -77,7 +77,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include
+        DIRECTORY include/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )
