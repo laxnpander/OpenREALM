@@ -11,11 +11,24 @@ find_package(catkin REQUIRED COMPONENTS
         realm_ortho
         )
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
-        INCLUDE_DIRS include
-        LIBRARIES ${PROJECT_NAME}
-        CATKIN_DEPENDS realm_core realm_io realm_vslam_base realm_densifier_base realm_ortho
-        DEPENDS OpenCV cmake_modules
+        INCLUDE_DIRS
+            include
+        LIBRARIES
+            ${PROJECT_NAME}
+        CATKIN_DEPENDS
+            realm_core
+            realm_io
+            realm_vslam_base
+            realm_densifier_base
+            realm_ortho
+        DEPENDS
+            OpenCV
+            cmake_modules
 )
 
 ###################
@@ -61,7 +74,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include/
+        DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )

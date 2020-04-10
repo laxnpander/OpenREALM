@@ -1,7 +1,7 @@
 <package format="2">
   <name>realm_vslam_base</name>
   <version>1.0.0</version>
-  <description>The realm_vslam package</description>
+  <description>The realm_vslam_base package</description>
 
   <author>Alexander Kern</author>
   <maintainer email="al.kern@tu-bs.de">laxnpander</maintainer>

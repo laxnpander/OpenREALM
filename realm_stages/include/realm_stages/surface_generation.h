@@ -26,7 +26,7 @@
 
 #include <realm_stages/stage_base.h>
 #include <realm_stages/stage_settings.h>
-#include <realm_types/frame.h>
+#include <realm_core/frame.h>
 #include <realm_io/cv_export.h>
 #include <realm_ortho/dsm.h>
 

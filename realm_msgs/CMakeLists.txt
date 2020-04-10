@@ -30,6 +30,15 @@ generate_messages(
   sensor_msgs
 )
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
-        CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs message_runtime
+        CATKIN_DEPENDS
+            roscpp
+            std_msgs
+            sensor_msgs
+            geometry_msgs
+            message_runtime
 )

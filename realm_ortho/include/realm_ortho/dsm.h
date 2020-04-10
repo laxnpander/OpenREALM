@@ -27,9 +27,9 @@
 #include <eigen3/Eigen/Eigen>
 #include <opencv2/core.hpp>
 
-#include <realm_types/enums.h>
-#include <realm_types/cv_grid_map.h>
-#include <realm_maths/plane_fitter.h>
+#include <realm_core/enums.h>
+#include <realm_core/cv_grid_map.h>
+#include <realm_core/plane_fitter.h>
 #include <realm_ortho/nanoflann.h>
 #include <realm_ortho/nearest_neighbor.h>
 

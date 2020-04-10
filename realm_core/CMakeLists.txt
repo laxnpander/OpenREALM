@@ -14,11 +14,21 @@ if(NOT EIGEN3_FOUND)
 endif()
 find_package(GDAL REQUIRED)
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
-        INCLUDE_DIRS include
-        LIBRARIES ${PROJECT_NAME}
-        CATKIN_DEPENDS cmake_modules
-        DEPENDS OpenCV EIGEN3 GDAL
+        INCLUDE_DIRS
+            include
+        LIBRARIES
+            ${PROJECT_NAME}
+        CATKIN_DEPENDS
+            cmake_modules
+        DEPENDS
+            OpenCV
+            EIGEN3
+            GDAL
 )
 
 ###################
@@ -32,22 +42,22 @@ include_directories(
         ${EIGEN3_INCLUDE_DIRS}
         ${GDAL_INCLUDE_DIR}
 )
-add_library(${PROJECT_NAME} SHARED
-        src/realm_common/timer.cpp
-        src/realm_cv_lib/mat_overwrite.cpp
-        src/realm_cv_lib/analysis.cpp
-        src/realm_cv_lib/stereo.cpp
-        src/realm_cv_lib/inpaint.cpp
-        src/realm_gis_lib/conversions.cpp
-        src/realm_types_lib/camera.cpp
-        src/realm_types_lib/frame.cpp
-        src/realm_types_lib/settings_base.cpp
-        src/realm_types_lib/camera_settings_factory.cpp
-        src/realm_types_lib/cv_grid_map.cpp
-        src/realm_types_lib/worker_thread_base.cpp
-        src/realm_maths_lib/sim2_solver.cpp
-        src/realm_maths_lib/se3_solver.cpp
-        src/realm_maths_lib/plane_fitter.cpp
+add_library(${PROJECT_NAME}
+        src/realm_core_lib/timer.cpp
+        src/realm_core_lib/mat_overwrite.cpp
+        src/realm_core_lib/analysis.cpp
+        src/realm_core_lib/stereo.cpp
+        src/realm_core_lib/inpaint.cpp
+        src/realm_core_lib/conversions.cpp
+        src/realm_core_lib/camera.cpp
+        src/realm_core_lib/frame.cpp
+        src/realm_core_lib/settings_base.cpp
+        src/realm_core_lib/camera_settings_factory.cpp
+        src/realm_core_lib/cv_grid_map.cpp
+        src/realm_core_lib/worker_thread_base.cpp
+        src/realm_core_lib/sim2_solver.cpp
+        src/realm_core_lib/se3_solver.cpp
+        src/realm_core_lib/plane_fitter.cpp
         )
 target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
@@ -73,7 +83,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include/
+        DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )

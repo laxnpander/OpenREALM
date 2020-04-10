@@ -33,13 +33,13 @@
 #include <geodesy/utm.h>
 #include <pcl_ros/point_cloud.h>
 
-#include <realm_types/enums.h>
-#include <realm_types/frame.h>
-#include <realm_types/utm32.h>
-#include <realm_types/structs.h>
-#include <realm_types/camera.h>
-#include <realm_types/cv_grid_map.h>
-#include <realm_cv/analysis.h>
+#include <realm_core/enums.h>
+#include <realm_core/frame.h>
+#include <realm_core/utm32.h>
+#include <realm_core/structs.h>
+#include <realm_core/camera.h>
+#include <realm_core/cv_grid_map.h>
+#include <realm_core/analysis.h>
 
 #include <std_msgs/Float32.h>
 #include <std_msgs/ColorRGBA.h>

@@ -1,20 +1,33 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(realm_rviz_plugin)
+
 find_package(catkin REQUIRED COMPONENTS rviz cv_bridge geographic_msgs geodesy realm_msgs)
 find_package(OpenCV 3 REQUIRED)
 find_package(PCL 1.7 REQUIRED) 
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
-		LIBRARIES ${PROJECT_NAME}
-		DEPENDS OpenCV PCL
-		CATKIN_DEPENDS rviz cv_bridge geographic_msgs geodesy realm_msgs
+		LIBRARIES
+			${PROJECT_NAME}
+		DEPENDS
+			OpenCV
+			PCL
+		CATKIN_DEPENDS
+			rviz
+			cv_bridge
+			geographic_msgs
+			geodesy
+			realm_msgs
 )
 
 include_directories(${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
 link_directories(${catkin_LIBRARY_DIRS})
 
-set (CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu/cmake/Qt5")
+set(CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu/cmake/Qt5")
 find_package(Qt5Core)
 find_package(Qt5Gui)
 find_package(Qt5Widgets)

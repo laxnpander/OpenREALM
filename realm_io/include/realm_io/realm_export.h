@@ -25,8 +25,8 @@
 
 #include <eigen3/Eigen/Eigen>
 
-#include <realm_types/cv_grid_map.h>
-#include <realm_types/camera.h>
+#include <realm_core/cv_grid_map.h>
+#include <realm_core/camera.h>
 #include <realm_io/utilities.h>
 
 namespace realm

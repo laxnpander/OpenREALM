@@ -18,7 +18,7 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <realm_common/loguru.hpp>
+#include <realm_core/loguru.h>
 
 #include <realm_stages/stage_base.h>
 

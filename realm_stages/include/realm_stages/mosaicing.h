@@ -27,9 +27,9 @@
 #include <realm_stages/stage_base.h>
 #include <realm_stages/conversions.h>
 #include <realm_stages/stage_settings.h>
-#include <realm_types/frame.h>
-#include <realm_types/cv_grid_map.h>
-#include <realm_cv/analysis.h>
+#include <realm_core/frame.h>
+#include <realm_core/cv_grid_map.h>
+#include <realm_core/analysis.h>
 #include <realm_io/cv_export.h>
 #include <realm_io/pcl_export.h>
 #include "realm_io/gis_export.h"

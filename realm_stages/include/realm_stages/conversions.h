@@ -21,8 +21,8 @@
 #ifndef PROJECT_STAGE_CONVERSIONS_H
 #define PROJECT_STAGE_CONVERSIONS_H
 
-#include <realm_types/cv_grid_map.h>
-#include <realm_types/structs.h>
+#include <realm_core/cv_grid_map.h>
+#include <realm_core/structs.h>
 
 namespace realm
 {

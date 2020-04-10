@@ -13,7 +13,7 @@ endif()
 IF (DENSIFIER_WITH_CUDA)
     add_definitions(-DUSE_CUDA)
     list(APPEND DENSIFIER_LIBS psl)
-    list(APPEND DENSIFIER_SOURCES src/realm_densifier_lib/plane_sweep.cpp)
+    list(APPEND DENSIFIER_SOURCES src/realm_densifier_base_lib/plane_sweep.cpp)
 ENDIF()
 
 find_package(catkin REQUIRED COMPONENTS
@@ -25,11 +25,22 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV 3)
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
-        INCLUDE_DIRS include
-        CATKIN_DEPENDS cmake_modules realm_core realm_io ${DENSIFIER_LIBS}
-        DEPENDS OpenCV
-        LIBRARIES ${PROJECT_NAME}
+        INCLUDE_DIRS
+            include
+        LIBRARIES
+            ${PROJECT_NAME}
+        CATKIN_DEPENDS
+            cmake_modules
+            realm_core
+            realm_io
+            ${DENSIFIER_LIBS}
+        DEPENDS
+            OpenCV
 )
 
 ###################
@@ -37,10 +48,10 @@ catkin_package(
 ###################
 
 list(APPEND DENSIFIER_SOURCES
-        src/realm_densifier_lib/densifier_factory.cpp
-        src/realm_densifier_lib/densifier_settings_factory.cpp
-        src/realm_densifier_lib/densifier_dummy.cpp
-        src/realm_densifier_lib/sparse_depth.cpp
+        src/realm_densifier_base_lib/densifier_factory.cpp
+        src/realm_densifier_base_lib/densifier_settings_factory.cpp
+        src/realm_densifier_base_lib/densifier_dummy.cpp
+        src/realm_densifier_base_lib/sparse_depth.cpp
         )
 
 ## realm densifier
@@ -72,7 +83,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include
+        DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )

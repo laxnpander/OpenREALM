@@ -30,11 +30,11 @@
 
 #include <opencv2/core.hpp>
 
-#include <realm_types/frame.h>
-#include <realm_common/timer.h>
-#include <realm_types/structs.h>
-#include <realm_types/worker_thread_base.h>
-#include <realm_types/settings_base.h>
+#include <realm_core/frame.h>
+#include <realm_core/timer.h>
+#include <realm_core/structs.h>
+#include <realm_core/worker_thread_base.h>
+#include <realm_core/settings_base.h>
 
 namespace realm
 {

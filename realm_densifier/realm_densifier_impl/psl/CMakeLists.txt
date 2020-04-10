@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(psl)
 
-
-
 find_package(catkin REQUIRED)
 find_package(OpenCV 3)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
@@ -30,12 +28,24 @@ set(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE OFF)
 add_definitions(-DRMD_CORR_PATCH_SIDE=5)
 add_definitions(-DRMD_MAX_EXTENT_EPIPOLAR_SEARCH=100)
 
+####################
+## Catkin Package ##
+####################
 
 catkin_package(
-        INCLUDE_DIRS include include/psl
-        LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_cuda
-        CATKIN_DEPENDS cmake_modules
-        DEPENDS CUDA OpenCV Boost EIGEN3
+        INCLUDE_DIRS
+            include
+            include/psl
+        LIBRARIES
+            ${PROJECT_NAME}
+            ${PROJECT_NAME}_cuda
+        CATKIN_DEPENDS
+            cmake_modules
+        DEPENDS
+            CUDA
+            OpenCV
+            Boost
+            EIGEN3
 )
 
 ###################
@@ -54,11 +64,11 @@ include_directories(
 
 ## psl_cuda
 list(APPEND CU_SOURCE_FILES
-        src/psl_lib/psl_stereo/cudaPlaneSweep.cu
-        src/psl_lib/psl_stereo/cudaFishEyePlaneSweep.cu
-        src/psl_lib/psl_cudaBase/deviceBuffer.cu
-        src/psl_lib/psl_cudaBase/deviceImage.cu
-        src/psl_lib/psl_cudaBase/cudaFishEyeImageProcessor.cu
+        src/psl_lib/cudaPlaneSweep.cu
+        src/psl_lib/cudaFishEyePlaneSweep.cu
+        src/psl_lib/deviceBuffer.cu
+        src/psl_lib/deviceImage.cu
+        src/psl_lib/cudaFishEyeImageProcessor.cu
         OPTIONS
         -use_fast_math
         #-arch sm_10
@@ -70,19 +80,19 @@ cuda_add_library(${PROJECT_NAME}_cuda
 
 ## psl
 add_library(${PROJECT_NAME} SHARED
-        src/psl_lib/psl_base/cameraMatrix.cpp
-        src/psl_lib/psl_base/colorMapJet.cpp
-        src/psl_lib/psl_base/configFile.cpp
-        src/psl_lib/psl_base/depthMap.cpp
-        src/psl_lib/psl_base/fishEyeCameraMatrix.cpp
-        src/psl_lib/psl_base/fishEyeDepthMap.cpp
-        src/psl_lib/psl_base/grid.cpp
-        src/psl_lib/psl_cudaBase/cudaFishEyeImageProcessor.cpp
-        src/psl_lib/psl_cudaBase/deviceBuffer.cpp
-        src/psl_lib/psl_cudaBase/deviceImage.cpp
-        src/psl_lib/psl_io/ioTools.cpp
-        src/psl_lib/psl_stereo/cudaFishEyePlaneSweep.cpp
-        src/psl_lib/psl_stereo/cudaPlaneSweep.cpp
+        src/psl_lib/cameraMatrix.cpp
+        src/psl_lib/colorMapJet.cpp
+        src/psl_lib/configFile.cpp
+        src/psl_lib/depthMap.cpp
+        src/psl_lib/fishEyeCameraMatrix.cpp
+        src/psl_lib/fishEyeDepthMap.cpp
+        src/psl_lib/grid.cpp
+        src/psl_lib/cudaFishEyeImageProcessor.cpp
+        src/psl_lib/deviceBuffer.cpp
+        src/psl_lib/deviceImage.cpp
+        src/psl_lib/ioTools.cpp
+        src/psl_lib/cudaFishEyePlaneSweep.cpp
+        src/psl_lib/cudaPlaneSweep.cpp
 )
 target_link_libraries(${PROJECT_NAME}
         cuda
@@ -113,7 +123,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include
+        DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )

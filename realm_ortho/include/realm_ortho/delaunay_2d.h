@@ -26,8 +26,8 @@
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 
-#include <realm_types/structs.h>
-#include <realm_types/cv_grid_map.h>
+#include <realm_core/structs.h>
+#include <realm_core/cv_grid_map.h>
 
 namespace realm
 {

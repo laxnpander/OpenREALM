@@ -23,9 +23,9 @@
 
 #include <exiv2/exiv2.hpp>
 
-#include <realm_gis/conversions.h>
-#include <realm_types/frame.h>
-#include <realm_types/wgs84.h>
+#include <realm_core/conversions.h>
+#include <realm_core/frame.h>
+#include <realm_core/wgs84.h>
 #include "gis_export.h"
 #include <realm_io/utilities.h>
 

@@ -25,9 +25,9 @@
 #include <string>
 #include <cmath>
 
-#include <realm_types/structs.h>
-#include <realm_types/frame.h>
-#include <realm_types/cv_grid_map.h>
+#include <realm_core/structs.h>
+#include <realm_core/frame.h>
+#include <realm_core/cv_grid_map.h>
 
 namespace realm
 {

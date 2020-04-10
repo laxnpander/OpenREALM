@@ -25,8 +25,8 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-#include <realm_types/frame.h>
-#include <realm_cv/analysis.h>
+#include <realm_core/frame.h>
+#include <realm_core/analysis.h>
 #include <realm_io/utilities.h>
 
 namespace realm

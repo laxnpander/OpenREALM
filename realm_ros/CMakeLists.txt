@@ -21,6 +21,10 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenCV 3)
 find_package(cmake_modules REQUIRED)
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
         INCLUDE_DIRS
             include
@@ -80,7 +84,7 @@ target_link_libraries(realm_exiv2_grabber ${PROJECT_NAME} ${catkin_LIBRARIES} ${
 
 add_executable(realm_stage_node src/stage_node_main.cpp)
 add_dependencies(realm_stage_node ${catkin_EXPORTED_TARGETS})
-target_link_libraries(realm_stage_node ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${cmake_modules_LIBRARIES})
+target_link_libraries(realm_stage_node ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${cmake_modules_LIBRARIES} -lCGAL)
 
 ## Compile Orb vocabulary
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tools)
@@ -101,7 +105,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include
+        DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )

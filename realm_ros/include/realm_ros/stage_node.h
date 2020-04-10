@@ -29,12 +29,13 @@
 #include <tf/transform_broadcaster.h>
 #include <ros/package.h>
 
-#include <realm_types/structs.h>
-#include <realm_types/camera_settings_factory.h>
-#include <realm_vslam/visual_slam_settings_factory.h>
-#include <realm_densifier/densifier_settings_factory.h>
+#include <realm_core/structs.h>
+#include <realm_core/camera_settings_factory.h>
+#include <realm_vslam_base/visual_slam_settings_factory.h>
+#include <realm_densifier_base/densifier_settings_factory.h>
 #include <realm_io/utilities.h>
 #include <realm_ros/conversions.h>
+
 #include <realm_stages/stage_settings_factory.h>
 #include <realm_stages/pose_estimation.h>
 #include <realm_stages/densification.h>

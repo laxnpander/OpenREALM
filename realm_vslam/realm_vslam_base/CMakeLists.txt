@@ -6,15 +6,15 @@ SET(VSLAM_TYPE "ORB_SLAM2")
 IF(VSLAM_TYPE STREQUAL "ORB_SLAM2")
 	add_definitions(-DUSE_ORB_SLAM2)
     	SET(VSLAM_LIB orb_slam_2)
-	SET(VSLAM_SRC "src/realm_vslam_lib/orb_slam.cpp")
+	SET(VSLAM_SRC "src/realm_vslam_base_lib/orb_slam.cpp")
 #ELSEIF(VSLAM_TYPE STREQUAL "SVO")
 #	add_definitions(-DUSE_SVO)
 #	SET(VSLAM_LIB svo)
-#	SET(VSLAM_SRC "src/realm_vslam_lib/svo.cpp")
+#	SET(VSLAM_SRC "src/realm_vslam_base_lib/svo.cpp")
 #ELSEIF(VSLAM_TYPE STREQUAL "SVO2")
 #	add_definitions(-DUSE_SVO2)
 #	SET(VSLAM_LIB svo)
-#	SET(VSLAM_SRC "src/realm_vslam_lib/svo2.cpp")
+#	SET(VSLAM_SRC "src/realm_vslam_base_lib/svo2.cpp")
 #	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall -D_LINUX -D_REENTRANT -march=native -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unknown-pragmas")
 #	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmmx -msse -msse -msse2 -msse3 -mssse3 -mno-avx")
 #	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -22,16 +22,10 @@ IF(VSLAM_TYPE STREQUAL "ORB_SLAM2")
 #ELSEIF(VSLAM_TYPE STREQUAL "DSO")
 #	add_definitions(-DUSE_DSO)
 #	SET(VSLAM_LIB dso)
-#	SET(VSLAM_SRC "src/realm_vslam_lib/dso.cpp")
+#	SET(VSLAM_SRC "src/realm_vslam_base_lib/dso.cpp")
 ENDIF()
 
-find_package(catkin REQUIRED COMPONENTS
-		realm_core
-		realm_io
-		${VSLAM_LIB}
-		)
-
-# GENERAL REQUIRED
+find_package(catkin REQUIRED COMPONENTS realm_core realm_io ${VSLAM_LIB})
 find_package(OpenCV 3)
 find_package(cmake_modules REQUIRED)
 
@@ -44,11 +38,24 @@ if(NOT EIGEN3_FOUND)
 	set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
 endif()
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
-        INCLUDE_DIRS include
-        LIBRARIES ${PROJECT_NAME} ${VSLAM_LIB}
-		CATKIN_DEPENDS realm_core realm_io cmake_modules ${VSLAM_LIB}
-		DEPENDS OpenCV EIGEN3
+        INCLUDE_DIRS
+			include
+        LIBRARIES
+			${PROJECT_NAME}
+			${VSLAM_LIB}
+		CATKIN_DEPENDS
+			realm_core
+			realm_io
+			cmake_modules
+			${VSLAM_LIB}
+		DEPENDS
+			OpenCV
+			EIGEN3
 )
 
 ###########
@@ -64,9 +71,9 @@ include_directories(
 		${EIGEN3_INCLUDE_DIR}
 )
 add_library(${PROJECT_NAME} SHARED
-        src/realm_vslam_lib/visual_slam_factory.cpp
-        src/realm_vslam_lib/visual_slam_settings_factory.cpp
-		src/realm_vslam_lib/geometric_referencer.cpp
+        src/realm_vslam_base_lib/visual_slam_factory.cpp
+        src/realm_vslam_base_lib/visual_slam_settings_factory.cpp
+		src/realm_vslam_base_lib/geometric_referencer.cpp
 		${VSLAM_SRC}
 )
 target_link_libraries(${PROJECT_NAME}
@@ -93,7 +100,13 @@ install(
 
 # Mark cpp header files for installation
 install(
-		DIRECTORY include
+		DIRECTORY include/${PROJECT_NAME}/
 		DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+		FILES_MATCHING PATTERN "*.h"
+)
+
+install(
+		DIRECTORY include/DBoW2/DBoW2/
+		DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}/../DBoW2/DBoW2/
 		FILES_MATCHING PATTERN "*.h"
 )

@@ -27,10 +27,10 @@
 #include <opencv2/core/core.hpp>
 #include <limits>
 
-#include <DBoW2/DBoW2/FeatureVector.h>
-#include <DBoW2/DBoW2/BowVector.h>
-#include <DBoW2/DBoW2/ScoringObject.h>
-#include <DBoW2/DUtils/Random.h>
+#include "FeatureVector.h"
+#include "BowVector.h"
+#include "ScoringObject.h"
+#include "../DUtils/Random.h"
 
 using namespace std;
 

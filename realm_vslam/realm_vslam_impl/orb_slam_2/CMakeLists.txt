@@ -18,11 +18,23 @@ if(NOT EIGEN3_FOUND)
     set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
 endif()
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
-        INCLUDE_DIRS include
-        LIBRARIES ${PROJECT_NAME} g2o DBoW2
-        CATKIN_DEPENDS cmake_modules
-        DEPENDS OpenCV Pangolin EIGEN3
+        INCLUDE_DIRS
+            include
+        LIBRARIES
+            ${PROJECT_NAME}
+            g2o
+            DBoW2
+        CATKIN_DEPENDS
+            cmake_modules
+        DEPENDS
+            OpenCV
+            Pangolin
+            EIGEN3
 )
 
 ###########
@@ -33,13 +45,16 @@ set(THIRDPARTY_LIBRARIES pangolin)
 
 include_directories(
         include
+        include/DBoW2
         include/DBoW2/DBoW2
         include/DBoW2/DUtils
-        include/ORB_SLAM2/
+        include/orb_slam_2/
         ${EIGEN3_INCLUDE_DIRS}
-        "include/g2o/g2o/core"
-        "include/g2o/g2o/types"
-        "include/g2o/g2o/stuff"
+        include/g2o
+        include/g2o/g2o
+        include/g2o/g2o/g2o_core
+        include/g2o/g2o/g2o_types
+        include/g2o/g2o/g2o_stuff
         ${OpenCV_INCLUDE_DIRS}
         ${OpenGL_INCLUDE_DIRS}
         ${GLUT_INCLUDE_DIRS}
@@ -50,37 +65,37 @@ include_directories(
 ## g2o Library shared
 add_library(g2o
         #types
-        src/g2o_lib/types/types_sba.cpp
-        src/g2o_lib/types/types_six_dof_expmap.cpp
-        src/g2o_lib/types/types_seven_dof_expmap.cpp
-        #core
-        src/g2o_lib/core/hyper_graph_action.cpp
-        src/g2o_lib/core/hyper_graph.cpp
-        src/g2o_lib/core/marginal_covariance_cholesky.cpp
-        src/g2o_lib/core/matrix_structure.cpp
-        src/g2o_lib/core/batch_stats.cpp
-        src/g2o_lib/core/parameter.cpp
-        src/g2o_lib/core/cache.cpp
-        src/g2o_lib/core/optimizable_graph.cpp
-        src/g2o_lib/core/solver.cpp
-        src/g2o_lib/core/optimization_algorithm_factory.cpp
-        src/g2o_lib/core/estimate_propagator.cpp
-        src/g2o_lib/core/factory.cpp
-        src/g2o_lib/core/sparse_optimizer.cpp
-        src/g2o_lib/core/hyper_dijkstra.cpp
-        src/g2o_lib/core/parameter_container.cpp
-        src/g2o_lib/core/optimization_algorithm.cpp
-        src/g2o_lib/core/optimization_algorithm_with_hessian.cpp
-        src/g2o_lib/core/optimization_algorithm_levenberg.cpp
-        src/g2o_lib/core/jacobian_workspace.cpp
-        src/g2o_lib/core/robust_kernel.cpp
-        src/g2o_lib/core/robust_kernel_factory.cpp
-        src/g2o_lib/core/robust_kernel_impl.cpp
-        #stuff
-        src/g2o_lib/stuff/timeutil.cpp
-        src/g2o_lib/stuff/os_specific.c
-        src/g2o_lib/stuff/string_tools.cpp
-        src/g2o_lib/stuff/property.cpp
+        src/g2o_lib/g2o_types/types_sba.cpp
+        src/g2o_lib/g2o_types/types_six_dof_expmap.cpp
+        src/g2o_lib/g2o_types/types_seven_dof_expmap.cpp
+        #g2o_core
+        src/g2o_lib/g2o_core/hyper_graph_action.cpp
+        src/g2o_lib/g2o_core/hyper_graph.cpp
+        src/g2o_lib/g2o_core/marginal_covariance_cholesky.cpp
+        src/g2o_lib/g2o_core/matrix_structure.cpp
+        src/g2o_lib/g2o_core/batch_stats.cpp
+        src/g2o_lib/g2o_core/parameter.cpp
+        src/g2o_lib/g2o_core/cache.cpp
+        src/g2o_lib/g2o_core/optimizable_graph.cpp
+        src/g2o_lib/g2o_core/solver.cpp
+        src/g2o_lib/g2o_core/optimization_algorithm_factory.cpp
+        src/g2o_lib/g2o_core/estimate_propagator.cpp
+        src/g2o_lib/g2o_core/factory.cpp
+        src/g2o_lib/g2o_core/sparse_optimizer.cpp
+        src/g2o_lib/g2o_core/hyper_dijkstra.cpp
+        src/g2o_lib/g2o_core/parameter_container.cpp
+        src/g2o_lib/g2o_core/optimization_algorithm.cpp
+        src/g2o_lib/g2o_core/optimization_algorithm_with_hessian.cpp
+        src/g2o_lib/g2o_core/optimization_algorithm_levenberg.cpp
+        src/g2o_lib/g2o_core/jacobian_workspace.cpp
+        src/g2o_lib/g2o_core/robust_kernel.cpp
+        src/g2o_lib/g2o_core/robust_kernel_factory.cpp
+        src/g2o_lib/g2o_core/robust_kernel_impl.cpp
+        #g2o_stuff
+        src/g2o_lib/g2o_stuff/timeutil.cpp
+        src/g2o_lib/g2o_stuff/os_specific.c
+        src/g2o_lib/g2o_stuff/string_tools.cpp
+        src/g2o_lib/g2o_stuff/property.cpp
         )
 set_target_properties(g2o PROPERTIES
         CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native " -Wno-deprecated-declarations
@@ -104,25 +119,25 @@ set_target_properties(DBoW2 PROPERTIES
 
 ## ORB_SLAM2 Library
 add_library(${PROJECT_NAME} SHARED
-        src/ORB_SLAM2_lib/Converter.cc
-        src/ORB_SLAM2_lib/Frame.cc
-        src/ORB_SLAM2_lib/FrameDrawer.cc
-        src/ORB_SLAM2_lib/Initializer.cc
-        src/ORB_SLAM2_lib/KeyFrame.cc
-        src/ORB_SLAM2_lib/KeyFrameDatabase.cc
-        src/ORB_SLAM2_lib/LocalMapping.cc
-        src/ORB_SLAM2_lib/LoopClosing.cc
-        src/ORB_SLAM2_lib/Map.cc
-        src/ORB_SLAM2_lib/MapDrawer.cc
-        src/ORB_SLAM2_lib/MapPoint.cc
-        src/ORB_SLAM2_lib/Optimizer.cc
-        src/ORB_SLAM2_lib/ORBextractor.cc
-        src/ORB_SLAM2_lib/ORBmatcher.cc
-        src/ORB_SLAM2_lib/PnPsolver.cc
-        src/ORB_SLAM2_lib/Sim3Solver.cc
-        src/ORB_SLAM2_lib/System.cc
-        src/ORB_SLAM2_lib/Tracking.cc
-        src/ORB_SLAM2_lib/Viewer.cc
+        src/orb_slam_2_lib/Converter.cc
+        src/orb_slam_2_lib/Frame.cc
+        src/orb_slam_2_lib/FrameDrawer.cc
+        src/orb_slam_2_lib/Initializer.cc
+        src/orb_slam_2_lib/KeyFrame.cc
+        src/orb_slam_2_lib/KeyFrameDatabase.cc
+        src/orb_slam_2_lib/LocalMapping.cc
+        src/orb_slam_2_lib/LoopClosing.cc
+        src/orb_slam_2_lib/Map.cc
+        src/orb_slam_2_lib/MapDrawer.cc
+        src/orb_slam_2_lib/MapPoint.cc
+        src/orb_slam_2_lib/Optimizer.cc
+        src/orb_slam_2_lib/ORBextractor.cc
+        src/orb_slam_2_lib/ORBmatcher.cc
+        src/orb_slam_2_lib/PnPsolver.cc
+        src/orb_slam_2_lib/Sim3Solver.cc
+        src/orb_slam_2_lib/System.cc
+        src/orb_slam_2_lib/Tracking.cc
+        src/orb_slam_2_lib/Viewer.cc
         )
 target_link_libraries(${PROJECT_NAME}
         ${DBoW2_LIBRARIES}
@@ -147,7 +162,7 @@ add_definitions(
 
 # Mark executables and/or libraries for installation
 install(
-        TARGETS ${PROJECT_NAME}
+        TARGETS ${PROJECT_NAME} g2o DBoW2
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -155,7 +170,9 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY ${DBoW2_INCLUDE_DIRS} ${g2o_INCLUDE_DIRS} include include/ORB_SLAM2
+        DIRECTORY include/${PROJECT_NAME}/ include/g2o include/DBoW2
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-        FILES_MATCHING PATTERN "*.h"
+        FILES_MATCHING
+            PATTERN "*.h"
+            PATTERN "*.hpp"
 )

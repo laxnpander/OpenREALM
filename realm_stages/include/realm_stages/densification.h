@@ -33,11 +33,11 @@
 #include <realm_stages/stage_settings.h>
 #include <realm_stages/conversions.h>
 #include <realm_io/cv_export.h>
-#include <realm_cv/stereo.h>
-#include <realm_types/cv_grid_map.h>
-#include <realm_types/frame.h>
-#include <realm_densifier/densifier_factory.h>
-#include <realm_densifier/sparse_depth.h>
+#include <realm_core/stereo.h>
+#include <realm_core/cv_grid_map.h>
+#include <realm_core/frame.h>
+#include <realm_densifier_base/densifier_factory.h>
+#include <realm_densifier_base/sparse_depth.h>
 
 namespace realm
 {

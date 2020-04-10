@@ -17,11 +17,23 @@ if(NOT EIGEN3_FOUND)
     set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
 endif()
 
+####################
+## Catkin Package ##
+####################
+
 catkin_package(
-        INCLUDE_DIRS include
-        LIBRARIES ${PROJECT_NAME}
-        CATKIN_DEPENDS realm_core realm_io cmake_modules
-        DEPENDS OpenCV CGAL EIGEN3
+        INCLUDE_DIRS
+            include
+        LIBRARIES
+            ${PROJECT_NAME}
+        CATKIN_DEPENDS
+            realm_core
+            realm_io
+            cmake_modules
+        DEPENDS
+            OpenCV
+            CGAL
+            EIGEN3
 )
 
 ###################
@@ -67,7 +79,7 @@ install(
 
 # Mark cpp header files for installation
 install(
-        DIRECTORY include
+        DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )

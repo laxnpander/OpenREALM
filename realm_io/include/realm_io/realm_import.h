@@ -24,7 +24,7 @@
 #include <fstream>
 #include <unordered_map>
 
-#include <realm_types/camera_settings_factory.h>
+#include <realm_core/camera_settings_factory.h>
 #include <realm_io/utilities.h>
 
 namespace realm

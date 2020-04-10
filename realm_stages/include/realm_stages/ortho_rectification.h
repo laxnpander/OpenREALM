@@ -30,7 +30,7 @@
 #include <realm_stages/stage_base.h>
 #include <realm_stages/conversions.h>
 #include <realm_stages/stage_settings.h>
-#include <realm_types/frame.h>
+#include <realm_core/frame.h>
 #include <realm_ortho/rectification.h>
 
 namespace realm

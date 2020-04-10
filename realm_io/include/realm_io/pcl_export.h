@@ -28,7 +28,7 @@
 #include <pcl/conversions.h>
 #include <opencv2/core.hpp>
 
-#include <realm_types/cv_grid_map.h>
+#include <realm_core/cv_grid_map.h>
 
 
 namespace realm

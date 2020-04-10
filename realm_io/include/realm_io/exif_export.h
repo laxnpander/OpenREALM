@@ -26,11 +26,11 @@
 
 #include <exiv2/exiv2.hpp>
 
-#include <realm_types/camera.h>
-#include <realm_types/frame.h>
+#include <realm_core/camera.h>
+#include <realm_core/frame.h>
 #include "gis_export.h"
 #include <realm_io/utilities.h>
-#include <realm_gis/conversions.h>
+#include <realm_core/conversions.h>
 
 namespace realm
 {

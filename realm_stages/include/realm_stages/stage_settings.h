@@ -21,7 +21,7 @@
 #ifndef PROJECT_STAGE_SETTINGS_H
 #define PROJECT_STAGE_SETTINGS_H
 
-#include <realm_types/settings_base.h>
+#include <realm_core/settings_base.h>
 
 namespace realm
 {
