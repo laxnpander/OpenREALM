@@ -36,7 +36,6 @@
   <exec_depend>tf</exec_depend>
   <exec_depend>geographic_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>custom_msgs</exec_depend>
   <exec_depend>realm_msgs</exec_depend>
   <exec_depend>realm_core</exec_depend>
   <exec_depend>realm_io</exec_depend>
