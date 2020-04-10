@@ -39,17 +39,22 @@ but at the moment I won't recommend to use it on any other.
 - Polished, ready-to-use code for commercial applications. It is research code that has developed over a long 
   time and is therefore sometimes ugly and buggy as hell. But I am working on it :)
 
-## Dependencies
+## Prerequisites
 
-Linux:
 
--> Ubuntu 16.04 with ROS Kinetic
-
--> Ubuntu 18.04 with ROS Melodic
+| OS         | ROS Distribution | Build Status |
+|:----------:|:----------------:|:------------:|
+|Ubuntu 16.04| ROS Kinetic      | [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
+|Ubuntu 18.04| ROS Melodic      | [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
 
 For ROS installation please refer to: http://wiki.ros.org/
 
-Other dependencies are installed using the  ```install_deps.sh``` script. Do not proceed to the next step before 
+Other dependencies are installed using the  ```install_deps.sh``` script:
+```sh
+chmod u+x install_deps.sh
+./install_deps.sh
+```
+Do not proceed to the next step before 
 you executed this script.
 
 ## Optional Dependencies
