@@ -409,13 +409,17 @@ cv::Point2i CvGridMap::atIndex(const cv::Point2d &pos) const
   return idx;
 }
 
-cv::Point2d CvGridMap::atPosition2d(const uint32_t &r, const uint32_t &c) const
+cv::Point2d CvGridMap::atPosition2d(uint32_t r, uint32_t c) const
 {
+  if (r > _size.height || r < 0)
+    std::cout << "r: " << r << ", c: " << c << " max: " << _size.height << std::endl;
+
   // check validity
-  assert(r < _size.height && r > 0);
-  assert(c < _size.width && c > 0);
+  assert(r < _size.height && r >= 0);
+  assert(c < _size.width && c >= 0);
   assert(_roi.width > 0 && _roi.height > 0);
   assert(_resolution > 0.0);
+
   // calculate position of grid element centroid
   cv::Point2d pos;
   pos.x = (_roi.x + _resolution/2)+(double)c*_resolution;
@@ -427,8 +431,8 @@ cv::Point3d CvGridMap::atPosition3d(const int &r, const int &c, const std::strin
 {
   cv::Mat layer_data = get(layer_name);
   // check validity
-  assert(r < _size.height && r > 0);
-  assert(c < _size.width && c > 0);
+  assert(r < _size.height && r >= 0);
+  assert(c < _size.width && c >= 0);
   assert(_roi.width > 0 && _roi.height > 0);
   assert(_resolution > 0.0);
   assert(!layer_data.empty());

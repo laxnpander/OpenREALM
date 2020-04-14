@@ -240,7 +240,7 @@ class CvGridMap
      * @return x,y-position in the world frame
      */
 
-    cv::Point2d atPosition2d(const uint32_t &r, const uint32_t &c) const;
+    cv::Point2d atPosition2d(uint32_t r, uint32_t c) const;
 
     /*!
      * @brief Accessing the 3d world position of a grid element. Typically these are utm32-coordinates in aerial mapping
