@@ -25,7 +25,7 @@ void stickCallback(const realm_msgs::GroundImageCompressedPtr img) {
 
     /*ROS_INFO("callb");
 
-    custom_msgs::StitchedImageCompressed geo_image;
+    custom_msgs::StitchedImageCompressed geo_image; // WARNING: custom_msgs does not exist anymore.
 
 	std::cout << img->imagedata.format << std::endl;
 

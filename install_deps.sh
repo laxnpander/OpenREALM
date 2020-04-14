@@ -29,7 +29,7 @@ sudo apt install -y -q exiv2 libexiv2-dev apt-utils
 
 # Used by Pangolin/OpenGL
 sudo apt install -y -q libglew-dev libxkbcommon-dev libglu1-mesa-dev freeglut3-dev mesa-common-dev
-sudo apt install libxi-dev libxmu-dev libxmu-headers x11proto-input-dev
+sudo apt install -y -q libxi-dev libxmu-dev libxmu-headers x11proto-input-dev
 
 # Pangolin
 

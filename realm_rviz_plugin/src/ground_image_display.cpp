@@ -65,7 +65,7 @@ GroundImageDisplay::GroundImageDisplay() :
   topic_property_ = new rviz::RosTopicProperty("Topic",
                                                "",
                                                QString::fromStdString(ros::message_traits::datatype<realm_msgs::GroundImageCompressed>()),
-                                               "custom_msgs::GeoImage topic to subscribe to.",
+                                               "realm_msgs::GroundImageCompressed topic to subscribe to.",
                                                this,
                                                SLOT(updateTopic()));
 
