@@ -40,7 +40,7 @@ void densifier::computeDepthMapFromSparseCloud(const cv::Mat &sparse_cloud,
     out_thumbnail.assign(depth_sparse.clone());
 
   cv::Mat mask_inpaint = (depth_sparse < 0);
-  inpaint(depth_sparse, mask_inpaint, depth_sparse, radius, INPAINT_NS);
+  realm::inpaint(depth_sparse, mask_inpaint, depth_sparse, radius, INPAINT_NS);
 
   // Note: Inpainting with navier stokes produces strange visual artifacts that may result from different properties
   //       of the equation. These artifacts are characterized by local "salt and pepper noise"'ish regions. Apply

@@ -71,7 +71,7 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   if (isBuisy() || _is_initialized)
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
-    LOG_F(INFO, "Input frames: %i", frames.size());
+    LOG_F(INFO, "Input frames: %lu", frames.size());
     LOG_IF_F(INFO, isBuisy(), "Georeferencer is buisy!");
     LOG_IF_F(INFO, _is_initialized, "Georeferencer is initialized!");
     return;
@@ -88,7 +88,7 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   if (valid_input.empty())
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
-    LOG_F(INFO, "Valid frames: %i", frames.size());
+    LOG_F(INFO, "Valid frames: %lu", frames.size());
     setIdle();
     return;
   }
@@ -133,7 +133,7 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   if (unique_spatials.size() < 3 || unique_spatials.size() == _prev_nrof_unique)
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
-    LOG_F(INFO, "Unique frames: %i", unique_spatials.size());
+    LOG_F(INFO, "Unique frames: %lu", unique_spatials.size());
     setIdle();
     return;
   }

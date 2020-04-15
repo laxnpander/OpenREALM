@@ -29,6 +29,8 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
   _use_sparse_depth(stage_set->get<int>("use_sparse_disparity") > 0),
   _use_filter_bilat(stage_set->get<int>("use_filter_bilat") > 0),
   _use_filter_guided(stage_set->get<int>("use_filter_guided") > 0),
+  _depth_min_current(0.0),
+  _depth_max_current(0.0),
   _compute_normals(stage_set->get<int>("compute_normals") > 0),
   _buffer_selector(_buffer_reco.end()),
   _rcvd_frames(0),
@@ -62,12 +64,12 @@ void Densification::addFrame(const Frame::Ptr &frame)
       || frame->getSurfacePoints().empty()
       || !(_use_sparse_depth|| _use_dense_depth))
   {
-    LOG_F(INFO, "Frame #%llu:", frame->getFrameId());
-    LOG_F(INFO, (std::string("Keyframe? ") + (frame->isKeyframe() ? "Yes" : "No")).c_str());
-    LOG_F(INFO, (std::string("Accurate Pose? ") + (frame->hasAccuratePose() ? "Yes" : "No")).c_str());
+    LOG_F(INFO, "Frame #%u:", frame->getFrameId());
+    LOG_F(INFO, "Keyframe? %s", frame->isKeyframe() ? "Yes" : "No");
+    LOG_F(INFO, "Accurate Pose? %s", frame->hasAccuratePose() ? "Yes" : "No");
     LOG_F(INFO, "Surface? %i Points", frame->getSurfacePoints().rows);
 
-    LOG_F(INFO, "Frame #%llu not suited for dense reconstruction. Passing through...", frame->getFrameId());
+    LOG_F(INFO, "Frame #%u not suited for dense reconstruction. Passing through...", frame->getFrameId());
     _transport_frame(frame, "output/frame");
     return;
   }
@@ -94,19 +96,19 @@ bool Densification::process()
   // NOTE: All depthmap maps are CV_32F except they are explicitly casted
 
   // First update current processing mode based on buffer elements
-  ProcessingElement procc_element = getProcessingElement();
+  ProcessingElement element = getProcessingElement();
 
-  if (procc_element.mode == ProcessingMode::IDLE)
+  if (element.mode == ProcessingMode::IDLE)
     return false;
 
   // Processing step
   cv::Mat depthmap;
-  if (procc_element.mode == ProcessingMode::NO_RECONSTRUCTION)
-    if (!processNoReconstruction(procc_element.buffer, depthmap))
+  if (element.mode == ProcessingMode::NO_RECONSTRUCTION)
+    if (!processNoReconstruction(element.buffer, depthmap))
       return true;
 
-  if (procc_element.mode == ProcessingMode::STEREO_RECONSTRUCTION)
-    if (!processStereoReconstruction(procc_element.buffer, depthmap))
+  if (element.mode == ProcessingMode::STEREO_RECONSTRUCTION)
+    if (!processStereoReconstruction(element.buffer, depthmap))
       return true;
 
   // Post processing steps
@@ -117,28 +119,24 @@ bool Densification::process()
     normals = stereo::computeNormalsFromDepthMap(depthmap_filtered);
 
   // Output step
-  LOG_F(INFO, "Scene depthmap force in range %4.2f ... %4.2f", _depth_min_curr, _depth_max_curr);
+  LOG_F(INFO, "Scene depthmap force in range %4.2f ... %4.2f", _depth_min_current, _depth_max_current);
 
-  cv::Mat mask;
-  if (procc_element.mode == ProcessingMode::NO_RECONSTRUCTION)
-    mask = computeDepthMapMask(depthmap_filtered, true);
-  else
-    mask = computeDepthMapMask(depthmap_filtered, false);
+  cv::Mat mask = computeDepthMapMask(depthmap_filtered, element.mode == ProcessingMode::NO_RECONSTRUCTION);
 
   if (_compute_normals)
     cv::erode(mask, mask, cv::Mat(), cv::Point(-1, -1), 4, cv::BORDER_CONSTANT, 0);
 
   LOG_F(INFO, "Reprojecting depthmap map into space...");
-  cv::Mat img3d = stereo::reprojectDepthMap(_frame_curr->getResizedCamera(), depthmap_filtered);
-  cv::Mat surface_pts = cvtToPointCloud(img3d, _frame_curr->getResizedImageUndistorted(), normals, mask);
+  cv::Mat img3d = stereo::reprojectDepthMap(_frame_current->getResizedCamera(), depthmap_filtered);
+  cv::Mat surface_pts = cvtToPointCloud(img3d, _frame_current->getResizedImageUndistorted(), normals, mask);
 
-  _frame_curr->setSurfacePoints(surface_pts);
+  _frame_current->setSurfacePoints(surface_pts);
 
   // Savings
-  saveIter(_frame_curr, normals, mask);
+  saveIter(_frame_current, normals, mask);
 
   // Republish frame to next stage
-  publish(_frame_curr, depthmap_filtered);
+  publish(_frame_current, depthmap_filtered);
   return true;
 }
 
@@ -146,37 +144,37 @@ bool Densification::processNoReconstruction(const FrameBuffer &buffer, cv::Outpu
 {
   LOG_F(INFO, "Performing no reconstruction. Interpolation of sparse cloud...");
 
-  _frame_curr = buffer.front();
+  _frame_current = buffer.front();
 
-  if (_frame_curr->getSurfacePoints().rows < 50 || !_use_sparse_depth)
+  if (_frame_current->getSurfacePoints().rows < 50 || !_use_sparse_depth)
   {
     LOG_F(INFO, "Interpolation of sparse cloud failed. Too few sparse points!");
     popFromBufferNoReco();
     return false;
   }
 
-  _depth_min_curr = static_cast<float>(_frame_curr->getMedianSceneDepth())*0.25f;
-  _depth_max_curr = static_cast<float>(_frame_curr->getMedianSceneDepth())*1.75f;
+  _depth_min_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 0.25f;
+  _depth_max_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 1.75f;
 
-  LOG_F(INFO, "Processing frame #%llu...", _frame_curr->getFrameId());
+  LOG_F(INFO, "Processing frame #%u...", _frame_current->getFrameId());
 
   // Resize factor must be set, in case sparse only was chosen (densifier is dummy)
-  if (!_frame_curr->isImageResizeSet())
-    _frame_curr->setImageResizeFactor(_densifier->getResizeFactor());
+  if (!_frame_current->isImageResizeSet())
+    _frame_current->setImageResizeFactor(_densifier->getResizeFactor());
 
   // Compute sparse depth map and save if neccessary
   cv::Mat depthmap_sparse;
   cv::Mat depthmap_sparse_densified;
 
-  densifier::computeDepthMapFromSparseCloud(_frame_curr->getSurfacePoints(),
-                                            _frame_curr->getResizedCamera(),
+  densifier::computeDepthMapFromSparseCloud(_frame_current->getSurfacePoints(),
+                                            _frame_current->getResizedCamera(),
                                             depthmap_sparse_densified,
                                             depthmap_sparse);
 
   if (_settings_save.save_thumb)
-    io::saveImageColorMap(depthmap_sparse, _depth_min_curr, _depth_max_curr, _stage_path + "/thumb", "thumb", _frame_curr->getFrameId(), io::ColormapType::DEPTH);
+    io::saveImageColorMap(depthmap_sparse, _depth_min_current, _depth_max_current, _stage_path + "/thumb", "thumb", _frame_current->getFrameId(), io::ColormapType::DEPTH);
   if (_settings_save.save_sparse)
-    io::saveDepthMap(depthmap_sparse_densified, _stage_path + "/sparse/sparse_%06i.tif", _frame_curr->getFrameId(), _depth_min_curr, _depth_max_curr);
+    io::saveDepthMap(depthmap_sparse_densified, _stage_path + "/sparse/sparse_%06i.tif", _frame_current->getFrameId(), _depth_min_current, _depth_max_current);
 
   depthmap.assign(depthmap_sparse_densified);
   popFromBufferNoReco();
@@ -189,10 +187,11 @@ bool Densification::processStereoReconstruction(const FrameBuffer &buffer, cv::O
 
   // Reference frame is the one in the middle (if more than two)
   int ref_idx = (int)buffer.size()/2;
-  _frame_curr = buffer[ref_idx];
-  _depth_min_curr = static_cast<float>(_frame_curr->getMedianSceneDepth())*0.25f;
-  _depth_max_curr = static_cast<float>(_frame_curr->getMedianSceneDepth())*1.75f;
+  _frame_current = buffer[ref_idx];
+  _depth_min_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 0.25f;
+  _depth_max_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 1.75f;
 
+  // In case the newest frame has a different georeference than the rest, use the most recent one
   cv::Mat georef_newest = buffer.back()->getGeoreference();
   for (auto &f : buffer)
   {
@@ -200,24 +199,35 @@ bool Densification::processStereoReconstruction(const FrameBuffer &buffer, cv::O
     f->updateGeographicPose();
   }
 
-  LOG_F(INFO, "Reconstructing frame #%llu...", _frame_curr->getFrameId());
+  // Compute baseline information for all frames
+  std::string stringbuffer;
+  for (auto &f : buffer)
+  {
+    if (f == _frame_current)
+      continue;
+    double baseline = stereo::computeBaselineFromPose(_frame_current->getPose(), f->getPose());
+    stringbuffer += std::to_string(baseline) + "m ";
+  }
+  LOG_F(INFO, "Baselines to reference frame: %s", stringbuffer.c_str());
+
+  LOG_F(INFO, "Reconstructing frame #%u...", _frame_current->getFrameId());
   cv::Mat depthmap_dense = _densifier->densify(buffer, (uint8_t)ref_idx);
 
   LOG_IF_F(INFO, !depthmap_dense.empty(), "Successfully reconstructed frame!");
   if (depthmap_dense.empty())
   {
     LOG_F(INFO, "Reconstruction failed!");
-    pushToBufferNoReco(_frame_curr);
-    popFromBufferReco(_frame_curr->getCameraId());
+    pushToBufferNoReco(_frame_current);
+    popFromBufferReco(_frame_current->getCameraId());
     return false;
   }
 
   // Saving raw
   if (_settings_save.save_dense)
-    io::saveDepthMap(depthmap_dense, _stage_path + "/dense/dense_%06i.tif", _frame_curr->getFrameId(), _depth_min_curr, _depth_max_curr);
+    io::saveDepthMap(depthmap_dense, _stage_path + "/dense/dense_%06i.tif", _frame_current->getFrameId(), _depth_min_current, _depth_max_current);
 
   depthmap.assign(depthmap_dense);
-  popFromBufferReco(_frame_curr->getCameraId());
+  popFromBufferReco(_frame_current->getCameraId());
   return true;
 }
 
@@ -230,8 +240,8 @@ cv::Mat Densification::applyDepthMapPostProcessing(const cv::Mat &depthmap)
       cv::bilateralFilter(depthmap, depthmap_filtered, 5, 25, 25);
 
   if (_settings_save.save_bilat)
-    io::saveImageColorMap(depthmap_filtered, _depth_min_curr, _depth_max_curr,  _stage_path + "/bilat", "bilat",
-                          _frame_curr->getFrameId(), io::ColormapType::DEPTH);
+    io::saveImageColorMap(depthmap_filtered, _depth_min_current, _depth_max_current, _stage_path + "/bilat", "bilat",
+                          _frame_current->getFrameId(), io::ColormapType::DEPTH);
 
   return depthmap_filtered;
 }
@@ -241,11 +251,11 @@ cv::Mat Densification::computeDepthMapMask(const cv::Mat &depth_map, bool use_sp
   cv::Mat mask1, mask2, mask3;
 
   if (use_sparse_mask)
-    densifier::computeSparseMask(_frame_curr->getSurfacePoints(), _frame_curr->getResizedCamera(), mask1);
+    densifier::computeSparseMask(_frame_current->getSurfacePoints(), _frame_current->getResizedCamera(), mask1);
   else
     mask1 = cv::Mat::ones(depth_map.rows, depth_map.cols, CV_8UC1)*255;
 
-  cv::inRange(depth_map, _depth_min_curr, _depth_max_curr, mask2);
+  cv::inRange(depth_map, _depth_min_current, _depth_max_current, mask2);
   cv::bitwise_and(mask1, mask2, mask3);
   return mask3;
 }

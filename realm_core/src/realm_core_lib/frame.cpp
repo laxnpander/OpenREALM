@@ -399,11 +399,7 @@ bool Frame::isImageResizeSet() const
 
 bool Frame::hasObservedMap() const
 {
-  if (_observed_map == nullptr)
-    return false;
-  else if (_observed_map->empty())
-    return false;
-  return true;
+  return !(_observed_map == nullptr || _observed_map->empty());
 }
 
 bool Frame::hasAccuratePose() const

@@ -128,13 +128,13 @@ class Densification : public StageBase
     uint64_t _rcvd_frames;
 
     //! Current frame in class wide processing
-    Frame::Ptr _frame_curr;
+    Frame::Ptr _frame_current;
 
     //! Minimum depth of the current observed scene
-    float _depth_min_curr;
+    float _depth_min_current;
 
     //! Maximum depth of the current observed scene
-    float _depth_max_curr;
+    float _depth_max_current;
 
     //! Buffer for frames that are only sparsely densified
     FrameBuffer _buffer_no_reco;
