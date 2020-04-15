@@ -70,6 +70,14 @@ void computeDepthMapFromPointCloud(const camera::Pinhole &cam,
  */
 cv::Mat computeNormalsFromDepthMap(const cv::Mat& depth);
 
+/*!
+ * @brief Computes the baseline between two camera poses using simple euclidean distance
+ * @param p1 First pose as transformation matrix 3x4 with (R | t)
+ * @param p2 Second pose as transformation matrix 3x4 with (R | t)
+ * @return Euclidean distance between first and second pose, aka baseline
+ */
+double computeBaselineFromPose(const cv::Mat &p1, const cv::Mat &p2);
+
 
 } // stereo
 } // namespace realm

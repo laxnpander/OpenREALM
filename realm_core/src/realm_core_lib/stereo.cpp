@@ -194,3 +194,10 @@ cv::Mat realm::stereo::computeNormalsFromDepthMap(const cv::Mat& depth)
     }
   return normals;
 }
+
+double realm::stereo::computeBaselineFromPose(const cv::Mat &p1, const cv::Mat &p2)
+{
+  cv::Mat t1 = p1.col(3);
+  cv::Mat t2 = p2.col(3);
+  return cv::norm(t1-t2);
+}
