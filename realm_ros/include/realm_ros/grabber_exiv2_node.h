@@ -88,7 +88,7 @@ class Exiv2GrabberNode
     ros::Publisher _pub_frame;
     ros::Publisher _pub_image;
 
-    camera::Pinhole _cam;
+    camera::Pinhole::Ptr _cam;
     realm_msgs::Pinhole _cam_msg;
 
     size_t _id_curr_file;
