@@ -27,7 +27,8 @@ Exiv2GrabberNode::Exiv2GrabberNode()
   _use_apriori_pose(false),
   _use_apriori_surface_pts(false),
   _fps(0.0),
-  _id_curr_file(0)
+  _id_curr_file(0),
+  _cam(nullptr)
 {
   readParams();
   setPaths();
@@ -36,10 +37,10 @@ Exiv2GrabberNode::Exiv2GrabberNode()
 
   // Loading camera from provided file, check first if absolute path was provided
   if (io::fileExists(_file_settings_camera))
-    _cam = io::loadCameraFromYaml(_file_settings_camera);
+    _cam = std::make_shared<camera::Pinhole>(io::loadCameraFromYaml(_file_settings_camera));
   else
-    _cam = io::loadCameraFromYaml(_path_profile + "/camera/", _file_settings_camera);
-  _cam_msg = to_ros::pinhole(_cam);
+    _cam = std::make_shared<camera::Pinhole>(io::loadCameraFromYaml(_path_profile + "/camera/", _file_settings_camera));
+  _cam_msg = to_ros::pinhole(*_cam);
 
   // Loading poses from file if provided
   if (_use_apriori_pose)
@@ -57,14 +58,14 @@ Exiv2GrabberNode::Exiv2GrabberNode()
 
   ROS_INFO_STREAM(
       "Exiv2 Grabber Node [Ankommen]: Successfully loaded camera: "
-          << "\n\tcx = " << _cam.cx()
-          << "\n\tcy = " << _cam.cy()
-          << "\n\tfx = " << _cam.fx()
-          << "\n\tfy = " << _cam.fy()
-          << "\n\tk1 = " << _cam.k1()
-          << "\n\tk2 = " << _cam.k2()
-          << "\n\tp1 = " << _cam.p1()
-          << "\n\tp2 = " << _cam.p2());
+          << "\n\tcx = " << _cam->cx()
+          << "\n\tcy = " << _cam->cy()
+          << "\n\tfx = " << _cam->fx()
+          << "\n\tfy = " << _cam->fy()
+          << "\n\tk1 = " << _cam->k1()
+          << "\n\tk2 = " << _cam->k2()
+          << "\n\tp1 = " << _cam->p1()
+          << "\n\tp2 = " << _cam->p2());
 
   // ROS related inits
   _topic_prefix = "/realm/" + _id_node;
@@ -114,7 +115,7 @@ void Exiv2GrabberNode::spin()
   if (_id_curr_file < _file_list.size())
   {
     ROS_INFO_STREAM("Image #" << _id_curr_file << ", image Path: " << _file_list[_id_curr_file]);
-    Frame::Ptr frame = _exiv2_reader.loadFrameFromExiv2(_id_node, _cam, _file_list[_id_curr_file]);
+    Frame::Ptr frame = _exiv2_reader.loadFrameFromExiv2(_id_node, *_cam, _file_list[_id_curr_file]);
 
     // External pose can be provided
     if (_use_apriori_pose)
