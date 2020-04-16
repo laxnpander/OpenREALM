@@ -87,3 +87,20 @@ install(
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
         FILES_MATCHING PATTERN "*.h"
 )
+
+#############
+## Testing ##
+#############
+
+if(CATKIN_ENABLE_TESTING)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    ## Add gtest based cpp test target and link libraries
+    catkin_add_gtest(${PROJECT_NAME}-test
+            test/test_realm_core.cpp
+            test/test_helper.cpp
+            )
+endif()
+
+if(TARGET ${PROJECT_NAME}-test)
+    target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+endif()

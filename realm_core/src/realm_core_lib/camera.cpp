@@ -29,11 +29,6 @@ namespace realm
 namespace camera
 {
 
-Pinhole::Pinhole()
-{
-  reset();
-}
-
 // CONSTRUCTION
 
 Pinhole::Pinhole(double fx,
@@ -59,7 +54,10 @@ Pinhole::Pinhole(double fx,
 Pinhole::Pinhole(const cv::Mat &K,
                  uint32_t img_width,
                  uint32_t img_height)
-    : _K(K), _img_width(img_width), _img_height(img_height)
+    : _do_undistort(false),
+      _K(K),
+      _img_width(img_width),
+      _img_height(img_height)
 {
 }
 
@@ -394,12 +392,6 @@ cv::Mat Pinhole::unprojectPoint(double x, double y, double depth) const
 }
 
 // PRIVATE
-
-void Pinhole::reset()
-{
-  _img_width = 0;
-  _img_height = 0;
-}
 
 bool Pinhole::isDistortionNonZero(const cv::Mat &dist_coeffs)
 {

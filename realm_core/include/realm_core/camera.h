@@ -42,20 +42,16 @@ class Pinhole
     using Ptr = std::shared_ptr<Pinhole>;
     using ConstPtr = std::shared_ptr<const Pinhole>;
   public:
-    /*!
-     * @brief Default constructor
-     */
-    Pinhole();
 
-    /*!
-     * @brief Constructor for raw elements of calibration and image size.
-     * @param fx Focal length in x
-     * @param fy Focal length in y
-     * @param cx Principal point in x
-     * @param cy Principal point in y
-     * @param img_width Width of the image
-     * @param img_height Height of the image
-     */
+  /*!
+   * @brief Constructor for raw elements of calibration and image size.
+   * @param fx Focal length in x
+   * @param fy Focal length in y
+   * @param cx Principal point in x
+   * @param cy Principal point in y
+   * @param img_width Width of the image
+   * @param img_height Height of the image
+   */
     Pinhole(double fx, double fy, double cx, double cy, uint32_t img_width, uint32_t img_height);
 
     /*!
@@ -337,7 +333,6 @@ class Pinhole
     uint32_t _img_width;
     uint32_t _img_height;
 
-    void reset();
     bool isDistortionNonZero(const cv::Mat &dist_coeffs);
 };
 
