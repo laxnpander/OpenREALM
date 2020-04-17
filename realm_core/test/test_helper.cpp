@@ -20,25 +20,44 @@
 
 #include "test_helper.h"
 
-using namespace realm;
+// gtest
+#include <gtest/gtest.h>
 
-camera::Pinhole createDummyPinhole()
+cv::Mat realm::createDummyPose()
 {
-  int width = 1250;
-  int height = 623;
+  cv::Mat pose = cv::Mat::zeros(3, 4, CV_64F);
+
+  // Rotation: We create a rotation, that is 90° tilted around the z-axis
+  pose.at<double>(0, 1) = 1.0;
+  pose.at<double>(1, 0) = 1.0;
+  pose.at<double>(2, 2) = -1.0;
+
+  // Translation: We create a translation, that is offsetted in y-axis
+  pose.at<double>(0, 3) = 500.0;
+  pose.at<double>(1, 3) = -600.0;
+  pose.at<double>(2, 3) = 1200.0;
+
+  return pose;
+}
+
+realm::camera::Pinhole realm::createDummyPinhole()
+{
+  int width = 1200;
+  int height = 1000;
 
   cv::Mat K(3, 3, CV_64F);
-  K.at<double>(0, 0) = 1000.0;
-  K.at<double>(1, 1) = 1100.0;
+  K.at<double>(0, 0) = 1200.0;
+  K.at<double>(1, 1) = 1200.0;
   K.at<double>(0, 2) = 600.0;
-  K.at<double>(1, 2) = 300.0;
+  K.at<double>(1, 2) = 500.0;
+  K.at<double>(2, 2) = 1.0;
 
   cv::Mat distortion(5, 1, CV_64F);
-  distortion.at<double>(0) = 0.001;
-  distortion.at<double>(0) = 0.002;
-  distortion.at<double>(0) = 0.003;
-  distortion.at<double>(0) = 0.004;
-  distortion.at<double>(0) = 0.005;
+  distortion.at<double>(0) = 0.0;
+  distortion.at<double>(1) = 0.0;
+  distortion.at<double>(2) = 0.0;
+  distortion.at<double>(3) = 0.0;
+  distortion.at<double>(4) = 0.0;
 
   return camera::Pinhole(K, distortion, width, height);
 }

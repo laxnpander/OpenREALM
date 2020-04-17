@@ -205,7 +205,7 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
 
   SpatialMeasurement::Ptr s_curr = std::make_shared<SpatialMeasurement>();
   s_curr->first = frame->getDefaultPose();
-  s_curr->second = frame->getPose();
+  s_curr->second = frame->getVisualPose();
 
   SpatialMeasurement::Ptr s_prev = _spatials.back();
 

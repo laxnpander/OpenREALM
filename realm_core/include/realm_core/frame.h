@@ -64,13 +64,14 @@ class Frame
           const uint64_t &timestamp,
           const cv::Mat &img,
           const UTMPose &utm,
-          const camera::Pinhole &cam);
+          const camera::Pinhole::Ptr &cam);
 
-    /*!
-     * @brief Deep copy constructor for frames. Use it wisely :)
-     * @param f Frame to be copied
+    /*
+     * @brief Frame represents a unique container of acquired and computed data and is therefore designed to be non-copyable.
+     * Please create it as shared pointer and pass it around your system as such!
      */
-    Frame(const Frame &f);
+    Frame(const Frame &f) = delete;
+    void operator=(const Frame &) = delete;
 
     /*!
      * @brief Getter for the camera id
@@ -177,7 +178,7 @@ class Frame
      *     If frame pose is not accurate, then return the default pose based on GNSS and heading
      * @return Model for projection, etc of the camera
      */
-    camera::Pinhole getCamera() const;
+    camera::Pinhole::Ptr getCamera() const;
 
     /*!
      * @brief Getter for the timestamp of the frame
@@ -225,7 +226,7 @@ class Frame
      * @brief Getter for the resized calibration model
      * @return Resized calibration model, that is computed depending on the image resize factor
      */
-    camera::Pinhole getResizedCamera() const;
+    camera::Pinhole::Ptr getResizedCamera() const;
 
     /*!
      * @brief Setter for the camera pose computed by either the default pose or more advanced approached, e.g. visual SLAM
@@ -416,7 +417,7 @@ class Frame
     CvGridMap::Ptr _observed_map;
 
     //! Camera model of the frame that performs all the projection work. Currently only pinhole supported
-    camera::Pinhole _cam;
+    camera::Pinhole::Ptr _cam;
 
     //! Transformation from world to geographic frame
     cv::Mat _T_w2g;

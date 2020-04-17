@@ -40,13 +40,13 @@ void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rect)
 
   // Prepare projection, use raw arrays for performance
   cv::Mat img = frame->getImageUndistorted();
-  cv::Mat cv_P = frame->getCamera().P();
+  cv::Mat cv_P = frame->getCamera()->P();
   double P[3][4] = {cv_P.at<double>(0, 0), cv_P.at<double>(0, 1), cv_P.at<double>(0, 2), cv_P.at<double>(0, 3),
                     cv_P.at<double>(1, 0), cv_P.at<double>(1, 1), cv_P.at<double>(1, 2), cv_P.at<double>(1, 3),
                     cv_P.at<double>(2, 0), cv_P.at<double>(2, 1), cv_P.at<double>(2, 2), cv_P.at<double>(2, 3)};
 
   // Prepare elevation angle calculation
-  cv::Mat t_pose = frame->getCamera().t();
+  cv::Mat t_pose = frame->getCamera()->t();
   double t[3] = {t_pose.at<double>(0), t_pose.at<double>(1), t_pose.at<double>(2)};
 
   // Get data from container

@@ -29,7 +29,7 @@ Frame::Frame(const std::string &camera_id,
              const uint64_t &timestamp,
              const cv::Mat &img,
              const UTMPose &utm,
-             const camera::Pinhole &cam)
+             const camera::Pinhole::Ptr &cam)
     : _camera_id(camera_id),
       _frame_id(frame_id),
       _is_keyframe(false),
@@ -47,30 +47,7 @@ Frame::Frame(const std::string &camera_id,
       _max_scene_depth(0.0),
       _med_scene_depth(0.0)
 {
-  _cam.setPose(getDefaultPose());
-}
-
-Frame::Frame(const Frame &f)
-    : _camera_id(f._camera_id),
-      _frame_id(f._frame_id),
-      _is_keyframe(f._is_keyframe),
-      _is_georeferenced(f._is_georeferenced),
-      _has_accurate_pose(f._has_accurate_pose),
-      _surface_assumption(f._surface_assumption),
-      _timestamp(f._timestamp),
-      _img(f._img.clone()),
-      _utm(f._utm),
-      _cam(f._cam)
-{
-  if (f._has_accurate_pose)
-    _M_c2w = f._M_c2w.clone();
-  if (f._is_georeferenced)
-  {
-    _M_c2g = f._M_c2g.clone();
-    _T_w2g = f._T_w2g.clone();
-  }
-  setSurfacePoints(f._surface_pts.clone());
-  setImageResizeFactor(f._img_resize_factor);
+  _cam->setPose(getDefaultPose());
 }
 
 // GETTER
@@ -88,13 +65,13 @@ uint32_t Frame::getFrameId() const
 uint32_t Frame::getResizedImageWidth() const
 {
   assert(_is_img_resizing_set);
-  return (uint32_t)((double) _cam.width()*_img_resize_factor);
+  return (uint32_t)((double) _cam->width()*_img_resize_factor);
 }
 
 uint32_t Frame::getResizedImageHeight() const
 {
   assert(_is_img_resizing_set);
-  return (uint32_t)((double) _cam.height()*_img_resize_factor);
+  return (uint32_t)((double) _cam->height()*_img_resize_factor);
 }
 
 double Frame::getMinSceneDepth() const
@@ -118,8 +95,8 @@ double Frame::getMedianSceneDepth() const
 cv::Size Frame::getResizedImageSize() const
 {
   assert(_is_img_resizing_set);
-  auto width = (uint32_t)((double) _cam.width()*_img_resize_factor);
-  auto height = (uint32_t)((double) _cam.height()*_img_resize_factor);
+  auto width = (uint32_t)((double) _cam->width()*_img_resize_factor);
+  auto height = (uint32_t)((double) _cam->height()*_img_resize_factor);
   return cv::Size(width, height);
 }
 
@@ -127,8 +104,8 @@ cv::Mat Frame::getImageUndistorted() const
 {
   // - No deep copy
   cv::Mat img_undistorted;
-  if(_cam.isDistorted())
-    img_undistorted = _cam.undistort(_img, CV_INTER_LINEAR);
+  if(_cam->isDistorted())
+    img_undistorted = _cam->undistort(_img, CV_INTER_LINEAR);
   else
     img_undistorted = _img;
   return std::move(img_undistorted);
@@ -178,7 +155,7 @@ cv::Mat Frame::getResizedImageUndistorted() const
   // meantime
   // - No deep copy
   assert(_is_img_resizing_set);
-  camera::Pinhole cam_resized = _cam.resize(_img_resize_factor);
+  camera::Pinhole cam_resized = _cam->resize(_img_resize_factor);
   return cam_resized.undistort(_img_resized, CV_INTER_LINEAR);
 }
 
@@ -192,7 +169,7 @@ cv::Mat Frame::getResizedImageRaw() const
 cv::Mat Frame::getResizedCalibration() const
 {
   assert(_is_img_resizing_set);
-  return _cam.resize(_img_resize_factor).K();
+  return _cam->resize(_img_resize_factor).K();
 }
 
 cv::Mat Frame::getSurfacePoints() const
@@ -214,7 +191,7 @@ cv::Mat Frame::getPose() const
   if (hasAccuratePose())
   {
     // Option 1+2: Cameras pose is always uptodate
-    return _cam.pose();
+    return _cam->pose();
   }
 
   // Default:
@@ -223,12 +200,12 @@ cv::Mat Frame::getPose() const
 
 cv::Mat Frame::getVisualPose() const
 {
-  return _M_c2w;
+  return _M_c2w.clone();
 }
 
 cv::Mat Frame::getGeographicPose() const
 {
-  return _M_c2g;
+  return _M_c2g.clone();
 }
 
 cv::Mat Frame::getGeoreference() const
@@ -252,7 +229,7 @@ UTMPose Frame::getGnssUtm() const
   return _utm;
 }
 
-camera::Pinhole Frame::getCamera() const
+camera::Pinhole::Ptr Frame::getCamera() const
 {
   return _cam;
 }
@@ -263,10 +240,10 @@ uint64_t Frame::getTimestamp() const
   return _timestamp;
 }
 
-camera::Pinhole Frame::getResizedCamera() const
+camera::Pinhole::Ptr Frame::getResizedCamera() const
 {
   assert(_is_img_resizing_set);
-  return _cam.resize(_img_resize_factor);
+  return std::make_shared<camera::Pinhole>(_cam->resize(_img_resize_factor));
 }
 
 // SETTER
@@ -283,7 +260,7 @@ void Frame::setVisualPose(const cv::Mat &pose)
   else
   {
     std::lock_guard<std::mutex> lock(_mutex_cam);
-    _cam.setPose(pose);
+    _cam->setPose(pose);
   }
 
   setPoseAccurate(true);
@@ -292,7 +269,7 @@ void Frame::setVisualPose(const cv::Mat &pose)
 void Frame::setGeographicPose(const cv::Mat &pose)
 {
   std::lock_guard<std::mutex> lock(_mutex_cam);
-  _cam.setPose(pose);
+  _cam->setPose(pose);
   _M_c2g = pose;
   setPoseAccurate(true);
 }
@@ -448,11 +425,11 @@ void Frame::computeSceneDepth()
   depths.reserve(n);
 
   _mutex_cam.lock();
-  cv::Mat P = _cam.P();
+  cv::Mat P = _cam->P();
   _mutex_cam.unlock();
 
   // Prepare extrinsics
-  cv::Mat T_w2c = _cam.Tw2c();
+  cv::Mat T_w2c = _cam->Tw2c();
   cv::Mat R_wc2 = T_w2c.row(2).colRange(0, 3).t();
   double z_wc = T_w2c.at<double>(2, 3);
 

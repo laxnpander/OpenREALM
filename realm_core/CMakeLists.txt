@@ -98,6 +98,8 @@ if(CATKIN_ENABLE_TESTING)
     catkin_add_gtest(${PROJECT_NAME}-test
             test/test_realm_core.cpp
             test/test_helper.cpp
+            test/pinhole_test.cpp
+            test/frame_test.cpp
             )
 endif()
 

@@ -200,7 +200,7 @@ realm::Frame::Ptr to_realm::frame(const realm_msgs::Frame &msg)
   // Essential sensor data
   cv::Mat img = to_realm::imageCompressed(msg.imagedata);
   realm::UTMPose utm = to_realm::utm(msg.gpsdata, msg.heading);
-  realm::camera::Pinhole cam = to_realm::pinhole(msg.camera_model);
+  realm::camera::Pinhole::Ptr cam = to_realm::pinhole(msg.camera_model);
   realm::Frame::Ptr frame = std::make_shared<realm::Frame>(msg.camera_id.data, msg.stage_id.data, msg.timestamp.data, img, utm, cam);
 
   // Optional generated data
@@ -226,28 +226,28 @@ realm::Frame::Ptr to_realm::frame(const realm_msgs::Frame &msg)
 }
 
 
-realm_msgs::Pinhole to_ros::pinhole(const realm::camera::Pinhole &cam)
+realm_msgs::Pinhole to_ros::pinhole(const realm::camera::Pinhole::Ptr &cam)
 {
   realm_msgs::Pinhole msg;
-  msg.width.data = cam.width();
-  msg.height.data = cam.height();
-  msg.fx.data = cam.fx();
-  msg.fy.data = cam.fy();
-  msg.cx.data = cam.cx();
-  msg.cy.data = cam.cy();
-  msg.k1.data = cam.k1();
-  msg.k2.data = cam.k2();
-  msg.p1.data = cam.p1();
-  msg.p2.data = cam.p2();
+  msg.width.data = cam->width();
+  msg.height.data = cam->height();
+  msg.fx.data = cam->fx();
+  msg.fy.data = cam->fy();
+  msg.cx.data = cam->cx();
+  msg.cy.data = cam->cy();
+  msg.k1.data = cam->k1();
+  msg.k2.data = cam->k2();
+  msg.p1.data = cam->p1();
+  msg.p2.data = cam->p2();
   msg.k3.data = 0.0;
   return msg;
 }
 
-realm::camera::Pinhole to_realm::pinhole(const realm_msgs::Pinhole &msg)
+realm::camera::Pinhole::Ptr to_realm::pinhole(const realm_msgs::Pinhole &msg)
 {
   realm::camera::Pinhole cam(msg.fx.data, msg.fy.data, msg.cx.data, msg.cy.data, msg.width.data, msg.height.data);
   cam.setDistortionMap(msg.k1.data, msg.k2.data, msg.p1.data, msg.p2.data, 0.0);
-  return cam;
+  return std::make_shared<camera::Pinhole>(cam);
 }
 
 sensor_msgs::PointCloud2 to_ros::pointCloud(const std_msgs::Header &header, const cv::Mat &points)

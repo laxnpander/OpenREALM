@@ -50,7 +50,7 @@ void remap(const Frame::Ptr &frame,
  * @param depthmap Disparity map computed with a stereo reconstruction framework of choice, normalised to min/max depth
  * @return 3-channel double precision matrix (CV_64FC3) with world point coordinates at each element
  */
-cv::Mat reprojectDepthMap(const camera::Pinhole &cam,
+cv::Mat reprojectDepthMap(const camera::Pinhole::Ptr &cam,
                           const cv::Mat &depthmap);
 
 /*!
@@ -59,7 +59,7 @@ cv::Mat reprojectDepthMap(const camera::Pinhole &cam,
  * @param points Point cloud structured es mat rowise x, y, z coordinates
  * @param depth Output depth map as cv::Mat
  */
-void computeDepthMapFromPointCloud(const camera::Pinhole &cam,
+void computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &cam,
                                    const cv::Mat &points,
                                    cv::Mat &depth);
 

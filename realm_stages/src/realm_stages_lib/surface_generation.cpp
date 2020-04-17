@@ -181,7 +181,7 @@ SurfaceAssumption SurfaceGeneration::computeSurfaceAssumption(const Frame::Ptr &
 DigitalSurfaceModel::Ptr SurfaceGeneration::createPlanarSurface(const Frame::Ptr &frame)
 {
   // Create planar surface in world frame
-  cv::Rect2d roi = frame->getCamera().projectImageBoundsToPlaneRoi(_plane_reference.pt, _plane_reference.n);
+  cv::Rect2d roi = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_reference.pt, _plane_reference.n);
   auto dsm = std::make_shared<DigitalSurfaceModel>(roi);
   return dsm;
 }
@@ -189,7 +189,7 @@ DigitalSurfaceModel::Ptr SurfaceGeneration::createPlanarSurface(const Frame::Ptr
 DigitalSurfaceModel::Ptr SurfaceGeneration::createElevationSurface(const Frame::Ptr &frame)
 {
   // Create elevated 2.5D surface in world frame
-  cv::Rect2d roi = frame->getCamera().projectImageBoundsToPlaneRoi(_plane_reference.pt, _plane_reference.n);
+  cv::Rect2d roi = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_reference.pt, _plane_reference.n);
   auto dsm = std::make_shared<DigitalSurfaceModel>(roi, frame->getSurfacePoints(), _mode_surface_normals, _knn_radius_factor);
   return dsm;
 }

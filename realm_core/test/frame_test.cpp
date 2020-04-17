@@ -18,17 +18,17 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OPENREALM_TEST_HELPER_H
-#define OPENREALM_TEST_HELPER_H
+#include <iostream>
+#include <realm_core/frame.h>
 
-#include <realm_core/camera.h>
+#include "test_helper.h"
 
-namespace realm {
+// gtest
+#include <gtest/gtest.h>
 
-  cv::Mat createDummyPose();
-  camera::Pinhole createDummyPinhole();
+using namespace realm;
 
-} // namespace realm
+TEST(Frame, CopyConstructor)
+{
 
-
-#endif //OPENREALM_TEST_HELPER_H
+}

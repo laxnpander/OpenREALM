@@ -36,11 +36,11 @@ void realm::stereo::computeRectification(const Frame::Ptr &frame_left,
   cv::Mat K_l = frame_left->getResizedCalibration();
   cv::Mat K_r = frame_right->getResizedCalibration();
   // distortion
-  cv::Mat D_l = frame_left->getCamera().distCoeffs();
-  cv::Mat D_r = frame_right->getCamera().distCoeffs();
+  cv::Mat D_l = frame_left->getCamera()->distCoeffs();
+  cv::Mat D_r = frame_right->getCamera()->distCoeffs();
   // exterior calib
-  cv::Mat T_l_w2c = frame_left->getCamera().Tw2c();
-  cv::Mat T_r_c2w = frame_right->getCamera().Tc2w();
+  cv::Mat T_l_w2c = frame_left->getCamera()->Tw2c();
+  cv::Mat T_r_c2w = frame_right->getCamera()->Tc2w();
   cv::Mat T_lr = T_l_w2c*T_r_c2w;
   // Now calculate transformation between the cameras
   // Formula: R = R_1^T * R_2
@@ -62,7 +62,7 @@ void realm::stereo::remap(const Frame::Ptr &frame,
   // inner calib
   cv::Mat K = frame->getResizedCalibration();
   // distortion
-  cv::Mat D = frame->getCamera().distCoeffs();
+  cv::Mat D = frame->getCamera()->distCoeffs();
   // remapping
   cv::Mat map11, map12;
   initUndistortRectifyMap(K, D, R, P, frame->getResizedImageSize(), CV_16SC2, map11, map12);
@@ -73,7 +73,7 @@ void realm::stereo::remap(const Frame::Ptr &frame,
   cv::remap(img, img_remapped, map11, map12, cv::INTER_LINEAR);
 }
 
-cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole &cam,
+cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole::Ptr &cam,
                                          const cv::Mat &depthmap)
 {
   // Chosen formula for reprojection follows the linear projection model:
@@ -85,12 +85,12 @@ cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole &cam,
   assert(depthmap.rows > 0 && depthmap.cols > 0);
 
   // Implementation is chosen to be raw array, because it saves round about 30% computation time
-  double fx = cam.fx();
-  double fy = cam.fy();
-  double cx = cam.cx();
-  double cy = cam.cy();
-  cv::Mat R_c2w = cam.R();
-  cv::Mat t_c2w = cam.t();
+  double fx = cam->fx();
+  double fy = cam->fy();
+  double cx = cam->cx();
+  double cy = cam->cy();
+  cv::Mat R_c2w = cam->R();
+  cv::Mat t_c2w = cam->t();
 
   assert(fx > 0 && fy > 0 && cx > 0 && cy > 0);
   assert(R_c2w.cols == 3 && R_c2w.rows == 3);
@@ -130,7 +130,7 @@ cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole &cam,
   return img3d;
 }
 
-void realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole &cam,
+void realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &cam,
                                                   const cv::Mat &points,
                                                   cv::Mat &depth_map)
 {
@@ -140,19 +140,19 @@ void realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole &cam,
    */
 
   // Prepare depthmap dimensions
-  uint32_t width = cam.width();
-  uint32_t height = cam.height();
+  uint32_t width = cam->width();
+  uint32_t height = cam->height();
 
   // Prepare output data
   depth_map = cv::Mat(height, width, CV_32F, -1.0);
 
   // Prepare extrinsics
-  cv::Mat T_w2c = cam.Tw2c();
+  cv::Mat T_w2c = cam->Tw2c();
   cv::Mat Rwc2 = T_w2c.row(2).colRange(0, 3).t();
   double zwc = T_w2c.at<double>(2, 3);
 
   // Prepare projection
-  cv::Mat P_cv = cam.P();
+  cv::Mat P_cv = cam->P();
   double P[3][4]{P_cv.at<double>(0, 0), P_cv.at<double>(0, 1), P_cv.at<double>(0, 2), P_cv.at<double>(0, 3),
                  P_cv.at<double>(1, 0), P_cv.at<double>(1, 1), P_cv.at<double>(1, 2), P_cv.at<double>(1, 3),
                  P_cv.at<double>(2, 0), P_cv.at<double>(2, 1), P_cv.at<double>(2, 2), P_cv.at<double>(2, 3)};

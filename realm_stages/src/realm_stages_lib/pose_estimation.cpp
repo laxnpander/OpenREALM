@@ -124,7 +124,7 @@ bool PoseEstimation::process()
     {
       if (_do_update_georef && !_georef->isBuisy())
       {
-        std::thread t(std::bind(&GeospatialReferencerIF::update, _georef, std::make_shared<Frame>(*frame)));
+        std::thread t(std::bind(&GeospatialReferencerIF::update, _georef, frame));
         t.detach();
       }
       pushToBufferAll(frame);
@@ -375,9 +375,7 @@ double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
 
 cv::Rect2d PoseEstimation::estimateProjectedRoi(const Frame::Ptr &frame)
 {
-  camera::Pinhole cam = frame->getCamera();
-  cam.setPose(frame->getPose());
-  return cam.projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
+  return frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
 }
 
 Frame::Ptr PoseEstimation::getNewFrameTracking()
@@ -421,13 +419,11 @@ void PoseEstimation::applyGeoreferenceToBuffer()
 void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
 {
   UTMPose utm = frame->getGnssUtm();
-  camera::Pinhole cam = frame->getCamera();
-  cam.setPose(frame->getPose());
-  cv::Mat t = cam.t();
+  cv::Mat t = frame->getCamera()->t();
 
   LOG_F(INFO, "Georeferenced pose:");
   LOG_F(INFO, "GNSS: [%10.2f, %10.2f, %4.2f]", utm.easting, utm.northing, utm.altitude);
-  LOG_F(INFO, "GNSS: [%10.2f, %10.2f, %4.2f]", t.at<double>(0), t.at<double>(1), t.at<double>(2));
+  LOG_F(INFO, "Visual: [%10.2f, %10.2f, %4.2f]", t.at<double>(0), t.at<double>(1), t.at<double>(2));
   LOG_F(INFO, "Diff: [%10.2f, %10.2f, %4.2f]", utm.easting-t.at<double>(0), utm.northing-t.at<double>(1), utm.altitude-t.at<double>(2));
 }
 

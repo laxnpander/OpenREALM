@@ -127,7 +127,7 @@ class PlaneSweep : public DensifierIF
      * @param cam REALM pinhole camera
      * @return PSL pinhole camera
      */
-    PSL::CameraMatrix<double> convertToPslCamera(const camera::Pinhole &cam);
+    PSL::CameraMatrix<double> convertToPslCamera(const camera::Pinhole::Ptr &cam);
 };
 
 } // namespace densifier

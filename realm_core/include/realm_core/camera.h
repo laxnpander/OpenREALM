@@ -272,19 +272,11 @@ class Pinhole
     cv::Mat computeImageBounds2Ddistorted() const;
 
     /*!
-     * @brief Function for computation of the UNdistorted image boundaries, therefore first the image boundaries get
+     * @brief Function for computation of the Undistorted image boundaries, therefore first the image boundaries get
      *        computed, afterwards they are undistorted using the reficitation map.
      * @return (4x2) matrix with row()=(x, y) containing undistorted image boundaries
      */
     cv::Mat computeImageBounds2D() const;
-
-    /*!
-     * @brief Computes the image bounds in the world by projecting them into distance 'depth'
-     * @param depth Scale factor applied to the image boundaries
-     *              //TODO: Function is most likely bad/not as intended. Depth is not equivalent to scaling of the dir vec
-     * @return (4x3) matrix with row()=(x, y, z) containing image boundaries projected into the world
-     */
-    cv::Mat computeImageBoundsInWorld(const double &depth) const;
 
     /*!
      * @brief Computes the intersection of the projected image boundaries with a defined plane in the world frame
@@ -311,29 +303,27 @@ class Pinhole
      * @param depth Depth to which the pixel should be unprojected
      * @return (4x1) homogenous world point
      */
-    cv::Mat unprojectPoint(double x, double y, double depth) const;
+    cv::Mat projectPointToWorld(double x, double y, double depth) const;
 
   protected:
     // With distortion map
     bool _do_undistort;
 
     // Interior parameters
-    cv::Mat _K;
+    cv::Mat _camera_matrix; // K
 
     // Distortion parameters
-    cv::Mat _dist_coeffs;
-    cv::Mat _undist_map1;
-    cv::Mat _undist_map2;
+    cv::Mat _distortion_coeff;
+    cv::Mat _undistortion_map1;
+    cv::Mat _undistortion_map2;
 
     // Exterior parameters
-    cv::Mat _t; // Euclidean
-    cv::Mat _R; // Rotation matrix
+    cv::Mat _exterior_translation; // t
+    cv::Mat _exterior_rotation; // R
 
     // Image parameters
     uint32_t _img_width;
     uint32_t _img_height;
-
-    bool isDistortionNonZero(const cv::Mat &dist_coeffs);
 };
 
 } // namespace camera
