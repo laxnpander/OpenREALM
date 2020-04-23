@@ -65,7 +65,7 @@ TEST(Pinhole, CopyConstructor)
   EXPECT_EQ(copy.k2(), distortion.at<double>(1));
   EXPECT_EQ(copy.p1(), distortion.at<double>(2));
   EXPECT_EQ(copy.p2(), distortion.at<double>(3));
-  EXPECT_EQ(copy.isDistorted(), cam.isDistorted());
+  EXPECT_EQ(copy.hasDistortion(), cam.hasDistortion());
   EXPECT_EQ(copy.R().at<double>(1, 1), cam.R().at<double>(1, 1));
   EXPECT_EQ(copy.t().at<double>(1), cam.t().at<double>(1));
 }
@@ -106,7 +106,7 @@ TEST(Pinhole, CopyAssign)
   EXPECT_EQ(copy.k2(), distortion.at<double>(1));
   EXPECT_EQ(copy.p1(), distortion.at<double>(2));
   EXPECT_EQ(copy.p2(), distortion.at<double>(3));
-  EXPECT_EQ(copy.isDistorted(), cam.isDistorted());
+  EXPECT_EQ(copy.hasDistortion(), cam.hasDistortion());
   EXPECT_EQ(copy.R().at<double>(1, 1), cam.R().at<double>(1, 1));
   EXPECT_EQ(copy.t().at<double>(1), cam.t().at<double>(1));
 }

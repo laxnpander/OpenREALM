@@ -23,9 +23,8 @@
 
 #include <memory>
 #include <iostream>
-#include <eigen3/Eigen/Eigen>
 
-#include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
 
 namespace realm
 {
@@ -94,7 +93,7 @@ class Pinhole
      * @brief Getter to check if a lens distortion was set in the constructor
      * @return true if yes
      */
-    bool isDistorted() const;
+    bool hasDistortion() const;
 
     /*!
      * @brief Getter for the image width
@@ -195,13 +194,6 @@ class Pinhole
      * @return (3x4) projection matrix
      */
     cv::Mat P() const;
-
-    // TODO: Avoid Eigen in the future? (is only used for this function)
-    /*!
-     * @brief Getter for rotations as quaternions
-     * @return Quaternion object with qx, qy, qz, qw
-     */
-    Eigen::Quaterniond orientation() const;
 
     /*!
      * @brief Getter for extrinsic translation vector

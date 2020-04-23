@@ -21,6 +21,8 @@
 #include <realm_vslam_base/geometric_referencer.h>
 #include <fstream>
 
+#include <eigen3/Eigen/Eigen>
+
 using namespace realm;
 
 GeometricReferencer::GeometricReferencer(double th_error)

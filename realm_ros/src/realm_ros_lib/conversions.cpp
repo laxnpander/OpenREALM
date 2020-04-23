@@ -226,7 +226,7 @@ realm::Frame::Ptr to_realm::frame(const realm_msgs::Frame &msg)
 }
 
 
-realm_msgs::Pinhole to_ros::pinhole(const realm::camera::Pinhole::Ptr &cam)
+realm_msgs::Pinhole to_ros::pinhole(const realm::camera::Pinhole::ConstPtr &cam)
 {
   realm_msgs::Pinhole msg;
   msg.width.data = cam->width();

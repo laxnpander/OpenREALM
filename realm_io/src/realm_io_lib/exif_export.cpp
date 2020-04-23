@@ -52,7 +52,7 @@ void saveExifImage(const Frame::Ptr &frame,
 
 void saveExifImage(uint64_t timestamp,
                    const cv::Mat& img,
-                   const camera::Pinhole::Ptr &cam,
+                   const camera::Pinhole::ConstPtr &cam,
                    const UTMPose &utm_ref,
                    const std::string &camera_id,
                    uint32_t image_id,

@@ -60,8 +60,8 @@ void WorkerThreadBase::run()
       LOG_IF_F(INFO,
                _verbose,
                "Thread '%s' has processed data. Time elapsed: %4.2f [s]",
-               static_cast<double>(getCurrentTimeMilliseconds() - t) / 1000,
-               _thread_name.c_str());
+               _thread_name.c_str(),
+               static_cast<double>(getCurrentTimeMilliseconds() - t) / 1000);
     }
     // Handle stops and finish
     if (isStopRequested())

@@ -22,11 +22,13 @@
 #define OPENREALM_TEST_HELPER_H
 
 #include <realm_core/camera.h>
+#include <realm_core/frame.h>
 
 namespace realm {
 
   cv::Mat createDummyPose();
   camera::Pinhole createDummyPinhole();
+  Frame::Ptr createDummyFrame();
 
 } // namespace realm
 

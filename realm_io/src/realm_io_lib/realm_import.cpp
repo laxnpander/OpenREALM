@@ -20,6 +20,8 @@
 
 #include <realm_io/realm_import.h>
 
+#include <eigen3/Eigen/Eigen>
+
 using namespace realm;
 
 camera::Pinhole io::loadCameraFromYaml(const std::string &directory, const std::string &filename)

@@ -41,13 +41,13 @@ Frame::Frame(const std::string &camera_id,
       _timestamp(timestamp),
       _img(img),
       _utm(utm),
-      _cam(cam),
+      _camera_model(cam),
       _img_resize_factor(0.0),
       _min_scene_depth(0.0),
       _max_scene_depth(0.0),
       _med_scene_depth(0.0)
 {
-  _cam->setPose(getDefaultPose());
+  _camera_model->setPose(getDefaultPose());
 }
 
 // GETTER
@@ -65,13 +65,13 @@ uint32_t Frame::getFrameId() const
 uint32_t Frame::getResizedImageWidth() const
 {
   assert(_is_img_resizing_set);
-  return (uint32_t)((double) _cam->width()*_img_resize_factor);
+  return (uint32_t)((double) _camera_model->width() * _img_resize_factor);
 }
 
 uint32_t Frame::getResizedImageHeight() const
 {
   assert(_is_img_resizing_set);
-  return (uint32_t)((double) _cam->height()*_img_resize_factor);
+  return (uint32_t)((double) _camera_model->height() * _img_resize_factor);
 }
 
 double Frame::getMinSceneDepth() const
@@ -95,17 +95,16 @@ double Frame::getMedianSceneDepth() const
 cv::Size Frame::getResizedImageSize() const
 {
   assert(_is_img_resizing_set);
-  auto width = (uint32_t)((double) _cam->width()*_img_resize_factor);
-  auto height = (uint32_t)((double) _cam->height()*_img_resize_factor);
+  auto width = (uint32_t)((double) _camera_model->width() * _img_resize_factor);
+  auto height = (uint32_t)((double) _camera_model->height() * _img_resize_factor);
   return cv::Size(width, height);
 }
 
 cv::Mat Frame::getImageUndistorted() const
 {
-  // - No deep copy
   cv::Mat img_undistorted;
-  if(_cam->isDistorted())
-    img_undistorted = _cam->undistort(_img, CV_INTER_LINEAR);
+  if(_camera_model->hasDistortion())
+    img_undistorted = _camera_model->undistort(_img, CV_INTER_LINEAR);
   else
     img_undistorted = _img;
   return std::move(img_undistorted);
@@ -155,7 +154,7 @@ cv::Mat Frame::getResizedImageUndistorted() const
   // meantime
   // - No deep copy
   assert(_is_img_resizing_set);
-  camera::Pinhole cam_resized = _cam->resize(_img_resize_factor);
+  camera::Pinhole cam_resized = _camera_model->resize(_img_resize_factor);
   return cam_resized.undistort(_img_resized, CV_INTER_LINEAR);
 }
 
@@ -169,15 +168,15 @@ cv::Mat Frame::getResizedImageRaw() const
 cv::Mat Frame::getResizedCalibration() const
 {
   assert(_is_img_resizing_set);
-  return _cam->resize(_img_resize_factor).K();
+  return _camera_model->resize(_img_resize_factor).K();
 }
 
 cv::Mat Frame::getSurfacePoints() const
 {
-  if (_surface_pts.empty())
+  if (_surface_points.empty())
     return cv::Mat();
   else
-    return _surface_pts.clone();
+    return _surface_points.clone();
 }
 
 cv::Mat Frame::getPose() const
@@ -191,7 +190,7 @@ cv::Mat Frame::getPose() const
   if (hasAccuratePose())
   {
     // Option 1+2: Cameras pose is always uptodate
-    return _cam->pose();
+    return _camera_model->pose();
   }
 
   // Default:
@@ -200,17 +199,17 @@ cv::Mat Frame::getPose() const
 
 cv::Mat Frame::getVisualPose() const
 {
-  return _M_c2w.clone();
+  return _motion_c2w.clone();
 }
 
 cv::Mat Frame::getGeographicPose() const
 {
-  return _M_c2g.clone();
+  return _motion_c2g.clone();
 }
 
 cv::Mat Frame::getGeoreference() const
 {
-  return _T_w2g.clone();
+  return _transformation_w2g.clone();
 }
 
 SurfaceAssumption Frame::getSurfaceAssumption() const
@@ -229,9 +228,9 @@ UTMPose Frame::getGnssUtm() const
   return _utm;
 }
 
-camera::Pinhole::Ptr Frame::getCamera() const
+camera::Pinhole::ConstPtr Frame::getCamera() const
 {
-  return _cam;
+  return _camera_model;
 }
 
 uint64_t Frame::getTimestamp() const
@@ -243,14 +242,14 @@ uint64_t Frame::getTimestamp() const
 camera::Pinhole::Ptr Frame::getResizedCamera() const
 {
   assert(_is_img_resizing_set);
-  return std::make_shared<camera::Pinhole>(_cam->resize(_img_resize_factor));
+  return std::make_shared<camera::Pinhole>(_camera_model->resize(_img_resize_factor));
 }
 
 // SETTER
 
 void Frame::setVisualPose(const cv::Mat &pose)
 {
-  _M_c2w = pose;
+  _motion_c2w = pose;
 
   // If frame is already georeferenced, then set camera pose as geographic pose. Otherwise use visual pose
   if (_is_georeferenced)
@@ -260,7 +259,7 @@ void Frame::setVisualPose(const cv::Mat &pose)
   else
   {
     std::lock_guard<std::mutex> lock(_mutex_cam);
-    _cam->setPose(pose);
+    _camera_model->setPose(pose);
   }
 
   setPoseAccurate(true);
@@ -269,8 +268,8 @@ void Frame::setVisualPose(const cv::Mat &pose)
 void Frame::setGeographicPose(const cv::Mat &pose)
 {
   std::lock_guard<std::mutex> lock(_mutex_cam);
-  _cam->setPose(pose);
-  _M_c2g = pose;
+  _camera_model->setPose(pose);
+  _motion_c2g = pose;
   setPoseAccurate(true);
 }
 
@@ -280,7 +279,7 @@ void Frame::setGeoreference(const cv::Mat &T_w2g)
     throw(std::invalid_argument("Error setting georeference: Transformation is empty!"));
 
   std::lock_guard<std::mutex> lock(_mutex_T_w2g);
-  _T_w2g = T_w2g;
+  _transformation_w2g = T_w2g;
   _is_georeferenced = true;
 }
 
@@ -290,7 +289,7 @@ void Frame::setSurfacePoints(const cv::Mat &surface_pts)
     return;
 
   _mutex_surface_pts.lock();
-  _surface_pts = surface_pts;
+  _surface_points = surface_pts;
   _mutex_surface_pts.unlock();
 
   computeSceneDepth();
@@ -343,16 +342,16 @@ void Frame::applyGeoreference(const cv::Mat &T)
   updateGeographicPose();
 
   // Also transform mappoints to new coordinate system
-  if (_surface_pts.rows > 0)
+  if (_surface_points.rows > 0)
   {
     _mutex_surface_pts.lock();
-    for (uint32_t i = 0; i < _surface_pts.rows; ++i)
+    for (uint32_t i = 0; i < _surface_points.rows; ++i)
     {
-      cv::Mat pt = _surface_pts.row(i).colRange(0, 3).t();
+      cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
       pt.push_back(1.0);
       cv::Mat pt_hom = T * pt;
       pt_hom.pop_back();
-      _surface_pts.row(i) = pt_hom.t();
+      _surface_points.row(i) = pt_hom.t();
     }
     _mutex_surface_pts.unlock();
     computeSceneDepth();
@@ -400,8 +399,8 @@ std::string Frame::print()
   if (!pose.empty())
     sprintf(buffer + strlen(buffer), "Pose: Exists [%i x %i]\n", pose.rows, pose.cols);
   std::lock_guard<std::mutex> lock2(_mutex_surface_pts);
-  if (!_surface_pts.empty())
-    sprintf(buffer + strlen(buffer), "Mappoints: %i\n", _surface_pts.rows);
+  if (!_surface_points.empty())
+    sprintf(buffer + strlen(buffer), "Mappoints: %i\n", _surface_points.rows);
 
   return std::string(buffer);
 }
@@ -416,26 +415,26 @@ void Frame::computeSceneDepth()
    * w=depth=(r31,r32,r33,t_z)*(x,y,z,1)
    */
 
-  if (_surface_pts.empty())
+  if (_surface_points.empty())
     throw(std::runtime_error("Error computing scene depth: Set point cloud is empty!"));
 
   std::lock_guard<std::mutex> lock(_mutex_surface_pts);
-  int n = _surface_pts.rows;
+  int n = _surface_points.rows;
   std::vector<double> depths;
   depths.reserve(n);
 
   _mutex_cam.lock();
-  cv::Mat P = _cam->P();
+  cv::Mat P = _camera_model->P();
   _mutex_cam.unlock();
 
   // Prepare extrinsics
-  cv::Mat T_w2c = _cam->Tw2c();
+  cv::Mat T_w2c = _camera_model->Tw2c();
   cv::Mat R_wc2 = T_w2c.row(2).colRange(0, 3).t();
   double z_wc = T_w2c.at<double>(2, 3);
 
   for (int i = 0; i < n; ++i)
   {
-    cv::Mat pt = _surface_pts.row(i).colRange(0, 3).t();
+    cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
 
     // Depth calculation
     double depth = R_wc2.dot(pt) + z_wc;
@@ -451,12 +450,12 @@ void Frame::computeSceneDepth()
 void Frame::updateGeographicPose()
 {
   // Only possible, if visual pose AND georeference were computed
-  if (_is_georeferenced && !_M_c2w.empty())
+  if (_is_georeferenced && !_motion_c2w.empty())
   {
     cv::Mat T_c2w = cv::Mat::eye(4, 4, CV_64F);
-    _M_c2w.copyTo(T_c2w.rowRange(0, 3).colRange(0, 4));
+    _motion_c2w.copyTo(T_c2w.rowRange(0, 3).colRange(0, 4));
 
-    cv::Mat T_c2g = _T_w2g * T_c2w;
+    cv::Mat T_c2g = _transformation_w2g * T_c2w;
     cv::Mat M_c2g = T_c2g.rowRange(0, 3).colRange(0, 4);
 
     // Remove scale

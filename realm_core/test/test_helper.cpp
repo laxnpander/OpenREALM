@@ -61,3 +61,21 @@ realm::camera::Pinhole realm::createDummyPinhole()
 
   return camera::Pinhole(K, distortion, width, height);
 }
+
+realm::Frame::Ptr realm::createDummyFrame()
+{
+  // Set all the data elements on acquisition
+  std::string camera_id = "DUMMY_CAM";
+  uint32_t frame_id = 123456;
+  uint64_t timestamp = 1234567890;
+  cv::Mat img = cv::Mat::ones(1000, 1200, CV_8UC3) * 125;
+  UTMPose utm(603976, 5791569, 100.0, 45.0, 32, 'U');
+  auto cam = std::make_shared<camera::Pinhole>(createDummyPinhole());
+
+  // Create the dummy frame -> We usually use it as shared pointer, so test that here
+  auto frame = std::make_shared<Frame>(camera_id, frame_id, timestamp, img, utm, cam);
+  frame->setPoseAccurate(true);
+  frame->setKeyframe(true);
+  frame->setImageResizeFactor(0.5);
+  return frame;
+}

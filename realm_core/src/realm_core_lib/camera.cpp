@@ -111,7 +111,7 @@ Pinhole& Pinhole::operator=(const Pinhole &that)
   return *this;
 }
 
-bool Pinhole::isDistorted() const
+bool Pinhole::hasDistortion() const
 {
   return _do_undistort;
 }
@@ -200,17 +200,6 @@ cv::Mat Pinhole::R() const
   assert(!_exterior_rotation.empty() && _exterior_rotation.type() == CV_64F);
 
   return _exterior_rotation.clone();
-}
-
-Eigen::Quaterniond Pinhole::orientation() const
-{
-  assert(!_exterior_rotation.empty() && _exterior_rotation.type() == CV_64F);
-
-  Eigen::Matrix3d R_eigen;
-  R_eigen << _exterior_rotation.at<double>(0, 0), _exterior_rotation.at<double>(0, 1), _exterior_rotation.at<double>(0, 2),
-             _exterior_rotation.at<double>(1, 0), _exterior_rotation.at<double>(1, 1), _exterior_rotation.at<double>(1, 2),
-             _exterior_rotation.at<double>(2, 0), _exterior_rotation.at<double>(2, 1), _exterior_rotation.at<double>(2, 2);
-  return Eigen::Quaterniond(R_eigen);
 }
 
 cv::Mat Pinhole::t() const
