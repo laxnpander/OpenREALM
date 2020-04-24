@@ -110,7 +110,7 @@ TEST(Frame, Georeference)
   T_georeference.at<double>(2, 3) = 50;
 
   // We don't do any rotation for now, might be better for completeness in the future. So now apply the transformation:
-  frame->applyGeoreference(T_georeference);
+  frame->initGeoreference(T_georeference);
 
   // This should have put our pose at 150m altitude and our scene depth at min = 50, median = 100, max = 200
   // Note, that transformation to the world frame involves huge scaling most of the times. This will cause rounding errors

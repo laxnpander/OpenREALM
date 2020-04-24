@@ -207,10 +207,7 @@ realm::Frame::Ptr to_realm::frame(const realm_msgs::Frame &msg)
   if (msg.has_accurate_pose.data)
     frame->setVisualPose(to_realm::pose(msg.visual_pose));
   if (msg.is_georeferenced.data)
-  {
-    frame->setGeoreference(to_realm::georeference(msg.georeference));
-    frame->setGeographicPose(to_realm::pose(msg.geographic_pose));
-  }
+    frame->updateGeoreference(to_realm::georeference(msg.georeference));
   if (msg.observed_map.length_x > 0 && msg.observed_map.length_y > 0)
     frame->setObservedMap(to_realm::cvGridMap(msg.observed_map));
   if (msg.is_keyframe.data)
@@ -423,7 +420,6 @@ realm_msgs::Frame to_ros::frame(const std_msgs::Header &header, const realm::Fra
   if (frame->isGeoreferenced())
   {
     msg.georeference = to_ros::georeference(frame->getGeoreference());
-    msg.geographic_pose = to_ros::pose(frame->getGeographicPose());
     msg.is_georeferenced.data = 1;
   }
 

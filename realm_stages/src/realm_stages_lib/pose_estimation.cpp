@@ -411,7 +411,7 @@ void PoseEstimation::applyGeoreferenceToBuffer()
     // But check first, if frame has actually a visually estimated pose information
     // In case of default GNSS pose generated from lat/lon/alt/heading, pose is already in world frame
     if (frame->hasAccuratePose())
-      frame->applyGeoreference(_T_w2g);
+      frame->initGeoreference(_T_w2g);
     pushToBufferPublish(frame);
   }
 }

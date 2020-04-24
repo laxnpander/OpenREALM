@@ -18,6 +18,7 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
 #include <realm_core/frame.h>
 
 namespace realm
@@ -254,7 +255,8 @@ void Frame::setVisualPose(const cv::Mat &pose)
   // If frame is already georeferenced, then set camera pose as geographic pose. Otherwise use visual pose
   if (_is_georeferenced)
   {
-    updateGeographicPose();
+    cv::Mat M_c2g = applyTransformationToVisualPose(_transformation_w2g);
+    setGeographicPose(M_c2g);
   }
   else
   {
@@ -331,31 +333,15 @@ void Frame::setImageResizeFactor(const double &value)
 
 // FUNCTIONALITY
 
-void Frame::applyGeoreference(const cv::Mat &T)
+void Frame::initGeoreference(const cv::Mat &T)
 {
   assert(!T.empty());
 
   if (_is_georeferenced)
     return;
 
-  setGeoreference(T);
-  updateGeographicPose();
-
-  // Also transform mappoints to new coordinate system
-  if (_surface_points.rows > 0)
-  {
-    _mutex_surface_pts.lock();
-    for (uint32_t i = 0; i < _surface_points.rows; ++i)
-    {
-      cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
-      pt.push_back(1.0);
-      cv::Mat pt_hom = T * pt;
-      pt_hom.pop_back();
-      _surface_points.row(i) = pt_hom.t();
-    }
-    _mutex_surface_pts.unlock();
-    computeSceneDepth();
-  }
+  _transformation_w2g = cv::Mat::eye(4, 4, CV_64F);
+  updateGeoreference(T, true);
 }
 
 bool Frame::isKeyframe() const
@@ -447,15 +433,48 @@ void Frame::computeSceneDepth()
   _is_depth_computed = true;
 }
 
-void Frame::updateGeographicPose()
+void Frame::updateGeoreference(const cv::Mat &T, bool do_update_surface_points)
 {
-  // Only possible, if visual pose AND georeference were computed
-  if (_is_georeferenced && !_motion_c2w.empty())
+  // Update the visual pose with the new georeference
+  cv::Mat M_c2g = applyTransformationToVisualPose(T);
+  setGeographicPose(M_c2g);
+
+  // In case we want to update the surface points as well, we have to compute the difference of old and new transformation.
+  if (do_update_surface_points && !_transformation_w2g.empty())
+  {
+    cv::Mat T_diff = _transformation_w2g.inv()*T;
+    applyTransformationToSurfacePoints(T_diff);
+  }
+
+  setGeoreference(T);
+}
+
+void Frame::applyTransformationToSurfacePoints(const cv::Mat &T)
+{
+  if (_surface_points.rows > 0)
+  {
+    _mutex_surface_pts.lock();
+    for (uint32_t i = 0; i < _surface_points.rows; ++i)
+    {
+      cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
+      pt.push_back(1.0);
+      cv::Mat pt_hom = T * pt;
+      pt_hom.pop_back();
+      _surface_points.row(i) = pt_hom.t();
+    }
+    _mutex_surface_pts.unlock();
+    computeSceneDepth();
+  }
+}
+
+cv::Mat Frame::applyTransformationToVisualPose(const cv::Mat &T)
+{
+  if (!_motion_c2w.empty())
   {
     cv::Mat T_c2w = cv::Mat::eye(4, 4, CV_64F);
     _motion_c2w.copyTo(T_c2w.rowRange(0, 3).colRange(0, 4));
 
-    cv::Mat T_c2g = _transformation_w2g * T_c2w;
+    cv::Mat T_c2g = T * T_c2w;
     cv::Mat M_c2g = T_c2g.rowRange(0, 3).colRange(0, 4);
 
     // Remove scale
@@ -463,7 +482,7 @@ void Frame::updateGeographicPose()
     M_c2g.col(1) /= cv::norm(M_c2g.col(1));
     M_c2g.col(2) /= cv::norm(M_c2g.col(2));
 
-    setGeographicPose(M_c2g);
+    return M_c2g;
   }
 }
 

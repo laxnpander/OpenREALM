@@ -32,10 +32,10 @@ find_package(cmake_modules REQUIRED)
 #fix to find eigen3
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Eigen3 QUIET)
-if(NOT EIGEN3_FOUND)
+if(NOT Eigen3_FOUND)
 	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(EIGEN3 REQUIRED eigen3)
-	set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
+	pkg_check_modules(Eigen3 REQUIRED eigen3)
+	set(Eigen3_INCLUDE_DIR ${Eigen3_INCLUDE_DIRS})
 endif()
 
 ####################
@@ -55,7 +55,7 @@ catkin_package(
 			${VSLAM_LIB}
 		DEPENDS
 			OpenCV
-			EIGEN3
+			Eigen3
 )
 
 ###########
@@ -68,7 +68,7 @@ include_directories(
 		${catkin_INCLUDE_DIRS}
 		${OpenCV_INCLUDE_DIRS}
 		${cmake_modules_INCLUDE_DIRS}
-		${EIGEN3_INCLUDE_DIR}
+		${Eigen3_INCLUDE_DIR}
 )
 add_library(${PROJECT_NAME} SHARED
         src/realm_vslam_base_lib/visual_slam_factory.cpp

@@ -235,18 +235,6 @@ class Frame
     void setVisualPose(const cv::Mat &pose);
 
     /*!
-     * @brief Setter for the camera pose computed by either the default pose or more advanced approached, e.g. visual SLAM
-     * @param pose 3x4 camera pose matrix
-     */
-    void setGeographicPose(const cv::Mat &pose);
-
-    /*!
-     * @brief Setter for transformation from visual world to geographic coordinate frame.
-     * @param T_w2g Transformation from visual world (_camera_model.T_c2w) to geographic
-     */
-    void setGeoreference(const cv::Mat &T_w2g);
-
-    /*!
      * @brief Setter for surface points, e.g. the sparse or dense cloud observed by the frame. Either computed by the
      *        visual SLAM or an additional densification approach (e.g. stereo reconstruction)
      * @param surface_pts 3D point cloud observed by this frame. Besides camera pose this is the most important parameter
@@ -299,10 +287,23 @@ class Frame
 
     /*!
      * @brief Function to apply a transformation to the current existing informations. Typically this is used to transform
-     *        pose and surface points of the frame from the local, visual to a global, georeferenced coordinate system
+     *        pose and surface points of the frame from the local, visual to a global, georeferenced coordinate system.
+     *        Remember to use only 'updateGeoreference(...)' after that, as it does not transform the surface points.
      * @param T 4x4 homogenous transformation matrix
      */
-    void applyGeoreference(const cv::Mat &T);
+    void initGeoreference(const cv::Mat &T);
+
+    /*!
+     * @brief Updates the transformation from the world to the geographic frame (T_w2g) and updates the georeferenced
+     * poses accordingly. It can also be used as a setter for the georeference. If you also want to apply the georeference
+     * to the observed surface points, use the function 'initGeoreference(...)'. But make sure the surface points are
+     * in the camera coordinate system!
+     * @param T 4x4 homogenous transformation matrix from the world to the geographic frame
+     * @param do_update_surface_points By setting this flag to false, you can use this function basically as a setter
+     * for the georeference. Be cautious when to set it true! If the surface points are already in a geographic frame
+     * and no prior georeference was set, calling this update will basically double apply the georeference to the points.
+     */
+    void updateGeoreference(const cv::Mat &T, bool do_update_surface_points = false);
 
     /*!
      * @brief Getter to check if this frame is marked as keyframe
@@ -334,9 +335,6 @@ class Frame
      * @return true if yes
      */
     bool hasAccuratePose() const;
-
-    // DO NOT CALL YOURSELF CURRENTLY
-    void updateGeographicPose();
 
   private:
 
@@ -449,6 +447,31 @@ class Frame
      *        call it. Make sure member "_surface_points" is really set
      */
     void computeSceneDepth();
+
+    /*!
+     * @brief Setter for transformation from visual world to geographic coordinate frame.
+     * @param T_w2g Transformation from visual world (_camera_model.T_c2w) to geographic
+     */
+    void setGeoreference(const cv::Mat &T_w2g);
+
+    /*!
+    * @brief Setter for the camera pose computed by either the default pose or more advanced approached, e.g. visual SLAM
+    * @param pose 3x4 camera pose matrix
+    */
+    void setGeographicPose(const cv::Mat &pose);
+
+    /*!
+    * @brief: Uses the provided 4x4 matrix to transform the surface points into a new coordinate system
+    * @param T 4x4 transformation matrix
+    */
+    void applyTransformationToSurfacePoints(const cv::Mat &T);
+
+    /*!
+     * @brief: Uses the provided 4x4 matrix to transform the visual pose into a new coordinate system
+     * @param T 4x4 transformation matrix
+     * @return Transformed 3x4 pose matrix
+    */
+    cv::Mat applyTransformationToVisualPose(const cv::Mat &T);
 };
 
 } // namespace realm

@@ -195,8 +195,7 @@ bool Densification::processStereoReconstruction(const FrameBuffer &buffer, cv::O
   cv::Mat georef_newest = buffer.back()->getGeoreference();
   for (auto &f : buffer)
   {
-    f->setGeoreference(georef_newest);
-    f->updateGeographicPose();
+    f->updateGeoreference(georef_newest);
   }
 
   // Compute baseline information for all frames
