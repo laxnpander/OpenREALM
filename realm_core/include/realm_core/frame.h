@@ -472,6 +472,16 @@ class Frame
      * @return Transformed 3x4 pose matrix
     */
     cv::Mat applyTransformationToVisualPose(const cv::Mat &T);
+
+    /*!
+     * @brief Computes the difference between the existing and a newly applied georeference. Because their might be a
+     * scale change this is not straight forward. First scale has to be removed to safely invert the old transformation.
+     * Then T_old.inv() * T_new is computed to identify the difference between the two transformations.
+     * @param T_old Previous georeference as 4x4 transformation matrix
+     * @param T_new New georeference to be applied as 4x4 transformation matrix
+     * @return Difference of transformation T_old and T_new
+     */
+    cv::Mat computeGeoreferenceDifference(const cv::Mat &T_old, const cv::Mat &T_new);
 };
 
 } // namespace realm

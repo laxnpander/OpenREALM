@@ -281,7 +281,7 @@ void Frame::setGeoreference(const cv::Mat &T_w2g)
     throw(std::invalid_argument("Error setting georeference: Transformation is empty!"));
 
   std::lock_guard<std::mutex> lock(_mutex_T_w2g);
-  _transformation_w2g = T_w2g;
+  _transformation_w2g = T_w2g.clone();
   _is_georeferenced = true;
 }
 
@@ -402,7 +402,7 @@ void Frame::computeSceneDepth()
    */
 
   if (_surface_points.empty())
-    throw(std::runtime_error("Error computing scene depth: Set point cloud is empty!"));
+    return;
 
   std::lock_guard<std::mutex> lock(_mutex_surface_pts);
   int n = _surface_points.rows;
@@ -442,9 +442,12 @@ void Frame::updateGeoreference(const cv::Mat &T, bool do_update_surface_points)
   // In case we want to update the surface points as well, we have to compute the difference of old and new transformation.
   if (do_update_surface_points && !_transformation_w2g.empty())
   {
-    cv::Mat T_diff = _transformation_w2g.inv()*T;
+    cv::Mat T_diff = computeGeoreferenceDifference(_transformation_w2g, T);
     applyTransformationToSurfacePoints(T_diff);
   }
+
+  // Pose and / or surface points have changed. So update scene depth accordingly
+  computeSceneDepth();
 
   setGeoreference(T);
 }
@@ -463,7 +466,6 @@ void Frame::applyTransformationToSurfacePoints(const cv::Mat &T)
       _surface_points.row(i) = pt_hom.t();
     }
     _mutex_surface_pts.unlock();
-    computeSceneDepth();
   }
 }
 
@@ -484,6 +486,41 @@ cv::Mat Frame::applyTransformationToVisualPose(const cv::Mat &T)
 
     return M_c2g;
   }
+}
+
+cv::Mat Frame::computeGeoreferenceDifference(const cv::Mat &T_old, const cv::Mat &T_new)
+{
+  // Remove scale from old georeference
+  cv::Mat T1 = T_old.clone();
+  double sx_old = cv::norm(T_old.rowRange(0, 3).col(0));
+  double sy_old = cv::norm(T_old.rowRange(0, 3).col(1));
+  double sz_old = cv::norm(T_old.rowRange(0, 3).col(2));
+  T1.rowRange(0, 3).col(0) /= sx_old;
+  T1.rowRange(0, 3).col(1) /= sy_old;
+  T1.rowRange(0, 3).col(2) /= sz_old;
+
+  // Remove scale from old georeference
+  cv::Mat T2 = T_new.clone();
+  double sx_new = cv::norm(T_new.rowRange(0, 3).col(0));
+  double sy_new = cv::norm(T_new.rowRange(0, 3).col(1));
+  double sz_new = cv::norm(T_new.rowRange(0, 3).col(2));
+  T2.rowRange(0, 3).col(0) /= sx_new;
+  T2.rowRange(0, 3).col(1) /= sy_new;
+  T2.rowRange(0, 3).col(2) /= sz_new;
+
+  cv::Mat T_old_inv = cv::Mat::eye(4, 4, CV_64F);
+  cv::Mat R_old_inv = (T1.rowRange(0, 3).colRange(0, 3)).t();
+  cv::Mat t_old_inv = -R_old_inv * T1.rowRange(0, 3).col(3);
+  R_old_inv.copyTo(T_old_inv.rowRange(0, 3).colRange(0, 3));
+  t_old_inv.copyTo(T_old_inv.rowRange(0, 3).col(3));
+
+  cv::Mat T_diff = T_old_inv * T2;
+
+  T_diff.rowRange(0, 3).col(0) *= sx_new / sx_old;
+  T_diff.rowRange(0, 3).col(1) *= sy_new / sx_old;
+  T_diff.rowRange(0, 3).col(2) *= sz_new / sx_old;
+
+  return T_diff;
 }
 
 } // namespace realm

@@ -119,3 +119,66 @@ TEST(Frame, Georeference)
   EXPECT_NEAR(frame->getMedianSceneDepth(), 100, 10e-3);
   EXPECT_NEAR(frame->getPose().at<double>(2, 3), 150, 10e-3);
 }
+
+TEST(Frame, UpdateGeoreference)
+{
+  // For this test we check if the update georeference functionality works as it should and updates the surface points
+  // as intended. First same workflow as before:
+  Frame::Ptr frame = createDummyFrame();
+
+  // We set a dummy pose for the dummy pinhole model
+  frame->setVisualPose(createDummyPose());
+
+  // Create some artificial point cloud
+  cv::Mat surface_points = (cv::Mat_<double>(3, 3) << 0, 32, 0, 15, 50, -1200, 2, 2, 600);
+  frame->setSurfacePoints(surface_points);
+
+  // Create some artifical transformation into the UTM frame.
+  cv::Mat T_georeference = cv::Mat::eye(4, 4, CV_64F);
+
+  // We assume our scale in the visual coordinate frame is bigger than the real world scale (usually it is the other way
+  // around, but our values for the dummy pose are quite big in this example). So at first we scale it down, so that our
+  // camera is moving in 100m altitude:
+  T_georeference.at<double>(0, 0) = 1/12.0f;
+  T_georeference.at<double>(1, 1) = 1/12.0f;
+  T_georeference.at<double>(2, 2) = 1/12.0f;
+
+  // Next we offset it 50m higher and to an UTM area in Braunschweig, Germany :)
+  T_georeference.at<double>(0, 3) = 603976;
+  T_georeference.at<double>(1, 3) = 5791569;
+  T_georeference.at<double>(2, 3) = 50;
+
+  // We don't do any rotation for now, might be better for completeness in the future. So now apply the transformation:
+  frame->initGeoreference(T_georeference);
+
+  // Now we check the georeference update functionality by offsetting the altitude and not recalculating the surface points
+  // Therefore only the pose will be updated. This should change the scene depth by as much as the pose has changed
+  T_georeference.at<double>(2, 3) = 100;
+  frame->updateGeoreference(T_georeference);
+
+  EXPECT_NEAR(frame->getMinSceneDepth(), 100, 10e-3);
+  EXPECT_NEAR(frame->getMaxSceneDepth(), 250, 10e-3);
+  EXPECT_NEAR(frame->getMedianSceneDepth(), 150, 10e-3);
+
+  // Because we didn't update the surface points before, the internal mechanics of frame can not know the difference
+  // between a transformation applied now and the one that was originally used to georeference them. So if you just
+  // call the update function again, it will compute the difference between T_georeference and T_georeference, which is
+  // zero, and apply this to the surface points. Consequently nothing happens. So first we have to change our Georeference
+  // back to the first transformation:
+  T_georeference.at<double>(2, 3) = 50;
+  frame->updateGeoreference(T_georeference);
+
+  // See how the scene depth is back to the original values
+  EXPECT_NEAR(frame->getMinSceneDepth(), 50, 10e-3);
+  EXPECT_NEAR(frame->getMaxSceneDepth(), 200, 10e-3);
+  EXPECT_NEAR(frame->getMedianSceneDepth(), 100, 10e-3);
+
+  // Now that we are in the original state, we can use the modified georeference to also update the surface points.
+  // Note how this time the scene depth stays the same as it should.
+  T_georeference.at<double>(2, 3) = 100;
+  frame->updateGeoreference(T_georeference, true);
+
+  EXPECT_NEAR(frame->getMinSceneDepth(), 50, 10e-3);
+  EXPECT_NEAR(frame->getMaxSceneDepth(), 200, 10e-3);
+  EXPECT_NEAR(frame->getMedianSceneDepth(), 100, 10e-3);
+}
