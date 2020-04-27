@@ -140,11 +140,13 @@ bool PoseEstimation::process()
   }
 
   // Handles georeference initialization and georeferencing of frame poses
-  if (_use_vslam)
+  // but only starts, if a new frame was processed during this loop
+  if (_use_vslam && has_processed)
   {
     if (!_is_georef_initialized && !_buffer_pose_init.empty() && !_georef->isBuisy())
     {
       // Branch: Georef is not calculated yet
+      LOG_F(INFO, "Size of init buffer: %lu", _buffer_pose_init.size());
       std::thread t(std::bind(&GeospatialReferencerIF::init, _georef, _buffer_pose_init));
       t.detach();
       has_processed = true;
