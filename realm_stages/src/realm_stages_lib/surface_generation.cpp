@@ -29,6 +29,8 @@ SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &stage_set)
 : StageBase("surface_generation", stage_set->get<std::string>("path_output"), stage_set->get<int>("queue_size")),
   _try_use_elevation(stage_set->get<int>("try_use_elevation") > 0),
   _knn_radius_factor(stage_set->get<double>("knn_radius_factor")),
+  _is_projection_plane_offset_computed(false),
+  _projection_plane_offset(0.0),
   _mode_surface_normals(static_cast<DigitalSurfaceModel::SurfaceNormalMode>(stage_set->get<int>("mode_surface_normals"))),
   _plane_reference(Plane{(cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0), (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0)}),
   _settings_save({stage_set->get<int>("save_valid") > 0,
@@ -55,7 +57,7 @@ bool SurfaceGeneration::process()
   if (!_buffer.empty())
   {
     Frame::Ptr frame = getNewFrame();
-    LOG_F(INFO, "Processing frame #%llu...", frame->getFrameId());
+    LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
     // Identify surface assumption for input frame and compute DSM
     DigitalSurfaceModel::Ptr dsm;
@@ -107,7 +109,8 @@ bool SurfaceGeneration::changeParam(const std::string& name, const std::string &
 
 void SurfaceGeneration::reset()
 {
-
+  _projection_plane_offset = 0.0;
+  _is_projection_plane_offset_computed = false;
 }
 
 void SurfaceGeneration::publish(const Frame::Ptr &frame)
@@ -178,11 +181,43 @@ SurfaceAssumption SurfaceGeneration::computeSurfaceAssumption(const Frame::Ptr &
   return SurfaceAssumption::PLANAR;
 }
 
+double SurfaceGeneration::computeProjectionPlaneOffset(const Frame::Ptr &frame)
+{
+  double offset = 0.0;
+
+  // If scene depth is computed, there is definitely enough sparse points
+  if (frame->isDepthComputed())
+  {
+    std::vector<double> z_coord;
+
+    cv::Mat points = frame->getSurfacePoints();
+    for (int i = 0; i < points.rows; ++i)
+      z_coord.push_back(points.at<double>(i, 2));
+
+    sort(z_coord.begin(), z_coord.end());
+    offset = z_coord[(z_coord.size() - 1) / 2];
+
+    LOG_F(INFO, "Sparse cloud was utilized to compute an initial projection plane at elevation = %4.2f.", offset);
+  }
+  else
+  {
+    LOG_F(INFO, "No sparse cloud set in frame. Assuming the projection plane is at elevation = %4.2f.", offset);
+  }
+
+  return offset;
+}
+
 DigitalSurfaceModel::Ptr SurfaceGeneration::createPlanarSurface(const Frame::Ptr &frame)
 {
+  if (!_is_projection_plane_offset_computed)
+  {
+    _projection_plane_offset = computeProjectionPlaneOffset(frame);
+    _is_projection_plane_offset_computed = true;
+  }
+
   // Create planar surface in world frame
   cv::Rect2d roi = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_reference.pt, _plane_reference.n);
-  auto dsm = std::make_shared<DigitalSurfaceModel>(roi);
+  auto dsm = std::make_shared<DigitalSurfaceModel>(roi, _projection_plane_offset);
   return dsm;
 }
 

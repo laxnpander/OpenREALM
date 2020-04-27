@@ -22,7 +22,7 @@
 
 using namespace realm;
 
-DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi)
+DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi, double elevation)
 : _is_initialized(false),
   _use_prior_normals(false),
   _assumption(SurfaceAssumption::PLANAR),
@@ -34,7 +34,7 @@ DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi)
   // Resolution is assumed to be 1.0m as default
   _surface = std::make_shared<CvGridMap>();
   _surface->setGeometry(roi, 1.0);
-  _surface->add("elevation", cv::Mat::zeros(_surface->size(), CV_32FC1));
+  _surface->add("elevation", cv::Mat::ones(_surface->size(), CV_32FC1)*elevation);
   _surface->add("valid", cv::Mat::ones(_surface->size(), CV_8UC1)*255);
   _is_initialized = true;
 }

@@ -56,6 +56,9 @@ class SurfaceGeneration : public StageBase
     bool _try_use_elevation;
     double _knn_radius_factor;
 
+    bool _is_projection_plane_offset_computed;
+    double _projection_plane_offset;
+
     DigitalSurfaceModel::SurfaceNormalMode _mode_surface_normals;
 
     SaveSettings _settings_save;
@@ -73,6 +76,14 @@ class SurfaceGeneration : public StageBase
     void publish(const Frame::Ptr &frame);
 
     Frame::Ptr getNewFrame();
+
+    /*!
+     * @brief Computes the offset of the projection plane by analyzing the sparse cloud of a frame.
+     * @param frame Frame for which the plane offset should be computed
+     * @return Offset of the projection plane from the x-y-plane. No rotations allowed
+     */
+    double computeProjectionPlaneOffset(const Frame::Ptr &frame);
+
     SurfaceAssumption computeSurfaceAssumption(const Frame::Ptr &frame);
     DigitalSurfaceModel::Ptr createPlanarSurface(const Frame::Ptr &frame);
     DigitalSurfaceModel::Ptr createElevationSurface(const Frame::Ptr &frame);

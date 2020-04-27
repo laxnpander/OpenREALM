@@ -66,7 +66,7 @@ bool OrthoRectification::process()
   if (!_buffer.empty())
   {
     Frame::Ptr frame = getNewFrame();
-    LOG_F(INFO, "Processing frame #%llu...", frame->getFrameId());
+    LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
     CvGridMap::Ptr observed_map = frame->getObservedMap();
 

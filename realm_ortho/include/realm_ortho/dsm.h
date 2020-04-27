@@ -59,8 +59,10 @@ class DigitalSurfaceModel
     /*!
      * @brief Constructor for planar surfaces, no prior surface information exists
      * @param roi Region of interest of the observed surface, usually utm coordinates and width/height in [m]
+     * @param elevation A fixed elevation can be set. This is especially useful, if the altitude of  the UAV is not measured
+     * above ground.
      */
-    explicit DigitalSurfaceModel(const cv::Rect2d &roi);
+    explicit DigitalSurfaceModel(const cv::Rect2d &roi, double elevation = 0.0);
 
     /*!
      * @brief Constructor for elevated surfaces, prior informations about the surface must have been computed.
