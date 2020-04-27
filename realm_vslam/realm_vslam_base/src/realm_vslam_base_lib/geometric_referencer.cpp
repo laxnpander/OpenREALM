@@ -21,6 +21,8 @@
 #include <realm_vslam_base/geometric_referencer.h>
 #include <fstream>
 
+#include <eigen3/Eigen/Eigen>
+
 using namespace realm;
 
 GeometricReferencer::GeometricReferencer(double th_error)
@@ -205,7 +207,7 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
 
   SpatialMeasurement::Ptr s_curr = std::make_shared<SpatialMeasurement>();
   s_curr->first = frame->getDefaultPose();
-  s_curr->second = frame->getPose();
+  s_curr->second = frame->getVisualPose();
 
   SpatialMeasurement::Ptr s_prev = _spatials.back();
 

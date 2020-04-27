@@ -31,11 +31,11 @@ void saveStereoPair(const Frame::Ptr &frame_left, const Frame::Ptr &frame_right,
   cv::Mat K_l = frame_left->getResizedCalibration();
   cv::Mat K_r = frame_right->getResizedCalibration();
   // distortion
-  cv::Mat D_l = frame_left->getCamera().distCoeffs();
-  cv::Mat D_r = frame_right->getCamera().distCoeffs();
+  cv::Mat D_l = frame_left->getCamera()->distCoeffs();
+  cv::Mat D_r = frame_right->getCamera()->distCoeffs();
   // exterior calib
-  cv::Mat T_l_w2c = frame_left->getCamera().Tw2c();
-  cv::Mat T_r_c2w = frame_right->getCamera().Tc2w();
+  cv::Mat T_l_w2c = frame_left->getCamera()->Tw2c();
+  cv::Mat T_r_c2w = frame_right->getCamera()->Tc2w();
   cv::Mat T_lr = T_l_w2c*T_r_c2w;
   // Now calculate transformation between the cameras
   // Formula: R = R_1^T * R_2

@@ -52,7 +52,7 @@ void saveExifImage(const Frame::Ptr &frame,
 
 void saveExifImage(uint64_t timestamp,
                    const cv::Mat& img,
-                   const camera::Pinhole &cam,
+                   const camera::Pinhole::ConstPtr &cam,
                    const UTMPose &utm_ref,
                    const std::string &camera_id,
                    uint32_t image_id,
@@ -78,10 +78,10 @@ void saveExifImage(uint64_t timestamp,
 
   // Camera calibration tags
   meta.xmp_data["Xmp.exif.Timestamp"] = timestamp;
-  meta.xmp_data["Xmp.exif.cx"] = cam.cx();
-  meta.xmp_data["Xmp.exif.cy"] = cam.cy();
-  meta.xmp_data["Xmp.exif.fx"] = cam.fx();
-  meta.xmp_data["Xmp.exif.fy"] = cam.fy();
+  meta.xmp_data["Xmp.exif.cx"] = cam->cx();
+  meta.xmp_data["Xmp.exif.cy"] = cam->cy();
+  meta.xmp_data["Xmp.exif.fx"] = cam->fx();
+  meta.xmp_data["Xmp.exif.fy"] = cam->fy();
 
   // Writing image data from opencv mat is not straightforward, see http://dev.exiv2.org/boards/3/topics/2795 for info
   // Basic idea: encode img data before passing to exif creation

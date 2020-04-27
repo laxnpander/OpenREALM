@@ -152,10 +152,10 @@ cv::Mat PlaneSweep::fixImageType(const cv::Mat &img)
   return img_fixed;
 }
 
-PSL::CameraMatrix<double> PlaneSweep::convertToPslCamera(const camera::Pinhole &cam)
+PSL::CameraMatrix<double> PlaneSweep::convertToPslCamera(const camera::Pinhole::Ptr &cam)
 {
   // Convert calibration
-  cv::Mat cv_K = cam.K();
+  cv::Mat cv_K = cam->K();
   Eigen::Matrix<double, 3, 3> K = Eigen::Matrix3d::Identity();
   K(0, 0) = cv_K.at<double>(0, 0);
   K(1, 1) = cv_K.at<double>(1, 1);
@@ -163,7 +163,7 @@ PSL::CameraMatrix<double> PlaneSweep::convertToPslCamera(const camera::Pinhole &
   K(1, 2) = cv_K.at<double>(1, 2);
 
   // Transformation defined as camera to world
-  cv::Mat cv_T_w2c = cam.Tw2c();
+  cv::Mat cv_T_w2c = cam->Tw2c();
 
   // Convert rotation mat
   cv::Mat cv_R = cv_T_w2c.rowRange(0, 3).colRange(0, 3);

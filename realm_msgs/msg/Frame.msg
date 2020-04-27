@@ -33,9 +33,6 @@ realm_msgs/CvGridMap observed_map
 # (optional) Heading in Degree, required if mapping on GNSS only
 std_msgs/Float32 heading
 
-# (optional) Geographic pose of the camera in UTM coordinates, required e.g. for dense reconstruction
-geometry_msgs/Pose geographic_pose
-
 # (optional) Visual pose of the camera in local coordinate frame, required e.g. for georeference updates
 geometry_msgs/Pose visual_pose
 

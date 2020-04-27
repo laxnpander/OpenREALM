@@ -40,7 +40,7 @@ Exiv2GrabberNode::Exiv2GrabberNode()
     _cam = std::make_shared<camera::Pinhole>(io::loadCameraFromYaml(_file_settings_camera));
   else
     _cam = std::make_shared<camera::Pinhole>(io::loadCameraFromYaml(_path_profile + "/camera/", _file_settings_camera));
-  _cam_msg = to_ros::pinhole(*_cam);
+  _cam_msg = to_ros::pinhole(_cam);
 
   // Loading poses from file if provided
   if (_use_apriori_pose)
@@ -115,7 +115,7 @@ void Exiv2GrabberNode::spin()
   if (_id_curr_file < _file_list.size())
   {
     ROS_INFO_STREAM("Image #" << _id_curr_file << ", image Path: " << _file_list[_id_curr_file]);
-    Frame::Ptr frame = _exiv2_reader.loadFrameFromExiv2(_id_node, *_cam, _file_list[_id_curr_file]);
+    Frame::Ptr frame = _exiv2_reader.loadFrameFromExiv2(_id_node, _cam, _file_list[_id_curr_file]);
 
     // External pose can be provided
     if (_use_apriori_pose)

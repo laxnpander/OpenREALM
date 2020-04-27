@@ -195,8 +195,7 @@ bool Densification::processStereoReconstruction(const FrameBuffer &buffer, cv::O
   cv::Mat georef_newest = buffer.back()->getGeoreference();
   for (auto &f : buffer)
   {
-    f->setGeoreference(georef_newest);
-    f->updateGeographicPose();
+    f->updateGeoreference(georef_newest);
   }
 
   // Compute baseline information for all frames
@@ -315,7 +314,7 @@ void Densification::publish(const Frame::Ptr &frame, const cv::Mat &depthmap)
   updateFpsStatisticsOutgoing();
 
   _transport_frame(frame, "output/frame");
-  _transport_pose(frame->getCamera().pose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose");
+  _transport_pose(frame->getPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose");
   _transport_img(frame->getResizedImageUndistorted(), "output/img_rectified");
   _transport_depth_map(depthmap, "output/depth");
   _transport_pointcloud(frame->getSurfacePoints(), "output/pointcloud");

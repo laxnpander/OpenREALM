@@ -28,7 +28,7 @@ io::Exiv2FrameReader::Exiv2FrameReader(const FrameTags &tags)
 {
 }
 
-Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id, const camera::Pinhole &cam, const std::string &filepath)
+Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id, const camera::Pinhole::Ptr &cam, const std::string &filepath)
 {
   Exiv2ImagePointer exif_img = Exiv2::ImageFactory::open(filepath);
   if (exif_img.get())

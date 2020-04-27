@@ -41,7 +41,7 @@ namespace densifier
  * @param out_thumbnail Thumbnail is the sparse cloud back projected into the image plane without inpainting
  */
 void computeDepthMapFromSparseCloud(const cv::Mat &sparse_cloud,
-                                    const camera::Pinhole &cam,
+                                    const camera::Pinhole::Ptr &cam,
                                     cv::OutputArray out_depth,
                                     cv::OutputArray out_thumbnail = cv::Mat());
 
@@ -53,7 +53,7 @@ void computeDepthMapFromSparseCloud(const cv::Mat &sparse_cloud,
  * @param out_mask Output mask
  */
 void computeSparseMask(const cv::Mat &sparse_cloud,
-                       const camera::Pinhole &cam,
+                       const camera::Pinhole::Ptr &cam,
                        cv::OutputArray out_mask);
 
 namespace internal

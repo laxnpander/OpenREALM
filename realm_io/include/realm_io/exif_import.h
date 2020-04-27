@@ -116,7 +116,7 @@ class Exiv2FrameReader
      * @param filepath Path to the image with exif tags
      * @return Basic Frame for REALM framework, Pose must be set outside
      */
-     Frame::Ptr loadFrameFromExiv2(const std::string &camera_id, const camera::Pinhole &cam, const std::string &filepath);
+     Frame::Ptr loadFrameFromExiv2(const std::string &camera_id, const camera::Pinhole::Ptr &cam, const std::string &filepath);
 
     /*!
      * @brief Reading GNSS informations from exif tags. There are several formats out there, main format is lat/lon in

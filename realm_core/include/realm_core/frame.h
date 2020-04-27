@@ -64,13 +64,14 @@ class Frame
           const uint64_t &timestamp,
           const cv::Mat &img,
           const UTMPose &utm,
-          const camera::Pinhole &cam);
+          const camera::Pinhole::Ptr &cam);
 
-    /*!
-     * @brief Deep copy constructor for frames. Use it wisely :)
-     * @param f Frame to be copied
+    /*
+     * @brief Frame represents a unique container of acquired and computed data and is therefore designed to be non-copyable.
+     * Please create it as shared pointer and pass it around your system as such!
      */
-    Frame(const Frame &f);
+    Frame(const Frame &f) = delete;
+    void operator=(const Frame &) = delete;
 
     /*!
      * @brief Getter for the camera id
@@ -134,13 +135,13 @@ class Frame
     cv::Mat getPose() const;
 
     /*!
-     * @brief Getter for visually computed pose. Can differ from _cam.pose() if georeference was already computed
+     * @brief Getter for visually computed pose. Can differ from _camera_model.pose() if georeference was already computed
      * @return (3x4) camera pose matrix with (R | t)
      */
     cv::Mat getVisualPose() const;
 
     /*!
-     * @brief Getter for geographic pose. Should always be the same as in _cam.pose() or getPose()
+     * @brief Getter for geographic pose. Should always be the same as in _camera_model.pose() or getPose()
      * @return (3x4) camera pose matrix with (R | t)
      */
     cv::Mat getGeographicPose() const;
@@ -177,7 +178,7 @@ class Frame
      *     If frame pose is not accurate, then return the default pose based on GNSS and heading
      * @return Model for projection, etc of the camera
      */
-    camera::Pinhole getCamera() const;
+    camera::Pinhole::ConstPtr getCamera() const;
 
     /*!
      * @brief Getter for the timestamp of the frame
@@ -225,25 +226,13 @@ class Frame
      * @brief Getter for the resized calibration model
      * @return Resized calibration model, that is computed depending on the image resize factor
      */
-    camera::Pinhole getResizedCamera() const;
+    camera::Pinhole::Ptr getResizedCamera() const;
 
     /*!
      * @brief Setter for the camera pose computed by either the default pose or more advanced approached, e.g. visual SLAM
      * @param pose 3x4 camera pose matrix
      */
     void setVisualPose(const cv::Mat &pose);
-
-    /*!
-     * @brief Setter for the camera pose computed by either the default pose or more advanced approached, e.g. visual SLAM
-     * @param pose 3x4 camera pose matrix
-     */
-    void setGeographicPose(const cv::Mat &pose);
-
-    /*!
-     * @brief Setter for transformation from visual world to geographic coordinate frame.
-     * @param T_w2g Transformation from visual world (_cam.T_c2w) to geographic
-     */
-    void setGeoreference(const cv::Mat &T_w2g);
 
     /*!
      * @brief Setter for surface points, e.g. the sparse or dense cloud observed by the frame. Either computed by the
@@ -298,10 +287,23 @@ class Frame
 
     /*!
      * @brief Function to apply a transformation to the current existing informations. Typically this is used to transform
-     *        pose and surface points of the frame from the local, visual to a global, georeferenced coordinate system
+     *        pose and surface points of the frame from the local, visual to a global, georeferenced coordinate system.
+     *        Remember to use only 'updateGeoreference(...)' after that, as it does not transform the surface points.
      * @param T 4x4 homogenous transformation matrix
      */
-    void applyGeoreference(const cv::Mat &T);
+    void initGeoreference(const cv::Mat &T);
+
+    /*!
+     * @brief Updates the transformation from the world to the geographic frame (T_w2g) and updates the georeferenced
+     * poses accordingly. It can also be used as a setter for the georeference. If you also want to apply the georeference
+     * to the observed surface points, use the function 'initGeoreference(...)'. But make sure the surface points are
+     * in the camera coordinate system!
+     * @param T 4x4 homogenous transformation matrix from the world to the geographic frame
+     * @param do_update_surface_points By setting this flag to false, you can use this function basically as a setter
+     * for the georeference. Be cautious when to set it true! If the surface points are already in a geographic frame
+     * and no prior georeference was set, calling this update will basically double apply the georeference to the points.
+     */
+    void updateGeoreference(const cv::Mat &T, bool do_update_surface_points = false);
 
     /*!
      * @brief Getter to check if this frame is marked as keyframe
@@ -333,9 +335,6 @@ class Frame
      * @return true if yes
      */
     bool hasAccuratePose() const;
-
-    // DO NOT CALL YOURSELF CURRENTLY
-    void updateGeographicPose();
 
   private:
 
@@ -409,23 +408,23 @@ class Frame
     //! Reconstructed 3D surface points structured as cv::Mat
     //! Note: Point cloud can be either dense or sparse, and it can contain only positional informations (x,y,z),
     //!       optionally color (x,y,z,r,g,b) or also point normal (x,y,z,r,g,b,nx,ny,nz)
-    cv::Mat _surface_pts;
+    cv::Mat _surface_points;
 
     //! Observed map as grid map in the reference plane [pt = (0,0,0), n = (0,0,1)]. It contains the results of the
     //! reconstruction in the form of an elevation map, normal map, rectified surface color, ...
     CvGridMap::Ptr _observed_map;
 
     //! Camera model of the frame that performs all the projection work. Currently only pinhole supported
-    camera::Pinhole _cam;
+    camera::Pinhole::Ptr _camera_model;
 
-    //! Transformation from world to geographic frame
-    cv::Mat _T_w2g;
+    //! 4x4 transformation from world to geographic UTM frame
+    cv::Mat _transformation_w2g;
 
-    //! Camera motion in the local world frame
-    cv::Mat _M_c2w;
+    //! 3x4 camera motion matrix in the local world frame
+    cv::Mat _motion_c2w;
 
-    //! Camera motion in the geographic frame
-    cv::Mat _M_c2g;
+    //! 3x4 camera motion in the geographic frame
+    cv::Mat _motion_c2g;
 
     //! Mutex for img resized
     std::mutex _mutex_img_resized;
@@ -445,9 +444,44 @@ class Frame
     /*!
      * @brief Private function to compute scene depth using the previously set surface points. Can obviously only be
      *        computed if surface points were generated by e.g. visual SLAM or stereo reconstruction. Be careful to
-     *        call it. Make sure member "_surface_pts" is really set
+     *        call it. Make sure member "_surface_points" is really set
      */
     void computeSceneDepth();
+
+    /*!
+     * @brief Setter for transformation from visual world to geographic coordinate frame.
+     * @param T_w2g Transformation from visual world (_camera_model.T_c2w) to geographic
+     */
+    void setGeoreference(const cv::Mat &T_w2g);
+
+    /*!
+    * @brief Setter for the camera pose computed by either the default pose or more advanced approached, e.g. visual SLAM
+    * @param pose 3x4 camera pose matrix
+    */
+    void setGeographicPose(const cv::Mat &pose);
+
+    /*!
+    * @brief: Uses the provided 4x4 matrix to transform the surface points into a new coordinate system
+    * @param T 4x4 transformation matrix
+    */
+    void applyTransformationToSurfacePoints(const cv::Mat &T);
+
+    /*!
+     * @brief: Uses the provided 4x4 matrix to transform the visual pose into a new coordinate system
+     * @param T 4x4 transformation matrix
+     * @return Transformed 3x4 pose matrix
+    */
+    cv::Mat applyTransformationToVisualPose(const cv::Mat &T);
+
+    /*!
+     * @brief Computes the difference between the existing and a newly applied georeference. Because their might be a
+     * scale change this is not straight forward. First scale has to be removed to safely invert the old transformation.
+     * Then T_old.inv() * T_new is computed to identify the difference between the two transformations.
+     * @param T_old Previous georeference as 4x4 transformation matrix
+     * @param T_new New georeference to be applied as 4x4 transformation matrix
+     * @return Difference of transformation T_old and T_new
+     */
+    cv::Mat computeGeoreferenceDifference(const cv::Mat &T_old, const cv::Mat &T_new);
 };
 
 } // namespace realm

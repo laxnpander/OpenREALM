@@ -23,12 +23,12 @@
 using namespace realm;
 
 void densifier::computeDepthMapFromSparseCloud(const cv::Mat &sparse_cloud,
-                                               const camera::Pinhole &cam,
+                                               const camera::Pinhole::Ptr &cam,
                                                cv::OutputArray out_depth,
                                                cv::OutputArray out_thumbnail)
 {
   // Neighbourhood radius is set to 1% of the input image but at least to 3
-  double radius = 0.01* static_cast<double>(cam.width());
+  double radius = 0.01* static_cast<double>(cam->width());
   if (radius < 3.0)
     radius = 3.0;
 
@@ -52,7 +52,7 @@ void densifier::computeDepthMapFromSparseCloud(const cv::Mat &sparse_cloud,
 }
 
 void densifier::computeSparseMask(const cv::Mat &sparse_cloud,
-                                  const camera::Pinhole &cam,
+                                  const camera::Pinhole::Ptr &cam,
                                   cv::OutputArray out_mask)
 {
   cv::Mat depth_sparse;

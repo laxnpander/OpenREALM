@@ -149,7 +149,7 @@ sensor_msgs::PointCloud2 pointCloud(const std_msgs::Header &header, const cv::Ma
  * @param cam Pinhole camera model in realm type
  * @return ROS message pinhole camera
  */
-realm_msgs::Pinhole pinhole(const realm::camera::Pinhole &cam);
+realm_msgs::Pinhole pinhole(const realm::camera::Pinhole::ConstPtr &cam);
 
 /*!
  * @brief Converter for a georeferenced image to a ROS type ground image. The latter is used in RVIZ by ground image
@@ -257,7 +257,7 @@ Frame::Ptr frame(const realm_msgs::Frame &msg);
  * @param msg ROS pinhole message
  * @return REALM camera pinhole type
  */
-camera::Pinhole pinhole(const realm_msgs::Pinhole &msg);
+camera::Pinhole::Ptr pinhole(const realm_msgs::Pinhole &msg);
 
 /*!
  * @brief Converter for ROS pose message to opencv/REALM pose type.
