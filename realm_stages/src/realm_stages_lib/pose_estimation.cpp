@@ -124,7 +124,7 @@ bool PoseEstimation::process()
     {
       if (_do_update_georef && !_georef->isBuisy())
       {
-        std::thread t(std::bind(&GeospatialReferencerIF::update, _georef, std::make_shared<Frame>(*frame)));
+        std::thread t(std::bind(&GeospatialReferencerIF::update, _georef, frame));
         t.detach();
       }
       pushToBufferAll(frame);
@@ -140,11 +140,13 @@ bool PoseEstimation::process()
   }
 
   // Handles georeference initialization and georeferencing of frame poses
-  if (_use_vslam)
+  // but only starts, if a new frame was processed during this loop
+  if (_use_vslam && has_processed)
   {
     if (!_is_georef_initialized && !_buffer_pose_init.empty() && !_georef->isBuisy())
     {
       // Branch: Georef is not calculated yet
+      LOG_F(INFO, "Size of init buffer: %lu", _buffer_pose_init.size());
       std::thread t(std::bind(&GeospatialReferencerIF::init, _georef, _buffer_pose_init));
       t.detach();
       has_processed = true;
@@ -375,9 +377,7 @@ double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
 
 cv::Rect2d PoseEstimation::estimateProjectedRoi(const Frame::Ptr &frame)
 {
-  camera::Pinhole cam = frame->getCamera();
-  cam.setPose(frame->getPose());
-  return cam.projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
+  return frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
 }
 
 Frame::Ptr PoseEstimation::getNewFrameTracking()
@@ -413,7 +413,7 @@ void PoseEstimation::applyGeoreferenceToBuffer()
     // But check first, if frame has actually a visually estimated pose information
     // In case of default GNSS pose generated from lat/lon/alt/heading, pose is already in world frame
     if (frame->hasAccuratePose())
-      frame->applyGeoreference(_T_w2g);
+      frame->initGeoreference(_T_w2g);
     pushToBufferPublish(frame);
   }
 }
@@ -421,13 +421,11 @@ void PoseEstimation::applyGeoreferenceToBuffer()
 void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
 {
   UTMPose utm = frame->getGnssUtm();
-  camera::Pinhole cam = frame->getCamera();
-  cam.setPose(frame->getPose());
-  cv::Mat t = cam.t();
+  cv::Mat t = frame->getCamera()->t();
 
   LOG_F(INFO, "Georeferenced pose:");
   LOG_F(INFO, "GNSS: [%10.2f, %10.2f, %4.2f]", utm.easting, utm.northing, utm.altitude);
-  LOG_F(INFO, "GNSS: [%10.2f, %10.2f, %4.2f]", t.at<double>(0), t.at<double>(1), t.at<double>(2));
+  LOG_F(INFO, "Visual: [%10.2f, %10.2f, %4.2f]", t.at<double>(0), t.at<double>(1), t.at<double>(2));
   LOG_F(INFO, "Diff: [%10.2f, %10.2f, %4.2f]", utm.easting-t.at<double>(0), utm.northing-t.at<double>(1), utm.altitude-t.at<double>(2));
 }
 
