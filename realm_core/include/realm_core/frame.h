@@ -324,6 +324,12 @@ class Frame
     bool isImageResizeSet() const;
 
     /*!
+     * @brief Getter to check if scene depth was computed
+     * @return true if yes
+     */
+    bool isDepthComputed() const;
+
+    /*!
      * @brief Getter to check if frame contains observed map data. Reminder: Observed map is the grid map in the reference
      *        plane, which contains informations like elevation, normal, ...
      * @return true if yes

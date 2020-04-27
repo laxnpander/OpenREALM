@@ -359,6 +359,11 @@ bool Frame::isImageResizeSet() const
   return _is_img_resizing_set;
 }
 
+bool Frame::isDepthComputed() const
+{
+  return _is_depth_computed;
+}
+
 bool Frame::hasObservedMap() const
 {
   return !(_observed_map == nullptr || _observed_map->empty());
