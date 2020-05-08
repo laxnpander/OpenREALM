@@ -29,7 +29,7 @@
 namespace realm
 {
 
-// TODO: find namespace name
+// TODO: Implementation is not good, but it works at the moment. Might be redesigned in the future
 
 /*!
  * @brief Several strategies implemented for matrix addition. Heavily used in CvGridMap for adding overlapping images
@@ -100,7 +100,7 @@ void overwriteWithValues(const cv::Mat &from, const cv::Mat &to, cv::Mat &result
  * @param val float value
  * @return true if below threshold
  */
-inline bool isNoValue(float val) { return (val <= consts::FLOAT_NO_VALUE+consts::FLOAT_EPSILON); }
+inline bool isNoValue(float val) { return (val <= consts::FLOAT_NAN + consts::FLOAT_EPSILON); }
 
 /*!
  * @brief Overloaded zero comparison for float (CV_32FC3)
@@ -109,9 +109,9 @@ inline bool isNoValue(float val) { return (val <= consts::FLOAT_NO_VALUE+consts:
  */
 inline bool isNoValue(const cv::Vec3f &val)
 {
-  return (val[0] <= consts::FLOAT_NO_VALUE+consts::FLOAT_EPSILON &&
-          val[1] <= consts::FLOAT_NO_VALUE+consts::FLOAT_EPSILON &&
-          val[2] <= consts::FLOAT_NO_VALUE+consts::FLOAT_EPSILON);
+  return (val[0] <= consts::FLOAT_NAN + consts::FLOAT_EPSILON &&
+          val[1] <= consts::FLOAT_NAN + consts::FLOAT_EPSILON &&
+          val[2] <= consts::FLOAT_NAN + consts::FLOAT_EPSILON);
 }
 
 /*!
@@ -119,21 +119,21 @@ inline bool isNoValue(const cv::Vec3f &val)
  * @param val double value
  * @return true if below threshold
  */
-inline bool isNoValue(double val) { return (fabs(val) <= consts::DOUBLE_NO_VALUE+consts::DOUBLE_EPSILON); }
+inline bool isNoValue(double val) { return (fabs(val) <= consts::DOUBLE_NAN + consts::DOUBLE_EPSILON); }
 
 /*!
  * @brief Overloaded zero comparison for uint16_t (CV_16UC1)
  * @param val uint16_t value
  * @return true if equals zero
  */
-inline bool isNoValue(uint16_t val) { return (val == (uint16_t)consts::INT_NO_VALUE); }
+inline bool isNoValue(uint16_t val) { return (val == (uint16_t)consts::INT_NAN); }
 
 /*!
  * @brief Overloaded zero comparison for uchar (CV_8UC1)
  * @param val uchar value
  * @return true if equals zero
  */
-inline bool isNoValue(uchar val) { return (val == (uchar)consts::INT_NO_VALUE); }
+inline bool isNoValue(uchar val) { return (val == (uchar)consts::INT_NAN); }
 
 /*!
  * @brief Overloaded zero comparison for Vec3b (CV_8UC3)
@@ -142,9 +142,9 @@ inline bool isNoValue(uchar val) { return (val == (uchar)consts::INT_NO_VALUE); 
  */
 inline bool isNoValue(cv::Vec3b val)
 {
-  return (val[0] == (uchar)consts::INT_NO_VALUE &&
-          val[1] == (uchar)consts::INT_NO_VALUE &&
-          val[2] == (uchar)consts::INT_NO_VALUE);
+  return (val[0] == (uchar)consts::INT_NAN &&
+          val[1] == (uchar)consts::INT_NAN &&
+          val[2] == (uchar)consts::INT_NAN);
 }
 
 /*!
@@ -154,10 +154,10 @@ inline bool isNoValue(cv::Vec3b val)
  */
 inline bool isNoValue(cv::Vec4b val)
 {
-  return (val[0] == (uchar)consts::INT_NO_VALUE &&
-          val[1] == (uchar)consts::INT_NO_VALUE &&
-          val[2] == (uchar)consts::INT_NO_VALUE &&
-          val[3] == (uchar)consts::INT_NO_VALUE);
+  return (val[0] == (uchar)consts::INT_NAN &&
+          val[1] == (uchar)consts::INT_NAN &&
+          val[2] == (uchar)consts::INT_NAN &&
+          val[3] == (uchar)consts::INT_NAN);
 }
 
 } // namespace internal

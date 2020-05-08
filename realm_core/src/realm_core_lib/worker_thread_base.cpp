@@ -45,7 +45,8 @@ void WorkerThreadBase::start()
 
 void WorkerThreadBase::join()
 {
-  _thread.join();
+  if (_thread.joinable())
+    _thread.join();
 }
 
 void WorkerThreadBase::run()

@@ -26,8 +26,6 @@
 #include <mutex>
 #include <string>
 
-
-
 namespace realm
 {
 

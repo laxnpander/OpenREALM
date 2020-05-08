@@ -67,30 +67,7 @@ class UTMPose
     }
 
     /** Copy constructor. */
-    UTMPose(const UTMPose &that)
-        : easting(that.easting),
-          northing(that.northing),
-          altitude(that.altitude),
-          heading(that.heading),
-          zone(that.zone),
-          band(that.band)
-    {
-    }
-
-    /** Create a flattened 2-D grid point. */
-    UTMPose(double _easting,
-             double _northing,
-             double _heading,
-             uint8_t _zone,
-             char _band)
-        : easting(_easting),
-          northing(_northing),
-          altitude(std::numeric_limits<double>::quiet_NaN()),
-          heading(_heading),
-          zone(_zone),
-          band(_band)
-    {
-    }
+    UTMPose(const UTMPose &that) = default;
 
     /** Create a 3-D grid point. */
     UTMPose(double _easting,

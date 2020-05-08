@@ -19,27 +19,28 @@
 */
 
 #include <iostream>
-
-#include <realm_core/camera_settings_factory.h>
-
-#include "test_helper.h"
+#include <realm_core/conversions.h>
 
 // gtest
 #include <gtest/gtest.h>
 
 using namespace realm;
 
-TEST(Settings, Access)
+TEST(Conversion, UTM_WGS)
 {
-  auto settings = std::make_shared<DummySettings>();
+  // This is a very simple test. We create a UTM pose, convert it into WGS84 and vice versa.
+  UTMPose utm(604347, 5792556, 100.0, 23.0, 32, 'U');
+  WGSPose wgs = gis::convertToWGS84(utm);
 
-  EXPECT_EQ((*settings)["parameter_int"].toInt(), 5);
-  EXPECT_EQ((*settings)["parameter_double"].toInt(), 2);
-  EXPECT_EQ((*settings)["parameter_string"].toString(), "dummy_string");
-  EXPECT_NEAR((*settings)["parameter_double"].toDouble(), 2.4, 10e-6);
+  EXPECT_NEAR(wgs.latitude, 52.273462, 10e-6);
+  EXPECT_NEAR(wgs.longitude, 10.529350, 10e-6);
 
-  EXPECT_EQ(settings->has("parameter_int"), true);
-  EXPECT_EQ(settings->has("parameter_float"), false);
-  EXPECT_THROW((*settings)["parameter_float"], std::out_of_range);
+  UTMPose utm2 = gis::convertToUTM(wgs);
+
+  EXPECT_NEAR(utm2.easting, utm.easting, 10e-6);
+  EXPECT_NEAR(utm2.northing, utm.northing, 10e-6);
+  EXPECT_NEAR(utm2.altitude, utm.altitude, 10e-6);
+  EXPECT_NEAR(utm2.heading, utm.heading, 10e-6);
+  EXPECT_EQ(utm2.zone, utm.zone);
+  EXPECT_EQ(utm2.band, utm.band);
 }
-

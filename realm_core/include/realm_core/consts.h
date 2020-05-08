@@ -28,28 +28,30 @@ namespace realm
 namespace consts
 {
 
-const float FLOAT_NO_VALUE = -32767;
-const float FLOAT_EPSILON = 0.0001;
+// TODO: Implementation is not good, but it works at the moment. Might be redesigned in the future
 
-const double DOUBLE_NO_VALUE = -32767;
-const double DOUBLE_EPSILON = 0.0001;
+const float FLOAT_NAN = -32767;
+const float FLOAT_EPSILON = 10e-6;
 
-const int INT_NO_VALUE = 0;
+const double DOUBLE_NAN = -32767;
+const double DOUBLE_EPSILON = 10e-6;
+
+const int INT_NAN = 0;
 const int INT_EPSILON = 1;
 
-inline float getNoValue(float &id) { return FLOAT_NO_VALUE; }
+inline float getNoValue(float &id) { return FLOAT_NAN; }
 
-inline double getNoValue(double &id) { return DOUBLE_NO_VALUE; }
+inline double getNoValue(double &id) { return DOUBLE_NAN; }
 
-inline uchar getNoValue(uchar id) { return (uchar)INT_NO_VALUE; }
+inline uchar getNoValue(uchar id) { return (uchar)INT_NAN; }
 
-inline uint16_t getNoValue(uint16_t) { return (uint16_t)INT_NO_VALUE; }
+inline uint16_t getNoValue(uint16_t) { return (uint16_t)INT_NAN; }
 
-inline cv::Vec3b getNoValue(const cv::Vec3b &id) { return cv::Vec3b(INT_NO_VALUE, INT_NO_VALUE, INT_NO_VALUE); }
+inline cv::Vec3b getNoValue(const cv::Vec3b &id) { return cv::Vec3b(INT_NAN, INT_NAN, INT_NAN); }
 
-inline cv::Vec3f getNoValue(const cv::Vec3f &id) { return cv::Vec3f(FLOAT_NO_VALUE, FLOAT_NO_VALUE, FLOAT_NO_VALUE); }
+inline cv::Vec3f getNoValue(const cv::Vec3f &id) { return cv::Vec3f(FLOAT_NAN, FLOAT_NAN, FLOAT_NAN); }
 
-inline cv::Vec4b getNoValue(const cv::Vec4b &id) { return cv::Vec4b(INT_NO_VALUE, INT_NO_VALUE, INT_NO_VALUE, INT_NO_VALUE); }
+inline cv::Vec4b getNoValue(const cv::Vec4b &id) { return cv::Vec4b(INT_NAN, INT_NAN, INT_NAN, INT_NAN); }
 
 template<typename T>
 T getNoValue()
