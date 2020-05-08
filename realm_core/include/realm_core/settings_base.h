@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <exception>
 
 #include <realm_core/structs.h>
 
@@ -68,6 +69,69 @@ namespace realm
 class SettingsBase
 {
   public:
+    class Variant
+    {
+      friend SettingsBase;
+      enum class VariantType
+      {
+        INT,
+        DOUBLE,
+        STRING
+      };
+      using Ptr = std::unique_ptr<Variant>;
+    public:
+      Variant(const Parameter_t<int> &p) : _type(VariantType::INT), _int_container(p) {};
+      Variant(const Parameter_t<double> &p) : _type(VariantType::DOUBLE), _double_container(p) {};
+      Variant(const Parameter_t<std::string> &p) : _type(VariantType::STRING), _string_container(p) {};
+
+      int toInt() const
+      {
+        if (_type == VariantType::INT) return _int_container.value;
+        if (_type == VariantType::DOUBLE) return static_cast<int>(_double_container.value);
+        if (_type == VariantType::STRING) throw(std::bad_cast());
+      }
+
+      float toFloat() const
+      {
+        if (_type == VariantType::INT) return static_cast<float>(_int_container.value);
+        if (_type == VariantType::DOUBLE) return static_cast<float>(_double_container.value);
+        if (_type == VariantType::STRING) throw(std::bad_cast());
+      }
+
+      double toDouble() const
+      {
+        if (_type == VariantType::INT) return static_cast<double>(_int_container.value);
+        if (_type == VariantType::DOUBLE) return _double_container.value;
+        if (_type == VariantType::STRING) throw(std::bad_cast());
+      }
+
+      std::string toString() const
+      {
+        if (_type == VariantType::INT) return std::to_string(_int_container.value);
+        if (_type == VariantType::DOUBLE) return std::to_string(_double_container.value);
+        if (_type == VariantType::STRING) return _string_container.value;
+      }
+
+      std::string help() const
+      {
+        if (_type == VariantType::INT) return _int_container.help;
+        if (_type == VariantType::DOUBLE) return _double_container.help;
+        if (_type == VariantType::STRING) return _string_container.help;
+      }
+
+    private:
+      VariantType _type;
+      Parameter_t<std::string> _string_container;
+      Parameter_t<double> _double_container;
+      Parameter_t<int> _int_container;
+    };
+
+  public:
+
+    Variant operator[](const std::string &key) const;
+
+    Variant get(const std::string &key) const;
+
     /*!
      * @brief Overloaded function to set a parameter of type int
      * @param key Parameter name to be set
@@ -101,7 +165,7 @@ class SettingsBase
      * @param param_name Name of the parameter to be checked
      * @return true if exists
      */
-    bool has(const std::string &param_name);
+    bool has(const std::string &param_name) const;
 
     /*!
      * @brief Prints all parameters, their default values and the provided help description
@@ -131,20 +195,6 @@ class SettingsBase
       return val;
     }
 
-    /*!
-     * @brief Basic getter for value of key-value pair. Triggers overloaded functions
-     * @tparam T Type of the parameter to be grabbed
-     * @param key Name of the parameter value to be grabbed
-     * @return value
-     */
-    template <typename T>
-    T get(const std::string &key) const
-    {
-        Parameter_t<T> param{};
-        get(key, &param);
-        return param.value;
-    }
-
   protected:
     /*!
      * @brief Add functionality for derived class to customize the settings. Can not be called from outside, to force
@@ -172,79 +222,8 @@ class SettingsBase
 
   private:
 
-    //! Container for integer parameters
-    std::unordered_map<std::string, Parameter_t<int> > _params_i;
-
-    //! Container for double parameters
-    std::unordered_map<std::string, Parameter_t<double> > _params_d;
-
-    //! Container for string parameters
-    std::unordered_map<std::string, Parameter_t<std::string> > _params_s;
-
-    /*!
-     * @brief Templated function to set a specific parameter. Called by overloaded public setter
-     * @tparam T Type of the parameter to be set
-     * @param map Container of the parameter type to be set
-     * @param pair Parameter key-value pair
-     * @throws out_of_range if parameter key is not found
-     */
-    template <typename T>
-    void set(std::unordered_map<std::string, Parameter_t<T>> &map,
-             const std::pair<std::string, T> &pair)
-    {
-      if (!map.empty())
-      {
-        auto it = map.find(pair.first);
-        if (it == map.end())
-          throw(std::out_of_range("Error: Setting parameter '" + pair.first + "' failed. Not found!"));
-        else
-          it->second.value = pair.second;
-      }
-      else
-        throw(std::out_of_range("Error: Setting parameter failed. Container empty!"));
-    }
-
-    /*!
-     * @brief Templated function to add a specific parameter. Called by overloaded, protected add functions. Adds
-     *        parameter only if not already existing.
-     * @tparam T Type of the parameter to be added
-     * @param map Container to which parameter should be added (must match type)
-     * @param pair Parameter key-value pair
-     */
-    template <typename T>
-    void add(std::unordered_map<std::string, Parameter_t<T>> &map,
-             const std::pair<std::string, Parameter_t<T>> &pair)
-    {
-        auto it = map.find(pair.first);
-        if (it == map.end())
-            map.insert({pair.first, pair.second});
-        else
-            map[pair.first] = pair.second;
-    }
-
-    /*!
-     * @brief Private getter for parameter of key
-     * @param key Name of the parameter
-     * @param param Actual parameter as output containing value and help description
-     * @throws out_of_range if parameter not found
-     */
-    void get(const std::string &key, Parameter_t<int> *param) const;
-
-    /*!
-     * @brief Private getter for parameter of key
-     * @param key Name of the parameter
-     * @param param Actual parameter as output containing value and help description
-     * @throws out_of_range if parameter not found
-     */
-    void get(const std::string &key, Parameter_t<double> *param) const;
-
-    /*!
-     * @brief Private getter for parameter of key
-     * @param key Name of the parameter
-     * @param param Actual parameter as output containing value and help description
-     * @throws out_of_range if parameter not found
-     */
-    void get(const std::string &key, Parameter_t<std::string> *param) const;
+    //! Container for parameters
+    std::unordered_map<std::string, Variant::Ptr> _parameters;
 };
 
 }

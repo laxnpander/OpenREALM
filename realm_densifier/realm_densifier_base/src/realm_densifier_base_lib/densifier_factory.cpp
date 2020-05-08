@@ -24,11 +24,11 @@ using namespace realm;
 
 DensifierIF::Ptr densifier::DensifierFactory::create(const DensifierSettings::Ptr &settings)
 {
-  if (settings->get<std::string>("type") == "DUMMY")
+  if ((*settings)["type"].toString() == "DUMMY")
     return std::make_shared<densifier::Dummy>(settings);
 #ifdef USE_CUDA
-  if (settings->get<std::string>("type") == "PSL")
+  if ((*settings)["type"].toString() == "PSL")
     return std::make_shared<densifier::PlaneSweep>(settings);
 #endif
-  throw std::invalid_argument("Error: Densifier framework '" + settings->get<std::string>("type") + "' not found");
+  throw std::invalid_argument("Error: Densifier framework '" + (*settings)["type"].toString() + "' not found");
 }

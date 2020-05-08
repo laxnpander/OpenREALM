@@ -25,22 +25,22 @@ using namespace stages;
 
 Densification::Densification(const StageSettings::Ptr &stage_set,
                              const DensifierSettings::Ptr &densifier_set)
-: StageBase("densification", stage_set->get<std::string>("path_output"), stage_set->get<int>("queue_size")),
-  _use_sparse_depth(stage_set->get<int>("use_sparse_disparity") > 0),
-  _use_filter_bilat(stage_set->get<int>("use_filter_bilat") > 0),
-  _use_filter_guided(stage_set->get<int>("use_filter_guided") > 0),
+: StageBase("densification", (*stage_set)["path_output"].toString(), (*stage_set)["queue_size"].toInt()),
+  _use_sparse_depth((*stage_set)["use_sparse_disparity"].toInt() > 0),
+  _use_filter_bilat((*stage_set)["use_filter_bilat"].toInt() > 0),
+  _use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),
   _depth_min_current(0.0),
   _depth_max_current(0.0),
-  _compute_normals(stage_set->get<int>("compute_normals") > 0),
+  _compute_normals((*stage_set)["compute_normals"].toInt() > 0),
   _buffer_selector(_buffer_reco.end()),
   _rcvd_frames(0),
-  _settings_save({stage_set->get<int>("save_bilat") > 0,
-                  stage_set->get<int>("save_dense") > 0,
-                  stage_set->get<int>("save_guided") > 0,
-                  stage_set->get<int>("save_imgs") > 0,
-                  stage_set->get<int>("save_sparse") > 0,
-                  stage_set->get<int>("save_thumb") > 0,
-                  stage_set->get<int>("save_normals") > 0})
+  _settings_save({(*stage_set)["save_bilat"].toInt() > 0,
+                  (*stage_set)["save_dense"].toInt() > 0,
+                  (*stage_set)["save_guided"].toInt() > 0,
+                  (*stage_set)["save_imgs"].toInt() > 0,
+                  (*stage_set)["save_sparse"].toInt() > 0,
+                  (*stage_set)["save_thumb"].toInt() > 0,
+                  (*stage_set)["save_normals"].toInt() > 0})
 {
   _densifier = densifier::DensifierFactory::create(densifier_set);
   _n_frames = _densifier->getNrofInputFrames();

@@ -35,14 +35,14 @@ camera::Pinhole io::loadCameraFromYaml(const std::string &filepath)
   CameraSettings::Ptr settings = CameraSettingsFactory::load(filepath);
 
   // Load camera informations depending on model
-  if (settings->get<std::string>("type") == "pinhole")
+  if ((*settings)["type"].toString() == "pinhole")
   {
     // Create pinhole model
-    camera::Pinhole cam(settings->get<double>("fx"), settings->get<double>("fy"),
-                        settings->get<double>("cx"), settings->get<double>("cy"),
-                        (uint32_t)settings->get<int>("width"), (uint32_t)settings->get<int>("height"));
-    cam.setDistortionMap(settings->get<double>("k1"), settings->get<double>("k2"),
-                         settings->get<double>("p1"), settings->get<double>("p2"), 0.0);
+    camera::Pinhole cam((*settings)["fx"].toDouble(), (*settings)["fy"].toDouble(),
+                        (*settings)["cx"].toDouble(), (*settings)["cy"].toDouble(),
+              (uint32_t)(*settings)["width"].toInt(), (uint32_t)(*settings)["height"].toInt());
+    cam.setDistortionMap((*settings)["k1"].toDouble(), (*settings)["k2"].toDouble(),
+                         (*settings)["p1"].toDouble(), (*settings)["p2"].toDouble(), 0.0);
     return cam;
   }
 }

@@ -24,19 +24,33 @@ using namespace realm;
 
 // PUBLIC
 
-void SettingsBase::set(const std::string &param_name, int val)
+SettingsBase::Variant SettingsBase::operator[](const std::string &key) const
 {
-  set(_params_i, {param_name, val});
+  return get(key);
 }
 
-void SettingsBase::set(const std::string &param_name, double val)
+SettingsBase::Variant SettingsBase::get(const std::string &key) const
 {
-  set(_params_d, {param_name, val});
+  auto it = _parameters.find(key);
+  if (it != _parameters.end())
+    return *it->second;
+  else
+    throw(std::out_of_range("Error: Parameter with name '" + key + "' could not be found in settings."));
 }
 
-void SettingsBase::set(const std::string &param_name, const std::string &val)
+void SettingsBase::set(const std::string &key, int val)
 {
-  set(_params_s, {param_name, val});
+  _parameters[key]->_int_container.value = val;
+}
+
+void SettingsBase::set(const std::string &key, double val)
+{
+  _parameters[key]->_double_container.value = val;
+}
+
+void SettingsBase::set(const std::string &key, const std::string &val)
+{
+  _parameters[key]->_string_container.value = val;
 }
 
 void SettingsBase::loadFromFile(const std::string &filepath)
@@ -44,93 +58,50 @@ void SettingsBase::loadFromFile(const std::string &filepath)
   cv::FileStorage fs(filepath, cv::FileStorage::READ);
   if (fs.isOpened())
   {
-    for (auto &param : _params_i)
-      fs[param.first] >> param.second.value;
-    for (auto &param : _params_d)
-      fs[param.first] >> param.second.value;
-    for (auto &param : _params_s)
-      fs[param.first] >> param.second.value;
+    for (auto &param : _parameters) 
+    {
+      if (param.second->_type == SettingsBase::Variant::VariantType::INT) fs[param.first] >> param.second->_int_container.value;
+      if (param.second->_type == SettingsBase::Variant::VariantType::DOUBLE) fs[param.first] >> param.second->_double_container.value;
+      if (param.second->_type == SettingsBase::Variant::VariantType::STRING) fs[param.first] >> param.second->_string_container.value;
+    }
   }
   else
     throw std::out_of_range("Error. Could not load settings from file: " + filepath);
 }
 
-bool SettingsBase::has(const std::string &param_name)
+bool SettingsBase::has(const std::string &key) const
 {
-  for (auto &param : _params_i)
-    if (param.first == param_name)
-      return true;
-  for (auto &param : _params_d)
-    if (param.first == param_name)
-      return true;
-  for (auto &param : _params_s)
-    if (param.first == param_name)
-      return true;
-  return false;
+  auto it = _parameters.find(key);
+  if (it != _parameters.end())
+    return true;
+  else
+    return false;
 }
 
 void SettingsBase::print()
 {
   std::cout.precision(6);
-  for (auto &param : _params_i)
-    std::cout << "\t<Param>[" << param.first << "]: " << param.second.value << std::endl;
-  for (auto &param : _params_d)
-    std::cout << "\t<Param>[" << param.first << "]: " << param.second.value << std::endl;
-  for (auto &param : _params_s)
-    std::cout << "\t<Param>[" << param.first << "]: " << param.second.value << std::endl;
+  for (auto &param : _parameters)
+  {
+    if (param.second->_type == SettingsBase::Variant::VariantType::INT) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toInt() << std::endl;
+    if (param.second->_type == SettingsBase::Variant::VariantType::DOUBLE) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toDouble() << std::endl;
+    if (param.second->_type == SettingsBase::Variant::VariantType::STRING) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toString() << std::endl;
+  }
 }
 
 // PROTECTED
 
 void SettingsBase::add(const std::string &key, const Parameter_t<int> &param)
 {
-  add(_params_i, {key, param});
+  _parameters[key].reset(new Variant(param));
 }
 
 void SettingsBase::add(const std::string &key, const Parameter_t<double> &param)
 {
-  add(_params_d, {key, param});
+  _parameters[key].reset(new Variant(param));
 }
 
 void SettingsBase::add(const std::string &key, const Parameter_t<std::string> &param)
 {
-  add(_params_s, {key, param});
-}
-
-// PRIVATE
-
-void SettingsBase::get(const std::string &key, Parameter_t<int> *param) const
-{
-  try
-  {
-    *param = _params_i.at(key);
-  }
-  catch(std::out_of_range &e)
-  {
-    throw(std::out_of_range("Error: Parameter with name " + key + " could not be found in settings."));
-  }
-}
-
-void SettingsBase::get(const std::string &key, Parameter_t<double> *param) const
-{
-  try
-  {
-    *param = _params_d.at(key);
-  }
-  catch(std::out_of_range &e)
-  {
-    throw(std::out_of_range("Error: Parameter with name " + key + " could not be found in settings."));
-  }
-}
-
-void SettingsBase::get(const std::string &key, Parameter_t<std::string> *param) const
-{
-  try
-  {
-    *param = _params_s.at(key);
-  }
-  catch(std::out_of_range &e)
-  {
-    throw(std::out_of_range("Error: Parameter with name " + key + " could not be found in settings."));
-  }
+  _parameters[key].reset(new Variant(param));
 }

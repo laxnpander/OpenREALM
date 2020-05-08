@@ -26,13 +26,13 @@ using namespace realm;
 using namespace stages;
 
 OrthoRectification::OrthoRectification(const StageSettings::Ptr &stage_set)
-    : StageBase("ortho_rectification", stage_set->get<std::string>("path_output"), stage_set->get<int>("queue_size")),
-      _GSD(stage_set->get<double>("GSD")),
-      _settings_save({stage_set->get<int>("save_valid") > 0,
-                      stage_set->get<int>("save_ortho_rgb") > 0,
-                      stage_set->get<int>("save_ortho_gtiff") > 0,
-                      stage_set->get<int>("save_elevation") > 0,
-                      stage_set->get<int>("save_elevation_angle") > 0})
+    : StageBase("ortho_rectification", (*stage_set)["path_output"].toString(), (*stage_set)["queue_size"].toInt()),
+      _GSD((*stage_set)["GSD"].toDouble()),
+      _settings_save({(*stage_set)["save_valid"].toInt() > 0,
+                  (*stage_set)["save_ortho_rgb"].toInt() > 0,
+                  (*stage_set)["save_ortho_gtiff"].toInt() > 0,
+                  (*stage_set)["save_elevation"].toInt() > 0,
+                  (*stage_set)["save_elevation_angle"].toInt() > 0})
 {
   std::cout << "Stage [" << _stage_name << "]: Created Stage with Settings: " << std::endl;
   stage_set->print();

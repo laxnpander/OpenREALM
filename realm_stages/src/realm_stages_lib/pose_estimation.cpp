@@ -26,20 +26,20 @@ using namespace stages;
 PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                                const VisualSlamSettings::Ptr &vslam_set,
                                const CameraSettings::Ptr &cam_set)
-    : StageBase("pose_estimation", stage_set->get<std::string>("path_output"), stage_set->get<int>("queue_size")),
+    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), (*stage_set)["queue_size"].toInt()),
       _is_georef_initialized(false),
-      _use_vslam(stage_set->get<int>("use_vslam") > 0),
-      _use_fallback(stage_set->get<int>("use_fallback") > 0),
-      _do_update_georef(stage_set->get<int>("update_georef") > 0),
-      _do_suppress_outdated_pose_pub(stage_set->get<int>("suppress_outdated_pose_pub") > 0),
-      _th_error_georef(stage_set->get<double>("th_error_georef")),
-      _overlap_max(stage_set->get<double>("overlap_max")),
-      _overlap_max_fallback(stage_set->get<double>("overlap_max_fallback")),
-      _settings_save({stage_set->get<int>("save_trajectory_gnss") > 0,
-                      stage_set->get<int>("save_trajectory_visual") > 0,
-                      stage_set->get<int>("save_frames") > 0,
-                      stage_set->get<int>("save_keyframes") > 0,
-                      stage_set->get<int>("save_keyframes_full") > 0})
+      _use_vslam((*stage_set)["use_vslam"].toInt() > 0),
+      _use_fallback((*stage_set)["use_fallback"].toInt() > 0),
+      _do_update_georef((*stage_set)["update_georef"].toInt() > 0),
+      _do_suppress_outdated_pose_pub((*stage_set)["suppress_outdated_pose_pub"].toInt() > 0),
+      _th_error_georef((*stage_set)["th_error_georef"].toDouble()),
+      _overlap_max((*stage_set)["overlap_max"].toDouble()),
+      _overlap_max_fallback((*stage_set)["overlap_max_fallback"].toDouble()),
+      _settings_save({(*stage_set)["save_trajectory_gnss"].toInt() > 0,
+                      (*stage_set)["save_trajectory_visual"].toInt() > 0,
+                      (*stage_set)["save_frames"].toInt() > 0,
+                      (*stage_set)["save_keyframes"].toInt() > 0,
+                      (*stage_set)["save_keyframes_full"].toInt() > 0})
 {
   if (_use_vslam)
   {

@@ -125,12 +125,12 @@ void StageNode::createStagePoseEstimation()
   // Pose estimation usually needs additionally a-priori camera info
   ROS_INFO("STAGE_NODE [%s]: : Loading camera from path:\n\t%s", _type_stage.c_str(),_file_settings_camera.c_str());
   CameraSettings::Ptr settings_camera = CameraSettingsFactory::load(_file_settings_camera);
-  ROS_INFO("STAGE_NODE [%s]: : Detected camera model: '%s'", _type_stage.c_str(), settings_camera->get<std::string>("type").c_str());
+  ROS_INFO("STAGE_NODE [%s]: : Detected camera model: '%s'", _type_stage.c_str(), (*settings_camera)["type"].toString().c_str());
 
   // Pose estimation uses external frameworks, therefore load settings for that
   ROS_INFO("STAGE_NODE [%s]: : Loading vslam settings from path:\n\t%s", _type_stage.c_str(), _file_settings_method.c_str());
   VisualSlamSettings::Ptr settings_vslam = VisualSlamSettingsFactory::load(_file_settings_method, _path_profile + "/" + _type_stage + "/method");
-  ROS_INFO("STAGE_NODE [%s]: : Detected vslam type: '%s'", _type_stage.c_str(), settings_vslam->get<std::string>("type").c_str());
+  ROS_INFO("STAGE_NODE [%s]: : Detected vslam type: '%s'", _type_stage.c_str(), (*settings_vslam)["type"].toString().c_str());
 
   // Topic and stage creation
   _stage = std::make_shared<stages::PoseEstimation>(_settings_stage, settings_vslam, settings_camera);
@@ -151,7 +151,7 @@ void StageNode::createStageDensification()
   // Densification uses external frameworks, therefore load settings for that
   ROS_INFO("STAGE_NODE [%s]: : Loading densifier settings from path:\n\t%s", _type_stage.c_str(), _file_settings_method.c_str());
   DensifierSettings::Ptr settings_densifier = DensifierSettingsFactory::load(_file_settings_method, _path_profile + "/" + _type_stage + "/method");
-  ROS_INFO("STAGE_NODE [%s]: : Detected densifier type: '%s'", _type_stage.c_str(), settings_densifier->get<std::string>("type").c_str());
+  ROS_INFO("STAGE_NODE [%s]: : Detected densifier type: '%s'", _type_stage.c_str(), (*settings_densifier)["type"].toString().c_str());
 
   // Topic and stage creation
   _stage = std::make_shared<stages::Densification>(_settings_stage, settings_densifier);
@@ -477,7 +477,7 @@ void StageNode::readStageSettings()
   // Load stage settings
   ROS_INFO("STAGE_NODE [%s]: Loading stage settings from path:\n\t%s", _type_stage.c_str(), _file_settings_stage.c_str());
   _settings_stage = StageSettingsFactory::load(_type_stage, _file_settings_stage);
-  ROS_INFO("STAGE_NODE [%s]: Detected stage type: '%s'", _type_stage.c_str(), _settings_stage->get<std::string>("type").c_str());
+  ROS_INFO("STAGE_NODE [%s]: Detected stage type: '%s'", _type_stage.c_str(), (*_settings_stage)["type"].toString().c_str());
 }
 
 void StageNode::readParams()

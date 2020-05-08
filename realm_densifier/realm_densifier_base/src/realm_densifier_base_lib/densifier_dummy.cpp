@@ -23,7 +23,7 @@
 using namespace realm;
 
 densifier::Dummy::Dummy(const DensifierSettings::Ptr &settings)
-: _resizing(settings->get<double>("resizing"))
+: _resizing((*settings)["resizing"].toDouble())
 {
 
 }

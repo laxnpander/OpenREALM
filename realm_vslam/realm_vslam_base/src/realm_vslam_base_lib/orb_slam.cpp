@@ -24,35 +24,35 @@ using namespace realm;
 
 OrbSlam2::OrbSlam2(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set)
 : _prev_keyid(-1),
-  _resizing(vslam_set->get<double>("resizing")),
-  _path_vocabulary(vslam_set->get<std::string>("path_vocabulary"))
+  _resizing((*vslam_set)["resizing"].toDouble()),
+  _path_vocabulary((*vslam_set)["path_vocabulary"].toString())
 {
   // Read the settings files
   cv::Mat K_32f = cv::Mat::eye(3, 3, CV_32F);
-  K_32f.at<float>(0, 0) = (float)(cam_set->get<double>("fx") * _resizing);
-  K_32f.at<float>(1, 1) = (float)(cam_set->get<double>("fy") * _resizing);
-  K_32f.at<float>(0, 2) = (float)(cam_set->get<double>("cx") * _resizing);
-  K_32f.at<float>(1, 2) = (float)(cam_set->get<double>("cy") * _resizing);
+  K_32f.at<float>(0, 0) = (*cam_set)["fx"].toFloat() * static_cast<float>(_resizing);
+  K_32f.at<float>(1, 1) = (*cam_set)["fy"].toFloat() * static_cast<float>(_resizing);
+  K_32f.at<float>(0, 2) = (*cam_set)["cx"].toFloat() * static_cast<float>(_resizing);
+  K_32f.at<float>(1, 2) = (*cam_set)["cy"].toFloat() * static_cast<float>(_resizing);
 
   cv::Mat dist_coeffs_32f = cv::Mat::zeros(1, 5, CV_32F);
-  dist_coeffs_32f.at<float>(0) = (float)cam_set->get<double>("k1");
-  dist_coeffs_32f.at<float>(1) = (float)cam_set->get<double>("k2");
-  dist_coeffs_32f.at<float>(2) = (float)cam_set->get<double>("p1");
-  dist_coeffs_32f.at<float>(3) = (float)cam_set->get<double>("p2");
-  dist_coeffs_32f.at<float>(4) = (float)cam_set->get<double>("k3");
+  dist_coeffs_32f.at<float>(0) = (*cam_set)["k1"].toFloat();
+  dist_coeffs_32f.at<float>(1) = (*cam_set)["k2"].toFloat();
+  dist_coeffs_32f.at<float>(2) = (*cam_set)["p1"].toFloat();
+  dist_coeffs_32f.at<float>(3) = (*cam_set)["p2"].toFloat();
+  dist_coeffs_32f.at<float>(4) = (*cam_set)["k3"].toFloat();
 
   _cam_set.calibration = K_32f;
   _cam_set.distortion = dist_coeffs_32f;
-  _cam_set.fps = (float)cam_set->get<double>("fps");
-  _cam_set.imgWidth = cam_set->get<int>("width");
-  _cam_set.imgHeight = cam_set->get<int>("height");
+  _cam_set.fps = (*cam_set)["fps"].toFloat();
+  _cam_set.imgWidth = (*cam_set)["width"].toInt();
+  _cam_set.imgHeight = (*cam_set)["height"].toInt();
   _cam_set.rgb = 0;
 
-  _track_set.nFeatures = vslam_set->get<int>("nrof_features");
-  _track_set.nLevels = vslam_set->get<int>("n_pyr_levels");
-  _track_set.scaleFactor = (float)vslam_set->get<double>("scale_factor");
-  _track_set.iniThFast = vslam_set->get<int>("ini_th_FAST");
-  _track_set.minThFast = vslam_set->get<int>("min_th_FAST");
+  _track_set.nFeatures = (*vslam_set)["nrof_features"].toInt();
+  _track_set.nLevels = (*vslam_set)["n_pyr_levels"].toInt();
+  _track_set.scaleFactor = (*vslam_set)["scale_factor"].toFloat();
+  _track_set.iniThFast = (*vslam_set)["ini_th_FAST"].toInt();
+  _track_set.minThFast = (*vslam_set)["min_th_FAST"].toInt();
 
   _slam = new ORB_SLAM2::System(_cam_set, _track_set, _view_set, _path_vocabulary, ORB_SLAM2::System::MONOCULAR, false);
 

@@ -24,24 +24,24 @@ using namespace realm;
 using namespace densifier;
 
 PlaneSweep::PlaneSweep(const DensifierSettings::Ptr &settings)
-: _nrof_frames((uint8_t)settings->get<int>("n_cams")), _resizing(settings->get<double>("resizing"))
+: _nrof_frames((uint8_t)(*settings)["n_cams"].toInt()), _resizing((*settings)["resizing"].toDouble())
 {
   assert(_nrof_frames > 1);
   settings->print();
-  _settings.enable_subpix            =  settings->get<int>("enable_subpix") > 0;
-  _settings.enable_color_match       =  settings->get<int>("enable_color_match") > 0;
-  _settings.enable_out_best_depth    =  settings->get<int>("enable_out_best_depth") > 0;
-  _settings.enable_out_best_cost     =  settings->get<int>("enable_out_best_cost") > 0;
-  _settings.enable_out_cost_vol      =  settings->get<int>("enable_out_cost_vol") > 0;
-  _settings.enable_out_uniq_ratio    =  settings->get<int>("enable_out_uniq_ratio") > 0;
-  _settings.nrof_planes              =  settings->get<int>("nrof_planes");
-  _settings.scale                    =  settings->get<double>("scale");
-  _settings.match_window_size.width  =  settings->get<int>("match_window_size_x");
-  _settings.match_window_size.height =  settings->get<int>("match_window_size_y");
-  _settings.occlusion_mode           = (PSL::PlaneSweepOcclusionMode)       settings->get<int>("occlusion_mode");
-  _settings.plane_gen_mode           = (PSL::PlaneSweepPlaneGenerationMode) settings->get<int>("plane_gen_mode");
-  _settings.match_cost               = (PSL::PlaneSweepMatchingCosts)       settings->get<int>("match_cost");
-  _settings.subpx_interp_mode        = (PSL::PlaneSweepSubPixelInterpMode)  settings->get<int>("subpx_interp_mode");
+  _settings.enable_subpix            =  (*settings)["enable_subpix"].toInt() > 0;
+  _settings.enable_color_match       =  (*settings)["enable_color_match"].toInt() > 0;
+  _settings.enable_out_best_depth    =  (*settings)["enable_out_best_depth"].toInt() > 0;
+  _settings.enable_out_best_cost     =  (*settings)["enable_out_best_cost"].toInt() > 0;
+  _settings.enable_out_cost_vol      =  (*settings)["enable_out_cost_vol"].toInt() > 0;
+  _settings.enable_out_uniq_ratio    =  (*settings)["enable_out_uniq_ratio"].toInt() > 0;
+  _settings.nrof_planes              =  (*settings)["nrof_planes"].toInt();
+  _settings.scale                    =  (*settings)["scale"].toDouble();
+  _settings.match_window_size.width  =  (*settings)["match_window_size_x"].toInt();
+  _settings.match_window_size.height =  (*settings)["match_window_size_y"].toInt();
+  _settings.occlusion_mode           = (PSL::PlaneSweepOcclusionMode)       (*settings)["occlusion_mode"].toInt();
+  _settings.plane_gen_mode           = (PSL::PlaneSweepPlaneGenerationMode) (*settings)["plane_gen_mode"].toInt();
+  _settings.match_cost               = (PSL::PlaneSweepMatchingCosts)       (*settings)["match_cost"].toInt();
+  _settings.subpx_interp_mode        = (PSL::PlaneSweepSubPixelInterpMode)  (*settings)["subpx_interp_mode"].toInt();
 }
 
 cv::Mat PlaneSweep::densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx)

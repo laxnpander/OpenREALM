@@ -25,17 +25,17 @@
 using namespace realm;
 using namespace stages;
 
-SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &stage_set)
-: StageBase("surface_generation", stage_set->get<std::string>("path_output"), stage_set->get<int>("queue_size")),
-  _try_use_elevation(stage_set->get<int>("try_use_elevation") > 0),
-  _knn_radius_factor(stage_set->get<double>("knn_radius_factor")),
+SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings)
+: StageBase("surface_generation", (*settings)["path_output"].toString(), (*settings)["queue_size"].toInt()),
+  _try_use_elevation((*settings)["try_use_elevation"].toInt() > 0),
+  _knn_radius_factor((*settings)["knn_radius_factor"].toDouble()),
   _is_projection_plane_offset_computed(false),
   _projection_plane_offset(0.0),
-  _mode_surface_normals(static_cast<DigitalSurfaceModel::SurfaceNormalMode>(stage_set->get<int>("mode_surface_normals"))),
+  _mode_surface_normals(static_cast<DigitalSurfaceModel::SurfaceNormalMode>((*settings)["mode_surface_normals"].toInt())),
   _plane_reference(Plane{(cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0), (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0)}),
-  _settings_save({stage_set->get<int>("save_valid") > 0,
-                  stage_set->get<int>("save_elevation") > 0,
-                  stage_set->get<int>("save_normals") > 0})
+  _settings_save({(*settings)["save_valid"].toInt() > 0,
+                  (*settings)["save_elevation"].toInt() > 0,
+                  (*settings)["save_normals"].toInt() > 0})
 {
 }
 
