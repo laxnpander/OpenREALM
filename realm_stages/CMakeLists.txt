@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(realm_stages)
 
-find_package(OpenCV 3)
+# Fix to avoid OpenCV package confusion with ROS melodic
+find_package(OpenCV 3.2 EXACT)
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 3)
+endif()
 find_package(cmake_modules REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
         realm_core

@@ -2,7 +2,12 @@ cmake_minimum_required(VERSION 2.8.3)
 project(realm_core)
 
 find_package(catkin REQUIRED)
-find_package(OpenCV 3.2)
+
+# Fix to avoid OpenCV package confusion with ROS melodic
+find_package(OpenCV 3.2 EXACT)
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 3)
+endif()
 
 # Solution to find Eigen3 with Saucy.
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)

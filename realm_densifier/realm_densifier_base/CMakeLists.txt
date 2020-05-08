@@ -23,7 +23,11 @@ find_package(catkin REQUIRED COMPONENTS
         ${DENSIFIER_LIBS}
         )
 
-find_package(OpenCV 3)
+# Fix to avoid OpenCV package confusion with ROS melodic
+find_package(OpenCV 3.2 EXACT)
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 3)
+endif()
 
 ####################
 ## Catkin Package ##
