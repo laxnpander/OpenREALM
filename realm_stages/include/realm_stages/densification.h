@@ -83,7 +83,7 @@ class Densification : public StageBase
      * @param stage_set Stage settings for general processing of the densification
      * @param densifier_set Densifier framework settings
      */
-    Densification(const StageSettings::Ptr &stage_set, const DensifierSettings::Ptr &densifier_set);
+    Densification(const StageSettings::Ptr &stage_set, const DensifierSettings::Ptr &densifier_set, double rate);
 
     /*!
      * @brief Function to add frames to the densification stage. Will be moved to the specific buffer depending on the

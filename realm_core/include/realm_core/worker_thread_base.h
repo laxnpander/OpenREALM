@@ -35,7 +35,7 @@ class WorkerThreadBase
     /*!
      * @brief Basic constructor for worker thread class
      */
-    explicit WorkerThreadBase(const std::string &thread_name, bool verbose);
+    explicit WorkerThreadBase(const std::string &thread_name, int64_t sleep_time, bool verbose);
 
     /*!
      * @brief Starting function for thread
@@ -80,6 +80,11 @@ class WorkerThreadBase
      * @brief Threader member for worker
      */
     std::thread _thread;
+
+    /*!
+     * @brief Time the processing thread sleeps in milliseconds
+     */
+    int64_t _sleep_time;
 
     /*!
      * @brief Verbose flag, set true if additional output should be generated

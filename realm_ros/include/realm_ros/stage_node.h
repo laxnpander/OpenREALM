@@ -140,6 +140,8 @@ class StageNode
     // Settings of the stage
     StageSettings::Ptr _settings_stage;
 
+    CameraSettings::Ptr _settings_camera;
+
     // Handle for stage
     StageBase::Ptr _stage;
 

@@ -21,9 +21,12 @@
 #ifndef OPENREALM_TEST_HELPER_H
 #define OPENREALM_TEST_HELPER_H
 
+#include <memory>
+
 #include <realm_core/camera.h>
 #include <realm_core/frame.h>
 #include <realm_core/settings_base.h>
+#include <realm_core/worker_thread_base.h>
 
 namespace realm {
 
@@ -40,6 +43,16 @@ namespace realm {
       add("parameter_double", Parameter_t<double>{2.4, "This is a dummy double."});
       add("parameter_int", Parameter_t<int>{5, "This is a dummy integer."});
     }
+  };
+
+  class DummyWorker : public WorkerThreadBase
+  {
+  public:
+    DummyWorker() : WorkerThreadBase("dummy_worker", 100, false), counter(0) {}
+    bool process() override { counter++; };
+    void reset() override { counter = 0; };
+
+    volatile int counter;
   };
 
 } // namespace realm

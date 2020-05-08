@@ -25,8 +25,8 @@
 using namespace realm;
 using namespace stages;
 
-Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set)
-    : StageBase("mosaicing", (*stage_set)["path_output"].toString(), (*stage_set)["queue_size"].toInt()),
+Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
+    : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _utm_reference(nullptr),
       _publish_mesh_nth_iter(0),
       _publish_mesh_every_nth_kf((*stage_set)["publish_mesh_every_nth_kf"].toInt()),

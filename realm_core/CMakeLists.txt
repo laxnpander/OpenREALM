@@ -107,6 +107,7 @@ if(CATKIN_ENABLE_TESTING)
             test/frame_test.cpp
             test/pinhole_test.cpp
             test/settings_test.cpp
+            test/worker_thread_test.cpp
             )
 endif()
 

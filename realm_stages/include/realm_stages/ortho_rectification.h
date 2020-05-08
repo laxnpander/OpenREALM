@@ -54,7 +54,7 @@ class OrthoRectification : public StageBase
     };
 
   public:
-    explicit OrthoRectification(const StageSettings::Ptr &stage_set);
+    explicit OrthoRectification(const StageSettings::Ptr &stage_set, double rate);
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
   private:

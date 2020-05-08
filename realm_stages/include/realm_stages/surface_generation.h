@@ -46,7 +46,7 @@ class SurfaceGeneration : public StageBase
     };
 
   public:
-    explicit SurfaceGeneration(const StageSettings::Ptr &settings);
+    explicit SurfaceGeneration(const StageSettings::Ptr &settings, double rate);
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
     bool changeParam(const std::string& name, const std::string &val) override;

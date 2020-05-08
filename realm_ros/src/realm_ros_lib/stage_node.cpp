@@ -58,6 +58,11 @@ StageNode::StageNode(int argc, char **argv)
   _srv_req_reset = _nh.advertiseService(_topic_prefix + "request_reset", &StageNode::srvReset, this);
   _srv_change_param = _nh.advertiseService(_topic_prefix + "change_param", &StageNode::srvChangeParam, this);
 
+  // Provide camera information a priori to all stages
+  ROS_INFO("STAGE_NODE [%s]: : Loading camera from path:\n\t%s", _type_stage.c_str(),_file_settings_camera.c_str());
+  _settings_camera = CameraSettingsFactory::load(_file_settings_camera);
+  ROS_INFO("STAGE_NODE [%s]: : Detected camera model: '%s'", _type_stage.c_str(), (*_settings_camera)["type"].toString().c_str());
+
   // Create stages
   if (_type_stage == "pose_estimation")
     createStagePoseEstimation();
@@ -122,18 +127,13 @@ bool StageNode::isOkay()
 
 void StageNode::createStagePoseEstimation()
 {
-  // Pose estimation usually needs additionally a-priori camera info
-  ROS_INFO("STAGE_NODE [%s]: : Loading camera from path:\n\t%s", _type_stage.c_str(),_file_settings_camera.c_str());
-  CameraSettings::Ptr settings_camera = CameraSettingsFactory::load(_file_settings_camera);
-  ROS_INFO("STAGE_NODE [%s]: : Detected camera model: '%s'", _type_stage.c_str(), (*settings_camera)["type"].toString().c_str());
-
   // Pose estimation uses external frameworks, therefore load settings for that
   ROS_INFO("STAGE_NODE [%s]: : Loading vslam settings from path:\n\t%s", _type_stage.c_str(), _file_settings_method.c_str());
   VisualSlamSettings::Ptr settings_vslam = VisualSlamSettingsFactory::load(_file_settings_method, _path_profile + "/" + _type_stage + "/method");
   ROS_INFO("STAGE_NODE [%s]: : Detected vslam type: '%s'", _type_stage.c_str(), (*settings_vslam)["type"].toString().c_str());
 
   // Topic and stage creation
-  _stage = std::make_shared<stages::PoseEstimation>(_settings_stage, settings_vslam, settings_camera);
+  _stage = std::make_shared<stages::PoseEstimation>(_settings_stage, settings_vslam, _settings_camera, (*_settings_camera)["fps"].toDouble());
   _publisher.insert({"output/frame", _nh.advertise<realm_msgs::Frame>(_topic_frame_out, 5)});
   _publisher.insert({"output/pose/visual/utm", _nh.advertise<geometry_msgs::PoseStamped>(_topic_prefix + "pose/visual/utm", 5)});
   _publisher.insert({"output/pose/visual/wgs", _nh.advertise<geometry_msgs::PoseStamped>(_topic_prefix + "pose/visual/wgs", 5)});
@@ -154,7 +154,7 @@ void StageNode::createStageDensification()
   ROS_INFO("STAGE_NODE [%s]: : Detected densifier type: '%s'", _type_stage.c_str(), (*settings_densifier)["type"].toString().c_str());
 
   // Topic and stage creation
-  _stage = std::make_shared<stages::Densification>(_settings_stage, settings_densifier);
+  _stage = std::make_shared<stages::Densification>(_settings_stage, settings_densifier, (*_settings_camera)["fps"].toDouble());
   _publisher.insert({"output/frame", _nh.advertise<realm_msgs::Frame>(_topic_frame_out, 5)});
   _publisher.insert({"output/pose/utm", _nh.advertise<geometry_msgs::PoseStamped>(_topic_prefix + "pose/utm", 5)});
   _publisher.insert({"output/pose/wgs", _nh.advertise<geometry_msgs::PoseStamped>(_topic_prefix + "pose/wgs", 5)});
@@ -167,7 +167,7 @@ void StageNode::createStageDensification()
 
 void StageNode::createStageSurfaceGeneration()
 {
-  _stage = std::make_shared<stages::SurfaceGeneration>(_settings_stage);
+  _stage = std::make_shared<stages::SurfaceGeneration>(_settings_stage, (*_settings_camera)["fps"].toDouble());
   _publisher.insert({"output/frame", _nh.advertise<realm_msgs::Frame>(_topic_frame_out, 5)});
   _publisher.insert({"output/elevation_map", _nh.advertise<sensor_msgs::Image>(_topic_prefix + "elevation_map", 5)});
   linkStageTransport();
@@ -175,7 +175,7 @@ void StageNode::createStageSurfaceGeneration()
 
 void StageNode::createStageOrthoRectification()
 {
-  _stage = std::make_shared<stages::OrthoRectification>(_settings_stage);
+  _stage = std::make_shared<stages::OrthoRectification>(_settings_stage, (*_settings_camera)["fps"].toDouble());
   _publisher.insert({"output/frame", _nh.advertise<realm_msgs::Frame>(_topic_frame_out, 5)});
   _publisher.insert({"output/rectified", _nh.advertise<sensor_msgs::Image>(_topic_prefix + "rectified", 5)});
   _publisher.insert({"output/pointcloud", _nh.advertise<sensor_msgs::PointCloud2>(_topic_prefix + "pointcloud", 5)});
@@ -184,7 +184,7 @@ void StageNode::createStageOrthoRectification()
 
 void StageNode::createStageMosaicing()
 {
-  _stage = std::make_shared<stages::Mosaicing>(_settings_stage);
+  _stage = std::make_shared<stages::Mosaicing>(_settings_stage, (*_settings_camera)["fps"].toDouble());
   _publisher.insert({"output/rgb", _nh.advertise<sensor_msgs::Image>(_topic_prefix + "rgb", 5)});
   _publisher.insert({"output/elevation", _nh.advertise<sensor_msgs::Image>(_topic_prefix + "elevation", 5)});
   _publisher.insert({"output/pointcloud", _nh.advertise<sensor_msgs::PointCloud2>(_topic_prefix + "pointcloud", 5)});

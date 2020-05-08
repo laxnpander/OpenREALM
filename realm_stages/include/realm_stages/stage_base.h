@@ -70,7 +70,7 @@ class StageBase : public WorkerThreadBase
      * @param name Name of the stage, should be set by derived stage
      * @param path Path to the input/output folder for stage informations
      */
-    StageBase(const std::string &name, const std::string &path, int queue_size);
+    StageBase(const std::string &name, const std::string &path, double rate, int queue_size);
 
     /*!
      * @brief Communication thread of the stage will receive data from the previous stage and feed it into the

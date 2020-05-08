@@ -27,14 +27,17 @@
 
 using namespace realm;
 
-WorkerThreadBase::WorkerThreadBase(const std::string &thread_name, bool verbose)
+WorkerThreadBase::WorkerThreadBase(const std::string &thread_name, int64_t sleep_time, bool verbose)
 : _thread_name(thread_name),
+  _sleep_time(sleep_time),
   _finish_requested(false),
   _reset_requested(false),
   _stop_requested(false),
   _is_stopped(false),
   _verbose(verbose)
 {
+  if (_sleep_time == 0)
+    throw(std::runtime_error("Error: Worker thread was created with 0s sleep time."));
 }
 
 void WorkerThreadBase::start()
@@ -54,16 +57,6 @@ void WorkerThreadBase::run()
   LOG_IF_F(INFO, _verbose, "Thread '%s' starting loop...", _thread_name.c_str());
   while (!isFinishRequested())
   {
-    // Calls to derived classes implementation of process()
-    long t = getCurrentTimeMilliseconds();
-    if (process())
-    {
-      LOG_IF_F(INFO,
-               _verbose,
-               "Thread '%s' has processed data. Time elapsed: %4.2f [s]",
-               _thread_name.c_str(),
-               static_cast<double>(getCurrentTimeMilliseconds() - t) / 1000);
-    }
     // Handle stops and finish
     if (isStopRequested())
     {
@@ -75,17 +68,30 @@ void WorkerThreadBase::run()
           reset();
           LOG_IF_F(INFO, _verbose, "Thread '%s' reseted!", _thread_name.c_str());
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(_sleep_time));
       }
       LOG_IF_F(INFO, _verbose, "Thread '%s' resumed to loop!", _thread_name.c_str());
     }
+
     // Check if reset was requested and execute if neccessary
     if (isResetRequested())
     {
       reset();
       LOG_IF_F(INFO, _verbose, "Thread '%s' reseted!", _thread_name.c_str());
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Calls to derived classes implementation of process()
+    long t = getCurrentTimeMilliseconds();
+    if (process())
+    {
+      LOG_IF_F(INFO,
+               _verbose,
+               "Thread '%s' has processed data. Time elapsed: %4.2f [s]",
+               _thread_name.c_str(),
+               static_cast<double>(getCurrentTimeMilliseconds() - t) / 1000);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(_sleep_time));
   }
   LOG_IF_F(INFO, _verbose, "Thread '%s' finished!", _thread_name.c_str());
 }

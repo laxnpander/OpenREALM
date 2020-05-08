@@ -25,8 +25,8 @@
 using namespace realm;
 using namespace stages;
 
-OrthoRectification::OrthoRectification(const StageSettings::Ptr &stage_set)
-    : StageBase("ortho_rectification", (*stage_set)["path_output"].toString(), (*stage_set)["queue_size"].toInt()),
+OrthoRectification::OrthoRectification(const StageSettings::Ptr &stage_set, double rate)
+    : StageBase("ortho_rectification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _GSD((*stage_set)["GSD"].toDouble()),
       _settings_save({(*stage_set)["save_valid"].toInt() > 0,
                   (*stage_set)["save_ortho_rgb"].toInt() > 0,

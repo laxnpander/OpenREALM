@@ -97,7 +97,7 @@ class Mosaicing : public StageBase
     };
 
   public:
-    explicit Mosaicing(const StageSettings::Ptr &stage_set);
+    explicit Mosaicing(const StageSettings::Ptr &stage_set, double rate);
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
     void runPostProcessing();

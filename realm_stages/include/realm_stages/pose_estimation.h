@@ -60,7 +60,8 @@ class PoseEstimation : public StageBase
   public:
     PoseEstimation(const StageSettings::Ptr &stage_set,
                    const VisualSlamSettings::Ptr &vslam_set,
-                   const CameraSettings::Ptr &cam_set);
+                   const CameraSettings::Ptr &cam_set,
+                   double rate);
     ~PoseEstimation();
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
@@ -156,7 +157,7 @@ class PoseEstimationIO : public WorkerThreadBase
     using TimeReference = std::pair<long, uint64_t>;
     using Task = std::pair<long, Frame::Ptr>;
   public:
-    PoseEstimationIO(PoseEstimation* stage, bool do_delay_keyframes);
+    PoseEstimationIO(PoseEstimation* stage, double rate, bool do_delay_keyframes);
     bool process() override;
     void setOutputPath(const std::string &path);
     void initLog(const std::string &filepath);

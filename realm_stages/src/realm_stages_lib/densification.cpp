@@ -24,8 +24,9 @@ using namespace realm;
 using namespace stages;
 
 Densification::Densification(const StageSettings::Ptr &stage_set,
-                             const DensifierSettings::Ptr &densifier_set)
-: StageBase("densification", (*stage_set)["path_output"].toString(), (*stage_set)["queue_size"].toInt()),
+                             const DensifierSettings::Ptr &densifier_set,
+                             double rate)
+: StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
   _use_sparse_depth((*stage_set)["use_sparse_disparity"].toInt() > 0),
   _use_filter_bilat((*stage_set)["use_filter_bilat"].toInt() > 0),
   _use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),

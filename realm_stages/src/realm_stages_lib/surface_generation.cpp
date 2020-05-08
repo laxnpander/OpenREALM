@@ -25,8 +25,8 @@
 using namespace realm;
 using namespace stages;
 
-SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings)
-: StageBase("surface_generation", (*settings)["path_output"].toString(), (*settings)["queue_size"].toInt()),
+SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double rate)
+: StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt()),
   _try_use_elevation((*settings)["try_use_elevation"].toInt() > 0),
   _knn_radius_factor((*settings)["knn_radius_factor"].toDouble()),
   _is_projection_plane_offset_computed(false),

@@ -24,8 +24,8 @@
 
 using namespace realm;
 
-StageBase::StageBase(const std::string &name, const std::string &path, int queue_size)
-: WorkerThreadBase("Stage [" + name + "]", true),
+StageBase::StageBase(const std::string &name, const std::string &path, double rate, int queue_size)
+: WorkerThreadBase("Stage [" + name + "]", static_cast<int64_t>(1/rate*1000.0), true),
   _stage_name(name),
   _stage_path(path),
   _queue_size(queue_size),

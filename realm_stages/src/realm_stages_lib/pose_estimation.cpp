@@ -25,8 +25,9 @@ using namespace stages;
 
 PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                                const VisualSlamSettings::Ptr &vslam_set,
-                               const CameraSettings::Ptr &cam_set)
-    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), (*stage_set)["queue_size"].toInt()),
+                               const CameraSettings::Ptr &cam_set,
+                               double rate)
+    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _is_georef_initialized(false),
       _use_vslam((*stage_set)["use_vslam"].toInt() > 0),
       _use_fallback((*stage_set)["use_fallback"].toInt() > 0),
@@ -60,7 +61,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
   }
 
   // Create Pose Estimation publisher
-  _stage_publisher.reset(new PoseEstimationIO(this, true));
+  _stage_publisher.reset(new PoseEstimationIO(this, rate, true));
   _stage_publisher->start();
 
   // Creation of reference plane, currently only the one below is supported
@@ -429,8 +430,8 @@ void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
   LOG_F(INFO, "Diff: [%10.2f, %10.2f, %4.2f]", utm.easting-t.at<double>(0), utm.northing-t.at<double>(1), utm.altitude-t.at<double>(2));
 }
 
-PoseEstimationIO::PoseEstimationIO(PoseEstimation* stage, bool do_delay_keyframes)
-    : WorkerThreadBase("Publisher [pose_estimation]", true),
+PoseEstimationIO::PoseEstimationIO(PoseEstimation* stage, double rate, bool do_delay_keyframes)
+    : WorkerThreadBase("Publisher [pose_estimation]", static_cast<int64_t>(1/rate*1000.0), true),
       _is_time_ref_set(false),
       _is_new_output_path_set(false),
       _do_delay_keyframes(do_delay_keyframes),
