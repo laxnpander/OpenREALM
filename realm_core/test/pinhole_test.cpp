@@ -55,19 +55,19 @@ TEST(Pinhole, CopyConstructor)
   cam.setPose(createDummyPose());
   Pinhole copy(cam);
 
-  EXPECT_EQ(copy.cx(), K.at<double>(0, 2));
-  EXPECT_EQ(copy.cy(), K.at<double>(1, 2));
-  EXPECT_EQ(copy.fx(), K.at<double>(0, 0));
-  EXPECT_EQ(copy.fy(), K.at<double>(1, 1));
-  EXPECT_EQ(copy.width(), width);
-  EXPECT_EQ(copy.height(), height);
-  EXPECT_EQ(copy.k1(), distortion.at<double>(0));
-  EXPECT_EQ(copy.k2(), distortion.at<double>(1));
-  EXPECT_EQ(copy.p1(), distortion.at<double>(2));
-  EXPECT_EQ(copy.p2(), distortion.at<double>(3));
-  EXPECT_EQ(copy.hasDistortion(), cam.hasDistortion());
-  EXPECT_EQ(copy.R().at<double>(1, 1), cam.R().at<double>(1, 1));
-  EXPECT_EQ(copy.t().at<double>(1), cam.t().at<double>(1));
+  EXPECT_NEAR(copy.cx(), K.at<double>(0, 2), 10e-6);
+  EXPECT_NEAR(copy.cy(), K.at<double>(1, 2), 10e-6);
+  EXPECT_NEAR(copy.fx(), K.at<double>(0, 0), 10e-6);
+  EXPECT_NEAR(copy.fy(), K.at<double>(1, 1), 10e-6);
+  EXPECT_NEAR(copy.width(), width, 10e-6);
+  EXPECT_NEAR(copy.height(), height, 10e-6);
+  EXPECT_NEAR(copy.k1(), distortion.at<double>(0), 10e-6);
+  EXPECT_NEAR(copy.k2(), distortion.at<double>(1), 10e-6);
+  EXPECT_NEAR(copy.p1(), distortion.at<double>(2), 10e-6);
+  EXPECT_NEAR(copy.p2(), distortion.at<double>(3), 10e-6);
+  EXPECT_NEAR(copy.hasDistortion(), cam.hasDistortion(), 10e-6);
+  EXPECT_NEAR(copy.R().at<double>(1, 1), cam.R().at<double>(1, 1), 10e-6);
+  EXPECT_NEAR(copy.t().at<double>(1), cam.t().at<double>(1), 10e-6);
 }
 
 TEST(Pinhole, CopyAssign)
@@ -96,19 +96,19 @@ TEST(Pinhole, CopyAssign)
   cam.setPose(createDummyPose());
   Pinhole copy = cam;
 
-  EXPECT_EQ(copy.cx(), K.at<double>(0, 2));
-  EXPECT_EQ(copy.cy(), K.at<double>(1, 2));
-  EXPECT_EQ(copy.fx(), K.at<double>(0, 0));
-  EXPECT_EQ(copy.fy(), K.at<double>(1, 1));
-  EXPECT_EQ(copy.width(), width);
-  EXPECT_EQ(copy.height(), height);
-  EXPECT_EQ(copy.k1(), distortion.at<double>(0));
-  EXPECT_EQ(copy.k2(), distortion.at<double>(1));
-  EXPECT_EQ(copy.p1(), distortion.at<double>(2));
-  EXPECT_EQ(copy.p2(), distortion.at<double>(3));
-  EXPECT_EQ(copy.hasDistortion(), cam.hasDistortion());
-  EXPECT_EQ(copy.R().at<double>(1, 1), cam.R().at<double>(1, 1));
-  EXPECT_EQ(copy.t().at<double>(1), cam.t().at<double>(1));
+  EXPECT_NEAR(copy.cx(), K.at<double>(0, 2), 10e-6);
+  EXPECT_NEAR(copy.cy(), K.at<double>(1, 2), 10e-6);
+  EXPECT_NEAR(copy.fx(), K.at<double>(0, 0), 10e-6);
+  EXPECT_NEAR(copy.fy(), K.at<double>(1, 1), 10e-6);
+  EXPECT_NEAR(copy.width(), width, 10e-6);
+  EXPECT_NEAR(copy.height(), height, 10e-6);
+  EXPECT_NEAR(copy.k1(), distortion.at<double>(0), 10e-6);
+  EXPECT_NEAR(copy.k2(), distortion.at<double>(1), 10e-6);
+  EXPECT_NEAR(copy.p1(), distortion.at<double>(2), 10e-6);
+  EXPECT_NEAR(copy.p2(), distortion.at<double>(3), 10e-6);
+  EXPECT_NEAR(copy.hasDistortion(), cam.hasDistortion(), 10e-6);
+  EXPECT_NEAR(copy.R().at<double>(1, 1), cam.R().at<double>(1, 1), 10e-6);
+  EXPECT_NEAR(copy.t().at<double>(1), cam.t().at<double>(1), 10e-6);
 }
 
 TEST(Pinhole, Transformations)
@@ -126,12 +126,12 @@ TEST(Pinhole, Transformations)
   cv::Mat p1 = cam.Tc2w() * cam_origin_in_cam;    // expect: p1 = cam_origin_in_world
   cv::Mat p2 = cam.Tw2c() * cam_origin_in_world;  // expect: p2 = cam_origin_in_cam
 
-  EXPECT_EQ(p1.at<double>(0)/p1.at<double>(3), cam_origin_in_world.at<double>(0));
-  EXPECT_EQ(p1.at<double>(1)/p1.at<double>(3), cam_origin_in_world.at<double>(1));
-  EXPECT_EQ(p1.at<double>(2)/p1.at<double>(3), cam_origin_in_world.at<double>(2));
-  EXPECT_EQ(p2.at<double>(0)/p2.at<double>(3), cam_origin_in_cam.at<double>(0));
-  EXPECT_EQ(p2.at<double>(1)/p2.at<double>(3), cam_origin_in_cam.at<double>(1));
-  EXPECT_EQ(p2.at<double>(2)/p2.at<double>(3), cam_origin_in_cam.at<double>(2));
+  EXPECT_NEAR(p1.at<double>(0)/p1.at<double>(3), cam_origin_in_world.at<double>(0), 10e-6);
+  EXPECT_NEAR(p1.at<double>(1)/p1.at<double>(3), cam_origin_in_world.at<double>(1), 10e-6);
+  EXPECT_NEAR(p1.at<double>(2)/p1.at<double>(3), cam_origin_in_world.at<double>(2), 10e-6);
+  EXPECT_NEAR(p2.at<double>(0)/p2.at<double>(3), cam_origin_in_cam.at<double>(0), 10e-6);
+  EXPECT_NEAR(p2.at<double>(1)/p2.at<double>(3), cam_origin_in_cam.at<double>(1), 10e-6);
+  EXPECT_NEAR(p2.at<double>(2)/p2.at<double>(3), cam_origin_in_cam.at<double>(2), 10e-6);
 }
 
 TEST(Pinhole, Resize)
@@ -141,12 +141,12 @@ TEST(Pinhole, Resize)
   Pinhole cam = createDummyPinhole();
   Pinhole cam_resized = cam.resize(0.5);
 
-  EXPECT_EQ(0.5 * cam.fx(), cam_resized.fx());
-  EXPECT_EQ(0.5 * cam.fy(), cam_resized.fy());
-  EXPECT_EQ(0.5 * cam.cx(), cam_resized.cx());
-  EXPECT_EQ(0.5 * cam.cy(), cam_resized.cy());
-  EXPECT_EQ(0.5 * cam.width(), cam_resized.width());
-  EXPECT_EQ(0.5 * cam.height(), cam_resized.height());
+  EXPECT_NEAR(0.5 * cam.fx(), cam_resized.fx(), 10e-6);
+  EXPECT_NEAR(0.5 * cam.fy(), cam_resized.fy(), 10e-6);
+  EXPECT_NEAR(0.5 * cam.cx(), cam_resized.cx(), 10e-6);
+  EXPECT_NEAR(0.5 * cam.cy(), cam_resized.cy(), 10e-6);
+  EXPECT_NEAR(0.5 * cam.width(), cam_resized.width(), 10e-6);
+  EXPECT_NEAR(0.5 * cam.height(), cam_resized.height(), 10e-6);
 }
 
 TEST(Pinhole, Projections)
@@ -169,17 +169,17 @@ TEST(Pinhole, Projections)
 
   cv::Rect2d roi = cam.projectImageBoundsToPlaneRoi(p, n);
 
-  EXPECT_EQ(roi.x, 0.0);
-  EXPECT_EQ(roi.y, 0.0);
-  EXPECT_EQ(roi.width, cam.height());
-  EXPECT_EQ(roi.height, cam.width());
+  EXPECT_NEAR(roi.x, 0.0, 10e-6);
+  EXPECT_NEAR(roi.y, 0.0, 10e-6);
+  EXPECT_NEAR(roi.width, cam.height(), 10e-6);
+  EXPECT_NEAR(roi.height, cam.width(), 10e-6);
 
   // Testing smaller projection functions as well. Here we project the image corner (width, 0) with the rotated camera
   // into the world frame. The pose of the camera was chosen in such manner, that this projection is crossing the world
   // origin in (0/0/0)
   cv::Mat p1 = cam.projectPointToWorld(cam.width(), 0, 1200);
 
-  EXPECT_EQ(p1.at<double>(0), 0.0);
-  EXPECT_EQ(p1.at<double>(1), 0.0);
-  EXPECT_EQ(p1.at<double>(2), 0.0);
+  EXPECT_NEAR(p1.at<double>(0), 0.0, 10e-6);
+  EXPECT_NEAR(p1.at<double>(1), 0.0, 10e-6);
+  EXPECT_NEAR(p1.at<double>(2), 0.0, 10e-6);
 }
