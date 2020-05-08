@@ -357,19 +357,14 @@ void StageNode::pubMesh(const std::vector<Face> &faces, const std::string &topic
   if (publisher.getNumSubscribers() == 0)
     return;
 
-  std::cout << "blub2" << std::endl;
-
   std_msgs::Header header;
   header.frame_id = _tf_base_frame_name;
   header.stamp = ros::Time::now();
 
-  std::cout << "blub3" << std::endl;
   visualization_msgs::Marker msg = to_ros::meshMarker(header, faces, "Global Map", 0,
                                                       visualization_msgs::Marker::TRIANGLE_LIST,
                                                       visualization_msgs::Marker::ADD, _tf_base.inverse());
-  std::cout << "blub4" << std::endl;
   publisher.publish(msg);
-  std::cout << "blub5" << std::endl;
 }
 
 void StageNode::pubCvGridMap(const CvGridMap &map, uint8_t zone, char band, const std::string &topic)
