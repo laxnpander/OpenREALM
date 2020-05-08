@@ -28,13 +28,8 @@
 #include <gtest/gtest.h>
 
 using namespace realm;
-using namespace fs = std::filesystem;
 
 TEST(Settings, Dummy)
 {
   auto settings = std::make_shared<DummySettings>();
-
-  settings[""].toString()
-
-  EXPECT_EQ(settings->get<std::string>("parameter_string"), )
 }
