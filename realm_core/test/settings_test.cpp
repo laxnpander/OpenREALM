@@ -18,31 +18,23 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OPENREALM_TEST_HELPER_H
-#define OPENREALM_TEST_HELPER_H
+#include <iostream>
 
-#include <realm_core/camera.h>
-#include <realm_core/frame.h>
-#include <realm_core/settings_base.h>
+#include <realm_core/camera_settings_factory.h>
 
-namespace realm {
+#include "test_helper.h"
 
-  cv::Mat createDummyPose();
-  camera::Pinhole createDummyPinhole();
-  Frame::Ptr createDummyFrame();
+// gtest
+#include <gtest/gtest.h>
 
-  class DummySettings : public SettingsBase
-  {
-  public:
-    DummySettings()
-    {
-      add("parameter_string", Parameter_t<std::string>{"dummy_string", "This is a dummy string."});
-      add("parameter_double", Parameter_t<double>{2.4, "This is a dummy double."});
-      add("parameter_int", Parameter_t<int>{5, "This is a dummy integer."});
-    }
-  };
+using namespace realm;
+using namespace fs = std::filesystem;
 
-} // namespace realm
+TEST(Settings, Dummy)
+{
+  auto settings = std::make_shared<DummySettings>();
 
+  settings[""].toString()
 
-#endif //OPENREALM_TEST_HELPER_H
+  EXPECT_EQ(settings->get<std::string>("parameter_string"), )
+}

@@ -59,11 +59,11 @@ class PinholeSettings : public CameraSettings
       add("cy", Parameter_t<double>{0.0, "Principal point in y-dir"});
       add("fx", Parameter_t<double>{0.0, "Focal length in x-dir"});
       add("fy", Parameter_t<double>{0.0, "Focal length in y-dir"});
-      add("k1", Parameter_t<double>{0.0, "Distortion coeff k1"});
-      add("k2", Parameter_t<double>{0.0, "Distortion coeff k2"});
-      add("p1", Parameter_t<double>{0.0, "Distortion coeff p1"});
-      add("p2", Parameter_t<double>{0.0, "Distortion coeff p2"});
-      add("k3", Parameter_t<double>{0.0, "Distortion coeff k3"});
+      add("k1", Parameter_t<double>{0.0, "Distortion coefficient k1"});
+      add("k2", Parameter_t<double>{0.0, "Distortion coefficient k2"});
+      add("p1", Parameter_t<double>{0.0, "Distortion coefficient p1"});
+      add("p2", Parameter_t<double>{0.0, "Distortion coefficient p2"});
+      add("k3", Parameter_t<double>{0.0, "Distortion coefficient k3"});
     }
 };
 
