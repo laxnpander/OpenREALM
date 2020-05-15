@@ -21,11 +21,10 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
-#include <opencv2/highgui.hpp>
+
+#include <opencv2/imgproc.hpp>
 
 #include <realm_core/loguru.h>
-#include <realm_core/camera.h>
-
 #include <realm_core/cv_grid_map.h>
 
 using namespace realm;

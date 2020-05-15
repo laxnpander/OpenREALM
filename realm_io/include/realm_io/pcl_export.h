@@ -24,15 +24,13 @@
 #include <iostream>
 #include <unordered_map>
 
-#include <pcl/io/ply_io.h>
-#include <pcl/conversions.h>
 #include <opencv2/core.hpp>
-
-#include <realm_core/cv_grid_map.h>
-
 
 namespace realm
 {
+
+class CvGridMap;
+
 namespace io
 {
 

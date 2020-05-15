@@ -20,6 +20,8 @@
 
 #include <realm_ortho/dsm.h>
 
+#include <opencv2/imgproc.hpp>
+
 using namespace realm;
 
 DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi, double elevation)

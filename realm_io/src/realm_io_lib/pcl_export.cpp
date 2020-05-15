@@ -20,6 +20,13 @@
 
 #include <realm_io/pcl_export.h>
 
+#include <opencv2/imgproc.hpp>
+
+#include <pcl/io/ply_io.h>
+#include <pcl/conversions.h>
+
+#include <realm_core/cv_grid_map.h>
+
 namespace realm
 {
 namespace io
