@@ -79,7 +79,7 @@ void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rectifie
 
       if (valid_elevation.at<uchar>(r, c) == 0)
       {
-        elevation.at<float>(r, c) = consts::getNoValue<float>();
+        elevation.at<float>(r, c) = std::numeric_limits<float>::quiet_NaN();
         continue;
       }
       double pt[3]{roi.x+(double)c*GSD, roi.y+roi.height-(double)r*GSD, elevation_val};
@@ -96,7 +96,7 @@ void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rectifie
       }
       else
       {
-        elevation.at<float>(r, c) = consts::getNoValue<float>();
+        elevation.at<float>(r, c) = std::numeric_limits<float>::quiet_NaN();
       }
     }
 

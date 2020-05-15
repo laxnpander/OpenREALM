@@ -25,8 +25,6 @@
 
 #include <realm_core/loguru.h>
 #include <realm_core/camera.h>
-#include <realm_core/structs.h>
-#include <realm_core/enums.h>
 
 #include <realm_core/cv_grid_map.h>
 
@@ -66,8 +64,6 @@ CvGridMap CvGridMap::cloneSubmap(const std::vector<std::string> &layer_names)
 
 void CvGridMap::add(const Layer &layer)
 {
-  checkInit();
-  checkValid(layer);
   // Add data if layer already exists, push to container if not
   if (!exists(layer.name))
     _layers.push_back(layer);
@@ -134,9 +130,9 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
     if (_layers[idx_layer].data.empty())
     {
       if (submap_layer.data.type() == CV_32FC1)
-        _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), consts::getNoValue<float>());
+        _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), std::numeric_limits<float>::quiet_NaN());
       else if (submap_layer.data.type() == CV_64FC1)
-        _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), consts::getNoValue<double>());
+        _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), std::numeric_limits<double>::quiet_NaN());
       else
         _layers[idx_layer].data = cv::Mat::zeros(_size, submap_layer.data.type());
     }
@@ -153,9 +149,8 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
     }
 
     // Now is finally the turn to calculate overlap result and copy it to src grid map
-    cv::Mat overlap;
-    addMat(src_data_roi, dst_data_roi, overlap, flag_overlap_handle);
-    overlap.copyTo(_layers[idx_layer].data(dst_roi));
+    mergeMatrices(src_data_roi, dst_data_roi, flag_overlap_handle);
+    dst_data_roi.copyTo(_layers[idx_layer].data(dst_roi));
   }
 }
 
@@ -334,9 +329,9 @@ void CvGridMap::extendToInclude(const cv::Rect2d &roi)
     if (!layer.data.empty())
     {
       if(layer.data.type() == CV_32F)
-        cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, consts::getNoValue<float>());
+        cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<float>::quiet_NaN());
       else if (layer.data.type() == CV_64F)
-        cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, consts::getNoValue<double>());
+        cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<double>::quiet_NaN());
       else
         cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT);
     }
@@ -381,9 +376,6 @@ cv::Rect2i CvGridMap::atIndexROI(const cv::Rect2d &roi) const
 
 cv::Point2d CvGridMap::atPosition2d(uint32_t r, uint32_t c) const
 {
-  if (r > _size.height || r < 0)
-    std::cout << "r: " << r << ", c: " << c << " max: " << _size.height << std::endl;
-
   // check validity
   assert(r < _size.height && r >= 0);
   assert(c < _size.width && c >= 0);
@@ -401,9 +393,10 @@ cv::Point3d CvGridMap::atPosition3d(const int &r, const int &c, const std::strin
   cv::Mat layer_data = get(layer_name);
 
   // check validity
-  LOG_IF_F(WARNING, r > _size.height || r < 0, "");
-  LOG_IF_F(WARNING, c > _size.width || c < 0, "");
-  LOG_IF_F(WARNING, layer_data.empty(), "");
+  if (layer_data.empty())
+    throw(std::runtime_error("Error: Layer data empty! Requesting data failed."));
+  if (r < 0 || r >= _size.height || c < 0 || c >= _size.width)
+    throw(std::invalid_argument("Error: Requested position outside matrix boundaries!"));
 
   // create position and set data
   cv::Point3d pos;
@@ -446,11 +439,32 @@ void CvGridMap::printInfo() const
     std::cout << "- ['" << layer.name << "']: size = " << layer.data.cols << "x" << layer.data.rows << std::endl;
 }
 
+void CvGridMap::mergeMatrices(const cv::Mat &from, cv::Mat &to, int flag_merge_handling)
+{
+  switch(flag_merge_handling)
+  {
+    case REALM_OVERWRITE_ALL:
+      to = from;
+      break;
+    case REALM_OVERWRITE_ZERO:
+      cv::Mat mask;
+      if (to.type() == CV_32F || to.type() == CV_64F)
+        mask = (to != to) & (from == from);
+      else
+        mask = (to == 0) & (from > 0);
+      from.copyTo(to, mask);
+      break;
+  }
+}
+
 void CvGridMap::checkValid(const cv::Mat &data)
 {
-  assert(data.empty() || (data.cols == _size.width && data.rows == _size.height));
-  assert(data.empty() || data.type() == CV_32FC1 || data.type() == CV_32FC3 || data.type() == CV_64F || data.type() == CV_8UC1
-             || data.type() == CV_8UC2 || data.type() == CV_8UC3 || data.type() == CV_8UC4 || CV_16UC1);
+  if (data.empty())
+    throw(std::invalid_argument("Error: Layer data empty!"));
+  if (data.cols != _size.width || data.rows != _size.height)
+    throw(std::invalid_argument("Error: Layer dimension mismatch!"));
+  if (!isMatrixTypeValid(data.type()))
+    throw(std::invalid_argument("Error: Layer data type not supported!"));
 }
 
 void CvGridMap::checkValid(const Layer &layer)
@@ -458,11 +472,29 @@ void CvGridMap::checkValid(const Layer &layer)
   checkValid(layer.data);
 }
 
-void CvGridMap::checkInit()
+bool CvGridMap::isMatrixTypeValid(int type)
 {
-  assert(_size.width > 0 && _size.height > 0);
-  assert(_roi.width > 0 && _roi.height > 0);
-  assert(_resolution > 0.0);
+  switch (type)
+  {
+    case CV_32FC1:
+      return true;
+    case CV_32FC3:
+      return true;
+    case CV_64F:
+      return true;
+    case CV_8UC1:
+      return true;
+    case CV_8UC2:
+      return true;
+    case CV_8UC3:
+      return true;
+    case CV_8UC4:
+      return true;
+    case CV_16UC1:
+      return true;
+    default:
+        return false;
+  }
 }
 
 uint32_t CvGridMap::findContainerIdx(const std::string &layer_name)

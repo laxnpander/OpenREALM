@@ -30,21 +30,6 @@ enum class SurfaceAssumption
     ELEVATION
 };
 
-/*!
- * @brief Enumerations for matrix overwrite functionalities.
- * @var REALM_OVERWRITE_ALL Input matrix overwrites all elements of the destination matrix that it overlaps with
- * @var REALM_OVERWRITE_ZERO Input matrix overwrites all zero elements of the destination matrix that it overlaps with
- * @var REALM_OVERWRITE_WITH_NON_ZERO Input matrix overwrites only, if it contains non zero values
- * @var REALM_OVERWRITE_NONE Input matrix overwrites nothing
- */
-enum
-{
-    REALM_OVERWRITE_ALL,
-    REALM_OVERWRITE_ZERO,
-    REALM_OVERWRITE_WITH_NON_ZERO,
-    REALM_OVERWRITE_NONE
-};
-
 } // namespace realm
 
 #endif //PROJECT_ENUMS_H

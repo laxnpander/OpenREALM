@@ -27,11 +27,21 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include <realm_core/mat_overwrite.h>
-#include <realm_core/consts.h>
+#include <realm_core/enums.h>
 
 namespace realm
 {
+
+/*!
+* @brief Enumerations for matrix merge function.
+* @var REALM_OVERWRITE_ALL Input matrix overwrites all elements of the destination matrix
+* @var REALM_OVERWRITE_ZERO Input matrix overwrites all zero elements or NAN of the destination matrix
+*/
+enum
+{
+  REALM_OVERWRITE_ALL,
+  REALM_OVERWRITE_ZERO,
+};
 
 /*!
  * @brief Idea adapted from Péter Frankhauser's GridMap library. However due to overhead and performance issues this
@@ -105,7 +115,7 @@ class CvGridMap
      * Note: size do not have to match up
      * @param submap
      */
-    void add(const CvGridMap &submap, int flag_overlap_handle = REALM_OVERWRITE_ALL, bool do_extend = true);
+    void add(const CvGridMap &submap, int flag_overlap_handle, bool do_extend = true);
 
     /*!
      * @brief Sets the geometry of the grid map, therefore size of the grid (nrof rows, nrof cols),
@@ -293,6 +303,8 @@ class CvGridMap
     // like adding and removing layers frequently is not expected
     std::vector<Layer> _layers;
 
+    void mergeMatrices(const cv::Mat &mat1, cv::Mat &mat2, int flag_merge_handling);
+
     /*!
      * @brief Function to check if input data is valid. Depends on the currently supported data formats
      * @param data Data to be checked -> Debug assertions if not valid
@@ -306,10 +318,11 @@ class CvGridMap
     void checkValid(const Layer &layer);
 
     /*!
-     * @brief Function to check if class was successfully and fully initialized. Needs size and roi to be defined through
-     *        setGeometry(...)
+     * @brief Checks the input matrix type and return true if CvGridMap currently supports it.
+     * @param type OpenCV matrix type, e.g. CV_32F, ...
+     * @return True if matrix type is supported
      */
-    void checkInit();
+    bool isMatrixTypeValid(int type);
 
     /*!
      * @brief Function to find the idx of a layer inside the layer container

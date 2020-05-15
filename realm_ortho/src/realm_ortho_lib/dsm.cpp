@@ -188,7 +188,7 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
   cv::Size2i size = _surface->size();
 
   // Essential layers / must have
-  cv::Mat elevation = cv::Mat::ones(size, CV_32FC1)*consts::getNoValue<float>();
+  cv::Mat elevation = cv::Mat(size, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
   cv::Mat valid = cv::Mat::zeros(size, CV_8UC1);
 
   // Optional computation according to flag

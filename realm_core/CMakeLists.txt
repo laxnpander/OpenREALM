@@ -49,7 +49,6 @@ include_directories(
 )
 add_library(${PROJECT_NAME}
         src/realm_core_lib/timer.cpp
-        src/realm_core_lib/mat_overwrite.cpp
         src/realm_core_lib/analysis.cpp
         src/realm_core_lib/stereo.cpp
         src/realm_core_lib/inpaint.cpp

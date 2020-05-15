@@ -87,8 +87,8 @@ bool OrthoRectification::process()
     // After resizing through bilinear interpolation there can occure bad elevation values at the border
     cv::Mat mask_low = ((*observed_map)["elevation"] < ele_min);
     cv::Mat mask_high = ((*observed_map)["elevation"] > ele_max);
-    (*observed_map)["elevation"].setTo(consts::getNoValue<float>(), mask_low);
-    (*observed_map)["elevation"].setTo(consts::getNoValue<float>(), mask_high);
+    (*observed_map)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_low);
+    (*observed_map)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_high);
     (*observed_map)["valid"].setTo(0, mask_low);
     (*observed_map)["valid"].setTo(0, mask_high);
 

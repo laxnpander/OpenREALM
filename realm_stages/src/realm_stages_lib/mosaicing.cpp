@@ -95,8 +95,8 @@ bool Mosaicing::process()
     {
       LOG_F(INFO, "Initializing global map...");
       _global_map = observed_map;
-      (*_global_map).add("elevation_var", cv::Mat(_global_map->size(), CV_32F, consts::getNoValue<float>()));
-      (*_global_map).add("elevation_hyp", cv::Mat(_global_map->size(), CV_32F, consts::getNoValue<float>()));
+      (*_global_map).add("elevation_var", cv::Mat(_global_map->size(), CV_32F, std::numeric_limits<float>::quiet_NaN()));
+      (*_global_map).add("elevation_hyp", cv::Mat(_global_map->size(), CV_32F, std::numeric_limits<float>::quiet_NaN()));
 
       // Incremental update is equal to global map on initialization
       map_update = _global_map;
@@ -236,7 +236,7 @@ void Mosaicing::updateGridElement(const GridQuickAccess::Ptr &ref, const GridQui
   // Compute std deviation of elevation hypothesis WITH input elevation. Check then if below threshold.
   // If yes OR hypothesis is better than set elevation, switch hypothesis and elevation, update std deviation
   // If no, go on
-  if (*ref->hyp > consts::getNoValue<float>())
+  if (!std::isnan(*ref->hyp))
   {
     float variance_hyp = ((*inp->ele)-(*ref->hyp))*((*inp->ele)-(*ref->hyp)) / 2.0f;
     if (variance_hyp < _th_elevation_var || variance_hyp < variance_new)
@@ -444,8 +444,8 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
     // After resizing through bilinear interpolation there can occure bad elevation values at the border
     cv::Mat mask_low = ((*mesh_sampled)["elevation"] < ele_min);
     cv::Mat mask_high = ((*mesh_sampled)["elevation"] > ele_max);
-    (*mesh_sampled)["elevation"].setTo(consts::getNoValue<float>(), mask_low);
-    (*mesh_sampled)["elevation"].setTo(consts::getNoValue<float>(), mask_high);
+    (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_low);
+    (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_high);
     (*mesh_sampled)["valid"].setTo(0, mask_low);
     (*mesh_sampled)["valid"].setTo(0, mask_high);
   }
