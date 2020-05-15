@@ -362,7 +362,7 @@ cv::Rect2d Pinhole::projectImageBoundsToPlaneRoi(const cv::Mat &pt, const cv::Ma
   double roi_u, roi_d;
   cv::minMaxLoc(bounds_in_plane.col(0), &roi_l, &roi_r);
   cv::minMaxLoc(bounds_in_plane.col(1), &roi_d, &roi_u);
-  return cv::Rect2d(roi_l, roi_u, roi_r-roi_l, roi_u-roi_d);
+  return cv::Rect2d(roi_l, roi_d, roi_r-roi_l, roi_u-roi_d);
 }
 
 cv::Mat Pinhole::projectPointToWorld(double x, double y, double depth) const

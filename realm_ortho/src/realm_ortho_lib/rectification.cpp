@@ -18,6 +18,7 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <realm_core/loguru.h>
 #include <realm_ortho/rectification.h>
 
 using namespace realm;
@@ -27,7 +28,7 @@ void ortho::rectify(const Frame::Ptr &frame, CvGridMap &map)
   backprojectFromGrid(frame, map);
 }
 
-void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rect)
+void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rectified)
 {
   // Implementation details:
   // Implementation is chosen as a compromise between readability and performance. Especially the raw array operations
@@ -35,8 +36,11 @@ void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rect)
   // iterations can go up to several millions. To keep the computation time as low as possible for this performance sink,
   // the style is as follows
   CvGridMap::Ptr observed_map = frame->getObservedMap();
-  assert(observed_map->exists("elevation") && observed_map->get("elevation").type() == CV_32F);
-  assert(observed_map->exists("valid") && observed_map->get("valid").type() == CV_8UC1);
+
+  if (!observed_map->exists("elevation") || (*observed_map)["elevation"].type() != CV_32F)
+    throw(std::invalid_argument("Error: Layer 'elevation' does not exist or type is wrong."));
+  if (!observed_map->exists("valid") || (*observed_map)["valid"].type() != CV_8UC1)
+    throw(std::invalid_argument("Error: Layer 'valid' does not exist or type is wrong"));
 
   // Prepare projection, use raw arrays for performance
   cv::Mat img = frame->getImageUndistorted();
@@ -56,18 +60,16 @@ void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rect)
   cv::Mat elevation = observed_map->get("elevation");
   cv::Mat valid_elevation = observed_map->get("valid");
 
-//  // It seems like at the borders of the elevation map some points don't project into the image, but
-//  // others further away do. Consequently a weird "ring" of valid points exists, which is quite ugly.
-//  // Further analysis might point out why it behaves like this, maybe due to distortion? ->TODO: Find out why
-//  // Hacky solution: Shrink valid area by some pixels to avoid ring
-//  cv::erode(valid_elevation, valid_elevation, cv::Mat(), cv::Point(-1, -1), 5, 1, 1);
-
   // Prepare resulting color layer data
   cv::Mat color_data = cv::Mat::zeros(observed_map->size(), CV_8UC4);
   cv::Mat elevation_angle = cv::Mat::zeros(observed_map->size(), CV_32F);
   cv::Mat elevated = cv::Mat::zeros(observed_map->size(), CV_8UC1);
   cv::Mat num_observations = cv::Mat::zeros(observed_map->size(), CV_16UC1);
   cv::Mat valid_rect = cv::Mat::zeros(observed_map->size(), CV_8UC1);
+
+  LOG_F(INFO, "Processing rectification:");
+  LOG_F(INFO, "- ROI (%f, %f, %f, %f)", roi.x, roi.y, roi.width, roi.height);
+  LOG_F(INFO, "- Dimensions: %i x %i", elevation.rows, elevation.cols);
 
   // Iterate through
   for (uint32_t r = 0; r < elevation.rows; ++r)
@@ -80,7 +82,7 @@ void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rect)
         elevation.at<float>(r, c) = consts::getNoValue<float>();
         continue;
       }
-      double pt[3]{roi.x+(double)c*GSD, roi.y-(double)r*GSD, elevation_val};
+      double pt[3]{roi.x+(double)c*GSD, roi.y+roi.height-(double)r*GSD, elevation_val};
       double z = P[2][0]*pt[0]+P[2][1]*pt[1]+P[2][2]*pt[2]+P[2][3]*1.0;
       double x = (P[0][0]*pt[0]+P[0][1]*pt[1]+P[0][2]*pt[2]+P[0][3]*1.0)/z;
       double y = (P[1][0]*pt[0]+P[1][1]*pt[1]+P[1][2]*pt[2]+P[1][3]*1.0)/z;
@@ -98,13 +100,16 @@ void ortho::backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rect)
       }
     }
 
-  if (map_rect.empty())
-    map_rect.setGeometry(observed_map->roi(), observed_map->resolution());
-  map_rect.add("color_rgb", color_data);
-  map_rect.add("elevation_angle", elevation_angle);
-  map_rect.add("elevated", elevated);
-  map_rect.add("num_observations", num_observations);
-  map_rect.add("valid", valid_rect);
+  LOG_F(INFO, "Image successfully rectified.");
+
+  if (map_rectified.empty())
+    map_rectified.setGeometry(observed_map->roi(), observed_map->resolution());
+
+  map_rectified.add("color_rgb", color_data);
+  map_rectified.add("elevation_angle", elevation_angle);
+  map_rectified.add("elevated", elevated);
+  map_rectified.add("num_observations", num_observations);
+  map_rectified.add("valid", valid_rect);
 }
 
 double ortho::internal::computeElevationAngle(double *t, double *p)

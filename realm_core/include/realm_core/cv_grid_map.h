@@ -60,10 +60,9 @@ class CvGridMap
     CvGridMap();
 
     /*!
-     * @brief Constructor with initialization of layer names
-     * @param layers Layer names only, no data
+     * @brief Constructor to create a CvGridMap and setGeometry in the same step.
      */
-    explicit CvGridMap(const std::vector<std::string> &layers);
+    CvGridMap(const cv::Rect2d &roi, double resolution);
 
     /*!
      * @brief Function to create deep copy of CvGridMap
@@ -112,10 +111,10 @@ class CvGridMap
      * @brief Sets the geometry of the grid map, therefore size of the grid (nrof rows, nrof cols),
      * resolution and the world ROI with (x,y,width,height) in [meters]
      * @param roi Region of interest in the world frame, in aerial mapping typically utm position and dimension
-     * @param resolution Resolution as [m/cell], typically also refered to as ground sampling distance (GSD) in aerial
+     * @param resolution Resolution as [m/cell], typically also referred to as ground sampling distance (GSD) in aerial
      * mapping
      */
-    void setGeometry(const cv::Rect2d &roi, const double &resolution);
+    void setGeometry(const cv::Rect2d &roi, double resolution);
 
     /*!
      * @brief Setter for interpolation flag of a specific layer
@@ -129,14 +128,14 @@ class CvGridMap
      * @param roi region of interest that should add up to the existing one. New region of interest is then the
      * enclosing rectangle of both rois
      */
-    void extend(const cv::Rect2d &roi);
+    void extendToInclude(const cv::Rect2d &roi);
 
     /*!
      * @brief Function to change resolution of the grid map. Every data layer gets resized with opencv resize function
      * according to the new resolution. Beware: roi might also change to fit the new dimensions adequatly.
      * @param resolution New resolution to be achieved
      */
-    void changeResolution(const double &resolution);
+    void changeResolution(double resolution);
 
     /*!
      * @brief Iterates through container to find layer by name and returns true if found
@@ -164,15 +163,25 @@ class CvGridMap
      * @return data matrix of the desired layer: float, double, CV8UC as data mat is supported
      * @throws out_of_range if layer not existend, data can not be set. Exception out_of_range is thrown
      */
-    cv::Mat get(const std::string &layer_name);
+    cv::Mat& get(const std::string &layer_name);
 
     /*!
      * @brief Iterates through container to find layer and returns the data when found, exception when non existend
      * @param layer_name name of the desired layer
      * @return data matrix of the desired layer: float, double, CV8UC as data mat is supported
-     * @throws out_of_range if layer not existend, data can not be set. Exception out_of_range is thrown
+     * @throws out_of_range if layer does not exist, data can not be set. Exception out_of_range is thrown
      */
-    cv::Mat get(const std::string &layer_name) const;
+    const cv::Mat& get(const std::string &layer_name) const;
+
+    /*!
+     * @brief Overloaded [] operator for fast accessing layer data elements, e.g. map["color"].at<cv::Vec3b>(r, c).
+     * Be careful: if you use as assignment like map["color"] = cv::Mat(...) the size of the mat can not be cross checked
+     * for size. If the size does not match the CvGridMap size, you might break it.
+     * @param layer_name name of the desired layer
+     * @return data matrix of the desired layer: float, double, CV8UC as data mat is supported
+     * @throws out_of_range if layer does not exist, data can not be set. Exception out_of_range is thrown
+     */
+    cv::Mat& operator[](const std::string& layer_name);
 
     /*!
      * @brief Overloaded [] operator for fast accessing layer data elements, e.g. map["color"].at<cv::Vec3b>(r, c)
@@ -180,15 +189,7 @@ class CvGridMap
      * @return data matrix of the desired layer: float, double, CV8UC as data mat is supported
      * @throws out_of_range if layer not existend, data can not be set. Exception out_of_range is thrown
      */
-    cv::Mat operator[](const std::string& layer_name);
-
-    /*!
-     * @brief Overloaded [] operator for fast accessing layer data elements, e.g. map["color"].at<cv::Vec3b>(r, c)
-     * @param layer_name name of the desired layer
-     * @return data matrix of the desired layer: float, double, CV8UC as data mat is supported
-     * @throws out_of_range if layer not existend, data can not be set. Exception out_of_range is thrown
-     */
-    cv::Mat operator[](const std::string& layer_name) const;
+    const cv::Mat& operator[](const std::string& layer_name) const;
 
     /*!
      * @brief Function to grab a whole layer including name and interpolation flag
@@ -232,6 +233,13 @@ class CvGridMap
      * @throws out_of_range if index is outside the grid an exception out_of_range is thrown
      */
     cv::Point2i atIndex(const cv::Point2d &pos) const;
+
+    /*!
+     * @brief Accessing a region of interest in the world frame within the grid map matrix
+     * @param roi Region of interest in the world frame
+     * @return Region of interest in the matrix
+     */
+    cv::Rect2i atIndexROI(const cv::Rect2d &roi) const;
 
     /*!
      * @brief Accessing the 2d world position of a grid element. Typically these are utm32-coordinates in aerial mapping
@@ -318,6 +326,15 @@ class CvGridMap
      * @param size_set Output; Depends on the roi set, is the actual matrix size / grid size depending on the resolution
      */
     void fitGeometryToResolution(const cv::Rect2d &roi_desired, cv::Rect2d &roi_set, cv::Size2i &size_set);
+
+    /*!
+     * @brief This function allows to round up a floating point value to the nearest value, which is dividable through the
+     * resolution. Example: roundToResolution(6.4, 2.0) = 8.0
+     * @param value value to be rounded
+     * @param resolution resolution of the operation
+     * @return up rounded value
+     */
+    static double roundToResolution(double value, double resolution);
 };
 
 }

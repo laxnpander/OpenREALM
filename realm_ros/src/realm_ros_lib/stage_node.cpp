@@ -380,7 +380,7 @@ void StageNode::pubCvGridMap(const CvGridMap &map, uint8_t zone, char band, cons
   cv::Rect2d roi = map.roi();
   realm::UTMPose utm;
   utm.easting = roi.x + roi.width/2;
-  utm.northing = roi.y - roi.height/2;
+  utm.northing = roi.y + roi.height/2;
   utm.altitude = 0.0;
   utm.zone = zone;
   utm.band = band;

@@ -34,7 +34,7 @@ cv::Mat realm::createDummyPose()
 
   // Translation: We create a translation, that is offsetted in y-axis
   pose.at<double>(0, 3) = 500.0;
-  pose.at<double>(1, 3) = -600.0;
+  pose.at<double>(1, 3) = 600.0;
   pose.at<double>(2, 3) = 1200.0;
 
   return pose;

@@ -96,7 +96,7 @@ bool OrthoRectification::process()
     // Output, therefore the new additional data is written into rectified map
     CvGridMap map_rect;
     ortho::rectify(frame, map_rect);
-    observed_map->add(map_rect);
+    observed_map->add(map_rect, REALM_OVERWRITE_ALL, false);
 
     // Transport results
     publish(frame);

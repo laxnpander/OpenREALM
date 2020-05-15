@@ -51,7 +51,7 @@ void rectify(const Frame::Ptr &frame, CvGridMap &map);
  *        needs a layer named "elevation", which is further used for backprojection from grid structure.
  * @param map result is written into this parameter, it contains the layer "color_rgb" and "observation angle"
  */
-void backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rect);
+void backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rectified);
 
 namespace internal
 {

@@ -31,10 +31,10 @@ namespace consts
 // TODO: Implementation is not good, but it works at the moment. Might be redesigned in the future
 
 const float FLOAT_NAN = -32767;
-const float FLOAT_EPSILON = 10e-6;
+const float FLOAT_EPSILON = 10e-1;
 
 const double DOUBLE_NAN = -32767;
-const double DOUBLE_EPSILON = 10e-6;
+const double DOUBLE_EPSILON = 10e-1;
 
 const int INT_NAN = 0;
 const int INT_EPSILON = 1;

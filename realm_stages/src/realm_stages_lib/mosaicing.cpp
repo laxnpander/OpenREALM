@@ -84,7 +84,7 @@ bool Mosaicing::process()
     Frame::Ptr frame = getNewFrame();
     CvGridMap::Ptr observed_map = frame->getObservedMap();
 
-    LOG_F(INFO, "Processing frame #%llu...", frame->getFrameId());
+    LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
     // Use surface normals only if setting was set to true AND actual data has normals
     _use_surface_normals = (_use_surface_normals && observed_map->exists("elevation_normal"));
@@ -95,8 +95,8 @@ bool Mosaicing::process()
     {
       LOG_F(INFO, "Initializing global map...");
       _global_map = observed_map;
-      (*_global_map).add("elevation_var", cv::Mat::ones(_global_map->size(), CV_32F)*consts::getNoValue<float>());
-      (*_global_map).add("elevation_hyp", cv::Mat::ones(_global_map->size(), CV_32F)*consts::getNoValue<float>());
+      (*_global_map).add("elevation_var", cv::Mat(_global_map->size(), CV_32F, consts::getNoValue<float>()));
+      (*_global_map).add("elevation_hyp", cv::Mat(_global_map->size(), CV_32F, consts::getNoValue<float>()));
 
       // Incremental update is equal to global map on initialization
       map_update = _global_map;
@@ -116,13 +116,14 @@ bool Mosaicing::process()
         LOG_F(INFO, "Overlap detected. Add with blending...");
         CvGridMap overlap_blended = blend(&overlap);
         (*_global_map).add(overlap_blended, REALM_OVERWRITE_ALL, false);
+
         cv::Rect2d roi = overlap_blended.roi();
         LOG_F(INFO, "Overlap region: [%4.2f, %4.2f] [%4.2f x %4.2f]", roi.x, roi.y, roi.width, roi.height);
         LOG_F(INFO, "Overlap area: %6.2f", roi.area());
       }
 
       LOG_F(INFO, "Extracting updated map...");
-      map_update = std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb", "elevation", "valid"}, observed_map->roi()));
+      map_update = std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb", "elevation", "valid"}, overlap.first->roi()));
     }
 
     // Publishings every iteration

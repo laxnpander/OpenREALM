@@ -23,13 +23,21 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
 
+#include <realm_core/loguru.h>
 #include <realm_core/mat_overwrite.h>
 
 void realm::addMat(const cv::Mat &from, const cv::Mat &to, cv::Mat &result, const int &flag)
 {
-  // Allow addition only of matrice of same type
-  assert(from.type() == to.type());
-  assert(from.rows == to.rows && from.cols == to.cols);
+  if (from.type() != to.type())
+  {
+    LOG_F(WARNING, "Matrix type dimension mismatch. Addition failed!");
+    return;
+  }
+  if (from.rows != to.rows || from.cols != to.cols)
+  {
+    LOG_F(WARNING, "Matrix dimension mismatch. Addition failed!");
+    return;
+  }
 
   // Execute addition by flag
   if (flag == REALM_OVERWRITE_ALL)

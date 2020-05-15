@@ -60,7 +60,7 @@ void io::saveGeoTIFF(const CvGridMap &map,
   geoproj[0] = roi.x;
   geoproj[1] = GSD;
   geoproj[2] = 0;
-  geoproj[3] = roi.y;
+  geoproj[3] = roi.y+roi.height;
   geoproj[4] = 0;
   geoproj[5] = -GSD;
 

@@ -174,10 +174,10 @@ TEST(Pinhole, Projections)
   EXPECT_NEAR(roi.width, cam.height(), 10e-6);
   EXPECT_NEAR(roi.height, cam.width(), 10e-6);
 
-  // Testing smaller projection functions as well. Here we project the image corner (width, 0) with the rotated camera
+  // Testing smaller projection functions as well. Here we project the image corner (0, 0) with the rotated camera
   // into the world frame. The pose of the camera was chosen in such manner, that this projection is crossing the world
   // origin in (0/0/0)
-  cv::Mat p1 = cam.projectPointToWorld(cam.width(), 0, 1200);
+  cv::Mat p1 = cam.projectPointToWorld(0, 0, 1200);
 
   EXPECT_NEAR(p1.at<double>(0), 0.0, 10e-6);
   EXPECT_NEAR(p1.at<double>(1), 0.0, 10e-6);
