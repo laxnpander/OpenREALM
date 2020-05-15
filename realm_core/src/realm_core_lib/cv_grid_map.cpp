@@ -129,12 +129,17 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
     // But might be empty
     if (_layers[idx_layer].data.empty())
     {
-      if (submap_layer.data.type() == CV_32FC1)
-        _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), std::numeric_limits<float>::quiet_NaN());
-      else if (submap_layer.data.type() == CV_64FC1)
-        _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), std::numeric_limits<double>::quiet_NaN());
-      else
-        _layers[idx_layer].data = cv::Mat::zeros(_size, submap_layer.data.type());
+      switch(_layers[idx_layer].data.type())
+      {
+        case CV_32F:
+          _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), std::numeric_limits<float>::quiet_NaN());
+          break;
+        case CV_64F:
+          _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), std::numeric_limits<double>::quiet_NaN());
+          break;
+        default:
+          _layers[idx_layer].data = cv::Mat::zeros(_size, submap_layer.data.type());
+      }
     }
 
     // Get the data in the overlapping area of both mat
@@ -328,12 +333,17 @@ void CvGridMap::extendToInclude(const cv::Rect2d &roi)
   for (auto &layer : _layers)
     if (!layer.data.empty())
     {
-      if(layer.data.type() == CV_32F)
-        cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<float>::quiet_NaN());
-      else if (layer.data.type() == CV_64F)
-        cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<double>::quiet_NaN());
-      else
-        cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT);
+      switch(layer.data.type())
+      {
+        case CV_32F:
+          cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<float>::quiet_NaN());
+          break;
+        case CV_64F:
+          cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<double>::quiet_NaN());
+          break;
+        default:
+          cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT);
+      }
     }
 }
 
@@ -476,24 +486,16 @@ bool CvGridMap::isMatrixTypeValid(int type)
 {
   switch (type)
   {
-    case CV_32FC1:
-      return true;
-    case CV_32FC3:
+    case CV_32F:
       return true;
     case CV_64F:
       return true;
-    case CV_8UC1:
+    case CV_8U:
       return true;
-    case CV_8UC2:
-      return true;
-    case CV_8UC3:
-      return true;
-    case CV_8UC4:
-      return true;
-    case CV_16UC1:
+    case CV_16U:
       return true;
     default:
-        return false;
+      return false;
   }
 }
 
