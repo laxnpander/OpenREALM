@@ -147,6 +147,28 @@ roslaunch realm_ros alexa_noreco.launch
 roslaunch realm_ros alexa_reco.launch
 ```
   
+## Docker 
+OpenREALM can also be used with a docker. The docker is based on Ubuntu 18.04 and all files related to it
+are in the ```docker``` folder of this main repository. Testing it is very simple:
+
+1.Install Docker from 
+
+  [Docker Install](https://docs.docker.com/engine/install/)
+
+2.Build the Docker image using the script in ```docker``` folder.
+```bash
+  /bin/bash docker_build.sh
+```
+
+3.Run the Docker image using the script in ```docker``` folder.
+```bash
+  /bin/bash docker_run.sh
+```
+This script can be run from any folder in the host system. The Working Directory will be
+mounted in the docker. The dataset should ideally be kept in this same folder. Then change
+the path of the dataset in the launch file as described previously and run the test.
+
+
 ## References
 
 **Visual SLAM**

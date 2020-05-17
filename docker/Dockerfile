@@ -18,6 +18,6 @@ RUN mkdir -p /catkin_ws/src && cd /catkin_ws/src && git clone https://github.com
 RUN /bin/bash -c 'source /opt/ros/melodic/setup.bash && cd /catkin_ws; \
                   catkin config --blacklist psl --cmake-args -DCMAKE_BUILD_TYPE=Release; catkin build'
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends wget nano && rm -rf /var/lib/apt/lists/*
 
 CMD ["/bin/bash"]
