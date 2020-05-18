@@ -63,7 +63,7 @@ void GeometricReferencer::setIdle()
 void GeometricReferencer::setReference(const cv::Mat &T_c2g)
 {
   std::unique_lock<std::mutex> lock(_mutex_t_c2g);
-  _T_c2g = T_c2g.clone();
+  _transformation_c2g = T_c2g.clone();
 }
 
 void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
@@ -157,44 +157,17 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   LOG_F(INFO, "Proceeding georeferencing initial guess...");
   LOG_F(INFO, "Scale: %4.2f", scale_avr);
 
-//  // Create a plane orthogonal to the current measurements
-//  Plane::Ptr plane = createOrthoPlane(valid_input);
-//
-//  // Compute coordinate transformation to plane
-//  cv::Mat T_c2p = initCoordinateSystem(plane, scale_avr);
-//
-//  // Estimate initial 2D alignment with only East/North and x/y
-//  cv::Mat T_p2g = estimateCoarseReference(unique_spatials, T_c2p);
-//
-//  // Computing the error of the transformation
-//  double error = computeAverageReferenceError(unique_spatials, T_p2g);
-//  double derror = fabs(error - _error);
-//  _error = error;
-//
-//  if (derror < _th_error)
-//  {
-    // Based on initial 2D alignment compute 3D best fit
-    cv::Mat T_p2g = cv::Mat::eye(4, 4, CV_64F);
-    T_p2g.at<double>(0, 0) = scale_avr;
-    T_p2g.at<double>(1, 1) = scale_avr;
-    T_p2g.at<double>(2, 2) = scale_avr;
-    cv::Mat T_c2g = refineReference(unique_spatials, T_p2g, 5.0);
-    setReference(T_c2g);
+  cv::Mat T_p2g = cv::Mat::eye(4, 4, CV_64F);
+  T_p2g.at<double>(0, 0) = scale_avr;
+  T_p2g.at<double>(1, 1) = scale_avr;
+  T_p2g.at<double>(2, 2) = scale_avr;
+  cv::Mat T_c2g = refineReference(unique_spatials, T_p2g, 5.0);
+  setReference(T_c2g);
 
-//    std::cout << "### GEOREFERENCE INFO ###" << std::endl;
-//    std::cout << "Error: " << error << std::endl;
-//    std::cout << "dError: " << derror << std::endl;
-    _spatials = unique_spatials;
+  _spatials = unique_spatials;
 
-    std::unique_lock<std::mutex> lock(_mutex_is_initialized);
-    _is_initialized = true;
-//  }
-//  else
-//  {
-//    std::cout << "### GEOREFERENCE TRY ###" << std::endl;
-//    std::cout << "Error: " << error << std::endl;
-//    std::cout << "dError: " << derror << std::endl;
-//  }
+  std::unique_lock<std::mutex> lock(_mutex_is_initialized);
+  _is_initialized = true;
 
   setIdle();
   LOG_F(INFO, "Finished georeference try!");
@@ -216,7 +189,7 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
   if (computeTwoPointScale(s_curr, s_prev, 0.02*frame->getMedianSceneDepth()) > 0.0)
   {
     _spatials.push_back(s_curr);
-    cv::Mat T_c2g = refineReference(_spatials, _T_c2g.clone(), 3.0);
+    cv::Mat T_c2g = refineReference(_spatials, _transformation_c2g.clone(), 3.0);
     setReference(T_c2g);
 
     double error = computeAverageReferenceError(_spatials, T_c2g);
@@ -238,7 +211,7 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
 cv::Mat GeometricReferencer::getTransformation()
 {
   std::unique_lock<std::mutex> lock(_mutex_t_c2g);
-  return _T_c2g;
+  return _transformation_c2g;
 }
 
 double GeometricReferencer::computeTwoPointScale(const SpatialMeasurement::Ptr &s1, const SpatialMeasurement::Ptr &s2, double th_visual)
@@ -258,120 +231,6 @@ double GeometricReferencer::computeTwoPointScale(const SpatialMeasurement::Ptr &
     return dist_g/dist_v; // Scale
   else
     return -1.0;          // Invalid Value
-}
-
-Plane::Ptr GeometricReferencer::createOrthoPlane(const std::vector<Frame::Ptr> &frames)
-{
-  auto plane = std::make_shared<Plane>();
-  plane->pt = computePlaneCentroid(frames);
-  plane->n = computePlaneNormal(frames);
-  return std::move(plane);
-}
-
-cv::Mat GeometricReferencer::computePlaneCentroid(const std::vector<Frame::Ptr> &frames)
-{
-  cv::Mat centroid_avr;
-  for (const auto &f : frames)
-  {
-    cv::Mat pose = f->getPose();
-    double med_depth = f->getMedianSceneDepth();
-    cv::Mat t = pose.col(3);
-    cv::Mat dir_z = pose.row(2).colRange(0, 3).t();
-    cv::Mat centroid = t + med_depth*dir_z;
-    centroid_avr.push_back(centroid.t());
-  }
-  return (cv::Mat_<double>(3, 1)
-      << cv::mean(centroid_avr.col(0))(0), cv::mean(centroid_avr.col(1))(0), cv::mean(centroid_avr.col(2))(0));
-}
-
-cv::Mat GeometricReferencer::computePlaneNormal(const std::vector<Frame::Ptr> &frames)
-{
-  cv::Mat normal_avr;
-  for (const auto &f : frames)
-  {
-    cv::Mat pose = f->getPose();
-    cv::Mat R_wc = pose.rowRange(0, 3).colRange(0, 3);
-    cv::Mat R_cw = R_wc.t();
-    cv::Mat R_cw2 = R_cw.row(2).colRange(0, 3);
-    normal_avr.push_back(R_cw2);
-  }
-  return (cv::Mat_<double>(3, 1)
-      << -cv::mean(normal_avr.col(0))(0), -cv::mean(normal_avr.col(1))(0), -cv::mean(normal_avr.col(2))(0));
-}
-
-cv::Mat GeometricReferencer::initCoordinateSystem(const Plane::Ptr &plane, double scale)
-{
-  // Calculate initial coordinatesystem
-  double a = plane->n.at<double>(0);
-  double b = plane->n.at<double>(1);
-  double c = plane->n.at<double>(2);
-  double d = sqrt(b*b + c*c);
-
-  cv::Mat T_rz = cv::Mat::eye(4, 4, CV_64F);
-  T_rz.at<double>(1, 1) = c/d;
-  T_rz.at<double>(1, 2) = -b/d;
-  T_rz.at<double>(2, 1) = b/d;
-  T_rz.at<double>(2, 2) = c/d;
-
-  cv::Mat T_ry = cv::Mat::eye(4, 4, CV_64F);
-  T_ry.at<double>(0, 0) = d;
-  T_ry.at<double>(0, 2) = -a;
-  T_ry.at<double>(2, 0) = a;
-  T_ry.at<double>(2, 2) = d;
-
-  cv::Mat T_scale = cv::Mat::eye(4, 4, CV_64F);
-  T_scale.at<double>(0, 0) = scale;
-  T_scale.at<double>(1, 1) = scale;
-  T_scale.at<double>(2, 2) = scale;
-
-  cv::Mat T_t = cv::Mat::eye(4, 4, CV_64F);
-  T_t.at<double>(0, 3) = -plane->pt.at<double>(0);
-  T_t.at<double>(1, 3) = -plane->pt.at<double>(1);
-  T_t.at<double>(2, 3) = -plane->pt.at<double>(2);
-
-  return (T_ry * T_rz * T_scale * T_t);
-}
-
-cv::Mat GeometricReferencer::estimateCoarseReference(const std::vector<SpatialMeasurement::Ptr> &spatials, const cv::Mat &T_c2p)
-{
-  cv::Mat pts_vis;
-  pts_vis.reserve(spatials.size());
-
-  cv::Mat pts_gis;
-  pts_gis.reserve(spatials.size());
-
-  for (const auto &s : spatials)
-  {
-    cv::Mat pose_gis = s->first;
-    cv::Mat pt_gis = pose_gis.rowRange(0,2).col(3).t();
-    pts_gis.push_back(pt_gis);
-
-    cv::Mat pose_vis = s->second;
-    cv::Mat pt_vis;
-    try
-    {
-      pt_vis = applyTransformation(T_c2p, pose_vis.rowRange(0,3).col(3));
-    }
-    catch(std::invalid_argument &e)
-    {
-      LOG_F(ERROR, e.what());
-      continue;
-    }
-    pts_vis.push_back(pt_vis.rowRange(0,2).t());
-  }
-
-  Sim2Solver solver;
-  cv::Mat H_sim = solver.estimate(pts_vis, pts_gis);
-
-  cv::Mat T_sim = cv::Mat::eye(4, 4, CV_64F);
-  T_sim.at<double>(0, 3) = H_sim.at<double>(0, 2); // tx
-  T_sim.at<double>(1, 3) = H_sim.at<double>(1, 2); // ty
-  T_sim.at<double>(0, 0) = H_sim.at<double>(0, 0); // r11
-  T_sim.at<double>(0, 1) = H_sim.at<double>(0, 1); // r12
-  T_sim.at<double>(1, 0) = H_sim.at<double>(1, 0); // r21
-  T_sim.at<double>(1, 1) = H_sim.at<double>(1, 1); // r22
-
-  return T_sim * T_c2p;
 }
 
 cv::Mat GeometricReferencer::refineReference(const std::vector<SpatialMeasurement::Ptr> &spatials, const cv::Mat &T_c2w, double z_weight)
@@ -398,7 +257,7 @@ cv::Mat GeometricReferencer::refineReference(const std::vector<SpatialMeasuremen
     }
     catch(std::invalid_argument &e)
     {
-      LOG_F(ERROR, e.what());
+      LOG_F(ERROR, "%s", e.what());
       continue;
     }
 
@@ -426,7 +285,7 @@ cv::Mat GeometricReferencer::refineReference(const std::vector<SpatialMeasuremen
     }
     catch(std::invalid_argument &e)
     {
-      LOG_F(ERROR, e.what());
+      LOG_F(ERROR, "%s", e.what());
       continue;
     }
 
@@ -461,7 +320,7 @@ double GeometricReferencer::computeAverageReferenceError(const std::vector<Spati
     }
     catch(std::invalid_argument &e)
     {
-      LOG_F(ERROR, e.what());
+      LOG_F(ERROR, "%s", e.what());
       continue;
     }
     cv::Mat pt_gis = pose_gis.rowRange(0, 3).col(3);

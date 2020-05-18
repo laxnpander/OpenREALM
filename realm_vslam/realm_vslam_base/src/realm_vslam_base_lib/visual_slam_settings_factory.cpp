@@ -24,24 +24,21 @@ using namespace realm;
 
 VisualSlamSettings::Ptr VisualSlamSettingsFactory::load(const std::string &filepath, const std::string &directory)
 {
-  auto settings = std::make_shared<VisualSlamSettings>();
-  std::string method = settings->sneakParamFromFile<std::string>("type", filepath);
+  std::string method = VisualSlamSettings::sneakParameterFromFile<std::string>("type", filepath);
   if (method == "ORB_SLAM2")
-    return loadOrbSlam2(settings, filepath, directory);
+    return loadOrbSlam2(filepath, directory);
   if (method == "SVO")
-    return loadDefault<SvoSettings>(settings, filepath, directory);
+    return loadDefault<SvoSettings>(filepath, directory);
   if (method == "SVO2")
-    return loadDefault<Svo2Settings>(settings, filepath, directory);
+    return loadDefault<Svo2Settings>(filepath, directory);
   if (method == "DSO")
-    return loadDefault<DsoSettings>(settings, filepath, directory);
+    return loadDefault<DsoSettings>(filepath, directory);
   throw (std::invalid_argument("Error: Loading visual slam settings failed. Method '" + method + "' not recognized"));
 }
 
-VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOrbSlam2(VisualSlamSettings::Ptr settings,
-                                                               const std::string &filepath,
-                                                               const std::string &directory)
+VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOrbSlam2(const std::string &filepath, const std::string &directory)
 {
-  settings = std::make_shared<OrbSlamSettings>();
+  auto settings = std::make_shared<OrbSlamSettings>();
   settings->loadFromFile(filepath);
 
   // Check and correct paths
@@ -50,11 +47,9 @@ VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOrbSlam2(VisualSlamSettin
 }
 
 template <typename T>
-VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadDefault(VisualSlamSettings::Ptr settings,
-                                                               const std::string &filepath,
-                                                               const std::string &directory)
+VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadDefault(const std::string &filepath, const std::string &directory)
 {
-  settings = std::make_shared<T>();
+  auto settings = std::make_shared<T>();
   settings->loadFromFile(filepath);
   return settings;
 }

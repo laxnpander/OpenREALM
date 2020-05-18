@@ -24,23 +24,20 @@ using namespace realm;
 
 DensifierSettings::Ptr DensifierSettingsFactory::load(const std::string &filepath, const std::string &directory)
 {
-  auto settings = std::make_shared<DensifierSettings>();
-  std::string method = settings->sneakParamFromFile<std::string>("type", filepath);
+  std::string method = DensifierSettings::sneakParameterFromFile<std::string>("type", filepath);
   if (method == "DUMMY")
-    return loadDefault<DensifierDummySettings>(settings, filepath, directory);
+    return loadDefault<DensifierDummySettings>(filepath, directory);
   if (method == "PSL")
-    return loadDefault<PlaneSweepSettings>(settings, filepath, directory);
+    return loadDefault<PlaneSweepSettings>(filepath, directory);
 //if (method == "YOUR_IMPLEMENTATION")
 //  return loadDefault<YOUR_IMPLEMENTATION_SETTINGS>(settings, directory, filename);
   throw (std::invalid_argument("Error: Loading densifier settings failed. Method '" + method + "' not recognized"));
 }
 
 template <typename T>
-DensifierSettings::Ptr DensifierSettingsFactory::loadDefault(DensifierSettings::Ptr settings,
-                                                             const std::string &filepath,
-                                                             const std::string &directory)
+DensifierSettings::Ptr DensifierSettingsFactory::loadDefault(const std::string &filepath, const std::string &directory)
 {
-  settings = std::make_shared<T>();
+  auto settings = std::make_shared<T>();
   settings->loadFromFile(filepath);
   return settings;
 }

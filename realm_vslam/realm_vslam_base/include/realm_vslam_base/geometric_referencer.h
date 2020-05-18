@@ -28,7 +28,6 @@
 
 #include <realm_vslam_base/geospatial_referencer_IF.h>
 #include <realm_core/plane_fitter.h>
-#include <realm_core/sim2_solver.h>
 
 namespace realm
 {
@@ -66,7 +65,7 @@ class GeometricReferencer : public GeospatialReferencerIF
     double _error;
 
     std::mutex _mutex_t_c2g;
-    cv::Mat _T_c2g;
+    cv::Mat _transformation_c2g;
 
     std::vector<SpatialMeasurement::Ptr> _spatials;
 
@@ -76,23 +75,13 @@ class GeometricReferencer : public GeospatialReferencerIF
 
     void setReference(const cv::Mat &T_c2g);
 
-    cv::Mat computePlaneCentroid(const std::vector<Frame::Ptr> &frames);
+    static double computeTwoPointScale(const SpatialMeasurement::Ptr &f1, const SpatialMeasurement::Ptr &f2, double th_visual);
 
-    cv::Mat computePlaneNormal(const std::vector<Frame::Ptr> &frames);
+    static double computeAverageReferenceError(const std::vector<SpatialMeasurement::Ptr> &spatials, const cv::Mat &T_c2w);
 
-    Plane::Ptr createOrthoPlane(const std::vector<Frame::Ptr> &frames);
+    static cv::Mat refineReference(const std::vector<SpatialMeasurement::Ptr> &frames, const cv::Mat &T_c2w, double z_weight);
 
-    cv::Mat initCoordinateSystem(const Plane::Ptr &plane, double scale);
-
-    double computeTwoPointScale(const SpatialMeasurement::Ptr &f1, const SpatialMeasurement::Ptr &f2, double th_visual);
-
-    double computeAverageReferenceError(const std::vector<SpatialMeasurement::Ptr> &spatials, const cv::Mat &T_c2w);
-
-    cv::Mat estimateCoarseReference(const std::vector<SpatialMeasurement::Ptr> &frames, const cv::Mat &T_c2p);
-
-    cv::Mat refineReference(const std::vector<SpatialMeasurement::Ptr> &frames, const cv::Mat &T_c2w, double z_weight);
-
-    cv::Mat applyTransformation(const cv::Mat &T, const cv::Mat &pt);
+    static cv::Mat applyTransformation(const cv::Mat &T, const cv::Mat &pt);
 };
 
 } // namespace realm

@@ -45,24 +45,11 @@ class CameraSettingsFactory
      *        camera_settings.h for further informations about what parameters must be inside the .yaml files. Is used
      *        by default for the factory
      * @tparam T Explicit camera settings type, e.g. PinholeSettings
-     * @param settings Camera settings parent, that should be created before calling this templated function. Is needed
-     *        to read the type of settings from file.
-     *
-     *        Example:
-     *        #1 auto settings = std::make_shared<CameraSettings>();
-     *        #2 std::string model_type = settings->sneakParamFromFile<std::string>("type", filepath);
-     *        #3 if (model_type == "pinhole")
-     *        #4    return load<PinholeSettings>(settings, filepath);
-     *
-     *        Explanation:
-     *        #1 First creating the parent class for functionalities
-     *        #2 Parent is used to access "type" inside the .yaml file and read it (-> pinhole, ...)
-     *        #3+#4 Check wether the previously read type is e.g. pinhole
      * @param filepath Absolute path to settings file
      * @return Explicit camera settings of type T
      */
     template <typename T>
-    static CameraSettings::Ptr load(CameraSettings::Ptr settings, const std::string &filepath);
+    static CameraSettings::Ptr load(const std::string &filepath);
 };
 
 } // namespace realm

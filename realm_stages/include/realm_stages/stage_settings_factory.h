@@ -30,13 +30,10 @@ namespace realm
 class StageSettingsFactory
 {
   public:
-    static StageSettings::Ptr load(const std::string &stage_type_set,
-                                   const std::string &filepath);
+    static StageSettings::Ptr load(const std::string &stage_type_set, const std::string &filepath);
   private:
     template <typename T>
-    static StageSettings::Ptr loadDefault(StageSettings::Ptr settings,
-                                          const std::string &stage_type_set,
-                                          const std::string &filepath);
+    static StageSettings::Ptr loadDefault(const std::string &stage_type_set, const std::string &filepath);
 };
 
 } // namespace realm

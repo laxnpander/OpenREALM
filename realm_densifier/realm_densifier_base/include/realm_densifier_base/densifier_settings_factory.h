@@ -37,21 +37,17 @@ class DensifierSettingsFactory
      *        files provided relative to the settings file
      * @return Densifier settings file
      */
-    static DensifierSettings::Ptr load(const std::string &filepath,
-                                       const std::string &directory);
+    static DensifierSettings::Ptr load(const std::string &filepath, const std::string &directory);
   private:
     /*!
      * @brief Default loading function for standard settings. Can be specialized if more complex loading has to be performed.
      * @tparam T Type of the settings, see all derived classes from "DensifierSettings"
-     * @param settings Densifier base class, is only needed to call "sneakParameter(...)" to get the "type" parameter
      * @param filepath Absolute path of the settings file
      * @param directory Directory of the settings file (optional)
      * @return Densifier settings according to the template provided
      */
     template<typename T>
-    static DensifierSettings::Ptr loadDefault(DensifierSettings::Ptr settings,
-                                              const std::string &filepath,
-                                              const std::string &directory);
+    static DensifierSettings::Ptr loadDefault(const std::string &filepath, const std::string &directory);
 };
 
 } // namespace realm

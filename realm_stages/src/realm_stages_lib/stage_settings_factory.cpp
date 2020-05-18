@@ -26,30 +26,27 @@ using namespace realm;
 StageSettings::Ptr StageSettingsFactory::load(const std::string &stage_type_set,
                                               const std::string &filepath)
 {
-  auto settings = std::make_shared<StageSettings>();
-  std::string stage_type_read = settings->sneakParamFromFile<std::string>("type", filepath);
+  std::string stage_type_read = StageSettings::sneakParameterFromFile<std::string>("type", filepath);
   if (stage_type_set != stage_type_read)
     throw(std::invalid_argument("Error: Could not load stage settings. Stage type mismatch!"));
 
   // Desired stage type and settings file match, start loading file
   if (stage_type_set == "pose_estimation")
-    return loadDefault<PoseEstimationSettings>(settings, stage_type_set, filepath);
+    return loadDefault<PoseEstimationSettings>(stage_type_set, filepath);
   if (stage_type_set == "densification")
-    return loadDefault<DensificationSettings>(settings, stage_type_set, filepath);
+    return loadDefault<DensificationSettings>(stage_type_set, filepath);
   if (stage_type_set == "surface_generation")
-    return loadDefault<SurfaceGenerationSettings>(settings, stage_type_set, filepath);
+    return loadDefault<SurfaceGenerationSettings>(stage_type_set, filepath);
   if (stage_type_set == "ortho_rectification")
-    return loadDefault<OrthoRectificationSettings>(settings, stage_type_set, filepath);
+    return loadDefault<OrthoRectificationSettings>(stage_type_set, filepath);
   if (stage_type_set == "mosaicing")
-    return loadDefault<MosaicingSettings>(settings, stage_type_set, filepath);
+    return loadDefault<MosaicingSettings>(stage_type_set, filepath);
 }
 
 template <typename T>
-StageSettings::Ptr StageSettingsFactory::loadDefault(StageSettings::Ptr settings,
-                                                     const std::string &stage_type_set,
-                                                     const std::string &filepath)
+StageSettings::Ptr StageSettingsFactory::loadDefault(const std::string &stage_type_set, const std::string &filepath)
 {
-  settings = std::make_shared<T>();
+  auto settings = std::make_shared<T>();
   settings->loadFromFile(filepath);
   return std::move(settings);
 }

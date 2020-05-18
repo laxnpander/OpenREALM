@@ -59,8 +59,6 @@ add_library(${PROJECT_NAME}
         src/realm_core_lib/camera_settings_factory.cpp
         src/realm_core_lib/cv_grid_map.cpp
         src/realm_core_lib/worker_thread_base.cpp
-        src/realm_core_lib/sim2_solver.cpp
-        src/realm_core_lib/se3_solver.cpp
         src/realm_core_lib/plane_fitter.cpp
         )
 target_link_libraries(${PROJECT_NAME}

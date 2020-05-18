@@ -24,21 +24,19 @@ using namespace realm;
 
 CameraSettings::Ptr CameraSettingsFactory::load(const std::string &filepath)
 {
-  auto settings = std::make_shared<CameraSettings>();
   // Identify camera model
-  std::string model_type = settings->sneakParamFromFile<std::string>("type", filepath);
+  std::string model_type = CameraSettings::sneakParameterFromFile<std::string>("type", filepath);
   if (model_type == "pinhole")
-    return load<PinholeSettings>(settings, filepath);
+    return load<PinholeSettings>(filepath);
   else
     throw(std::out_of_range("Error! Camera type '" + model_type + "' not recognized."));
 }
 
 template <typename T>
-CameraSettings::Ptr CameraSettingsFactory::load(CameraSettings::Ptr settings,
-                                                const std::string &filepath)
+CameraSettings::Ptr CameraSettingsFactory::load(const std::string &filepath)
 {
   // Read from settings file
-  settings = std::make_shared<T>();
+  auto settings = std::make_shared<T>();
   settings->loadFromFile(filepath);
   return std::move(settings);
 }

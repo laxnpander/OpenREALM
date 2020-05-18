@@ -59,7 +59,7 @@ namespace realm
  *           PinholeSettings is derived from CameraSettings.
  *           You can now provide a factory class your general "CameraSettings" and dynamically check what parameter file
  *           was provided by the user to be loaded, e.g.
- *              std::string type = sneakParamFromFile<std::string>("type", "/path/to/yaml"))
+ *              std::string type = sneakParameterFromFile<std::string>("type", "/path/to/yaml"))
  *              if (type == "pinhole")
  *                  do stuff;
  *              if (type == "fisheye")
@@ -80,9 +80,9 @@ class SettingsBase
       };
       using Ptr = std::unique_ptr<Variant>;
     public:
-      Variant(const Parameter_t<int> &p) : _type(VariantType::INT), _int_container(p) {};
-      Variant(const Parameter_t<double> &p) : _type(VariantType::DOUBLE), _double_container(p) {};
-      Variant(const Parameter_t<std::string> &p) : _type(VariantType::STRING), _string_container(p) {};
+      explicit Variant(const Parameter_t<int> &p) : _type(VariantType::INT), _int_container(p) {};
+      explicit Variant(const Parameter_t<double> &p) : _type(VariantType::DOUBLE), _double_container(p) {};
+      explicit Variant(const Parameter_t<std::string> &p) : _type(VariantType::STRING), _string_container(p) {};
 
       int toInt() const
       {
@@ -181,14 +181,13 @@ class SettingsBase
      * @return Value of the parameter
      */
     template <typename T>
-    T sneakParamFromFile(const std::string &key, const std::string &filepath)
+    static T sneakParameterFromFile(const std::string &key, const std::string &filepath)
     {
       cv::FileStorage fs(filepath, cv::FileStorage::READ);
       T val;
       if (fs.isOpened())
       {
         fs[key] >> val;
-        set(key, val);
       }
       else
         throw std::invalid_argument("Error: Sneaking parameter from file " + filepath + " failed!");

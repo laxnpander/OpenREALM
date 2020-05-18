@@ -39,13 +39,9 @@ class VisualSlamSettingsFactory
     static VisualSlamSettings::Ptr load(const std::string &filepath,
                                         const std::string &directory);
   private:
-    static VisualSlamSettings::Ptr loadOrbSlam2(VisualSlamSettings::Ptr settings,
-                                                const std::string &directory,
-                                                const std::string &filename);
+    static VisualSlamSettings::Ptr loadOrbSlam2(const std::string &filepath, const std::string &directory);
     template <typename T>
-    static VisualSlamSettings::Ptr loadDefault(VisualSlamSettings::Ptr settings,
-                                               const std::string &directory,
-                                               const std::string &filename);
+    static VisualSlamSettings::Ptr loadDefault(const std::string &filepath, const std::string &directory);
 };
 
 } // namespace realm
