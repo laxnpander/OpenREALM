@@ -31,6 +31,7 @@
 #include <realm_io/cv_export.h>
 #include <realm_io/realm_export.h>
 #include <realm_io/exif_export.h>
+#include <realm_vslam_base/dummy_referencer.h>
 #include <realm_vslam_base/geometric_referencer.h>
 #include <realm_vslam_base/visual_slam_factory.h>
 
@@ -126,7 +127,7 @@ class PoseEstimation : public StageBase
     std::unique_ptr<PoseEstimationIO> _stage_publisher;
 
     // Georeferencing initializer
-    GeospatialReferencerIF::Ptr _georef;
+    GeospatialReferencerIF::Ptr _georeferencer;
 
     void track(Frame::Ptr &frame);
 

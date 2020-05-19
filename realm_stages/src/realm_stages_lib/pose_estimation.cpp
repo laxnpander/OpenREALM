@@ -57,7 +57,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
     _vslam->RegisterUpdateTransport(update_func);
 
     // Create geo reference initializer
-    _georef = std::make_shared<GeometricReferencer>(_th_error_georef);
+    _georeferencer = std::make_shared<GeometricReferencer>(_th_error_georef);
   }
 
   // Create Pose Estimation publisher
@@ -83,6 +83,13 @@ void PoseEstimation::addFrame(const Frame::Ptr &frame)
   // First update statistics about incoming frame rate
   updateFpsStatisticsIncoming();
 
+  // The user can provide a-priori georeferencing. Check if this is the case
+  if (!_is_georef_initialized && frame->isGeoreferenced())
+  {
+    LOG_F(INFO, "Detected a-priori georeference for frame %u. Assuming all frames are georeferenced.", frame->getFrameId());
+    _georeferencer = std::make_shared<DummyReferencer>(frame->getGeoreference());
+  }
+
   // Push to buffer for visual tracking
   if (_use_vslam)
     pushToBufferNoPose(frame);
@@ -107,7 +114,7 @@ bool PoseEstimation::process()
 
   // Grab georeference flag once at the beginning, to avoid multithread problems
   if (_use_vslam)
-    _is_georef_initialized = _georef->isInitialized();
+    _is_georef_initialized = _georeferencer->isInitialized();
 
   // Process new frames without a visual pose currently
   if (!_buffer_no_pose.empty())
@@ -123,9 +130,9 @@ bool PoseEstimation::process()
     // Identify buffer for push
     if (frame->hasAccuratePose() && _is_georef_initialized)
     {
-      if (_do_update_georef && !_georef->isBuisy())
+      if (_do_update_georef && !_georeferencer->isBuisy())
       {
-        std::thread t(std::bind(&GeospatialReferencerIF::update, _georef, frame));
+        std::thread t(std::bind(&GeospatialReferencerIF::update, _georeferencer, frame));
         t.detach();
       }
       pushToBufferAll(frame);
@@ -144,11 +151,11 @@ bool PoseEstimation::process()
   // but only starts, if a new frame was processed during this loop
   if (_use_vslam && has_processed)
   {
-    if (!_is_georef_initialized && !_buffer_pose_init.empty() && !_georef->isBuisy())
+    if (!_is_georef_initialized && !_buffer_pose_init.empty() && !_georeferencer->isBuisy())
     {
       // Branch: Georef is not calculated yet
       LOG_F(INFO, "Size of init buffer: %lu", _buffer_pose_init.size());
-      std::thread t(std::bind(&GeospatialReferencerIF::init, _georef, _buffer_pose_init));
+      std::thread t(std::bind(&GeospatialReferencerIF::init, _georeferencer, _buffer_pose_init));
       t.detach();
       has_processed = true;
     }
@@ -233,7 +240,7 @@ void PoseEstimation::reset()
 
   // Reset georeferencing
   if (_use_vslam)
-    _georef.reset(new GeometricReferencer(_th_error_georef));
+    _georeferencer.reset(new GeometricReferencer(_th_error_georef));
   _stage_publisher->requestReset();
   _is_georef_initialized = false;
   _reset_requested = false;
@@ -408,7 +415,7 @@ void PoseEstimation::applyGeoreferenceToBuffer()
     _mutex_buffer_pose_all.unlock();
 
     _mutex_t_w2g.lock();
-    _T_w2g = _georef->getTransformation();
+    _T_w2g = _georeferencer->getTransformation();
     _mutex_t_w2g.unlock();
 
     // But check first, if frame has actually a visually estimated pose information

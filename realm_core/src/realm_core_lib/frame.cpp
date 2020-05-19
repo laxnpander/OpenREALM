@@ -269,10 +269,13 @@ void Frame::setVisualPose(const cv::Mat &pose)
 
 void Frame::setGeographicPose(const cv::Mat &pose)
 {
-  std::lock_guard<std::mutex> lock(_mutex_cam);
-  _camera_model->setPose(pose);
-  _motion_c2g = pose;
-  setPoseAccurate(true);
+  if (!pose.empty())
+  {
+    std::lock_guard<std::mutex> lock(_mutex_cam);
+    _camera_model->setPose(pose);
+    _motion_c2g = pose;
+    setPoseAccurate(true);
+  }
 }
 
 void Frame::setGeoreference(const cv::Mat &T_w2g)
@@ -336,9 +339,6 @@ void Frame::setImageResizeFactor(const double &value)
 void Frame::initGeoreference(const cv::Mat &T)
 {
   assert(!T.empty());
-
-  if (_is_georeferenced)
-    return;
 
   _transformation_w2g = cv::Mat::eye(4, 4, CV_64F);
   updateGeoreference(T, true);
@@ -491,6 +491,7 @@ cv::Mat Frame::applyTransformationToVisualPose(const cv::Mat &T)
 
     return M_c2g;
   }
+  return cv::Mat();
 }
 
 cv::Mat Frame::computeGeoreferenceDifference(const cv::Mat &T_old, const cv::Mat &T_new)

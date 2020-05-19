@@ -47,6 +47,17 @@ camera::Pinhole io::loadCameraFromYaml(const std::string &filepath)
   }
 }
 
+cv::Mat io::loadGeoreferenceFromYaml(const std::string &filepath)
+{
+  cv::Mat georeference;
+
+  cv::FileStorage fs(filepath, cv::FileStorage::READ);
+  fs["transformation_w2g"] >> georeference;
+  fs.release();
+
+  return georeference;
+}
+
 std::unordered_map<uint64_t, cv::Mat> io::loadTrajectoryFromTxtTUM(const std::string &directory,
                                                                    const std::string &filename)
 {
