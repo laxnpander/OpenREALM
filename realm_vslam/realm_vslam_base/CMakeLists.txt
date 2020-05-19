@@ -77,6 +77,7 @@ include_directories(
 add_library(${PROJECT_NAME} SHARED
         src/realm_vslam_base_lib/visual_slam_factory.cpp
         src/realm_vslam_base_lib/visual_slam_settings_factory.cpp
+		src/realm_vslam_base_lib/dummy_referencer.cpp
 		src/realm_vslam_base_lib/geometric_referencer.cpp
 		${VSLAM_SRC}
 )

@@ -201,6 +201,11 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
     double sz = cv::norm(T_c2g.col(2));;
 
     LOG_F(INFO, "### GEOREFERENCE UPDATE ###");
+    LOG_F(INFO, "Transformation matrix:");
+    LOG_F(INFO, "%f %f %f %f", T_c2g.at<double>(0, 0), T_c2g.at<double>(0, 1), T_c2g.at<double>(0, 2), T_c2g.at<double>(0, 3));
+    LOG_F(INFO, "%f %f %f %f", T_c2g.at<double>(1, 0), T_c2g.at<double>(1, 1), T_c2g.at<double>(1, 2), T_c2g.at<double>(1, 3));
+    LOG_F(INFO, "%f %f %f %f", T_c2g.at<double>(2, 0), T_c2g.at<double>(2, 1), T_c2g.at<double>(2, 2), T_c2g.at<double>(2, 3));
+    LOG_F(INFO, "%f %f %f %f", T_c2g.at<double>(3, 0), T_c2g.at<double>(3, 1), T_c2g.at<double>(3, 2), T_c2g.at<double>(3, 3));
     LOG_F(INFO, "Error: %4.2f", error);
     LOG_F(INFO, "dError: %4.2f", derror);
     LOG_F(INFO, "Scale (sx, sy, sz): (%4.2f, %4.2f, %4.2f)", sx, sy, sz);
