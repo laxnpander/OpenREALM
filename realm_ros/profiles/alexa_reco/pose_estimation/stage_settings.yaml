@@ -7,7 +7,7 @@ use_vslam: 1
 use_fallback: 0
 update_georef: 1
 th_error_georef: 1.0
-overlap_max: 100
+overlap_max: 95
 overlap_max_fallback: 30
 suppress_outdated_pose_pub: 0
 
