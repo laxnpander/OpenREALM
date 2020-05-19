@@ -82,7 +82,10 @@ cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole::Ptr &cam,
   // If pose is defined as "camera to world", then this formula simplifies to
   // R*K^-1*x+t=X
 
-  assert(depthmap.rows > 0 && depthmap.cols > 0);
+  if (depthmap.rows != cam->height() || depthmap.cols != cam->width())
+    throw(std::invalid_argument("Error: Reprojecting depth map failed. Dimension mismatch!"));
+  if (depthmap.type() != CV_32F)
+    throw(std::invalid_argument("Error: Reprojecting depth map failed. Matrix has wrong type. It is expected to have type CV_32F."));
 
   // Implementation is chosen to be raw array, because it saves round about 30% computation time
   double fx = cam->fx();
@@ -92,9 +95,8 @@ cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole::Ptr &cam,
   cv::Mat R_c2w = cam->R();
   cv::Mat t_c2w = cam->t();
 
-  assert(fx > 0 && fy > 0 && cx > 0 && cy > 0);
-  assert(R_c2w.cols == 3 && R_c2w.rows == 3);
-  assert(t_c2w.cols == 1 && t_c2w.rows == 3);
+  if (fabs(fx) < 10e-6 || fabs(fy) < 10-6 || fabs(cx) < 10e-6 || fabs(cy) < 10e-6)
+    throw(std::invalid_argument("Error: Reprojecting depth map failed. Camera model invalid!"));
 
   // Array preparation
   double ar_R_c2w[3][3];
@@ -130,21 +132,22 @@ cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole::Ptr &cam,
   return img3d;
 }
 
-void realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &cam,
-                                                  const cv::Mat &points,
-                                                  cv::Mat &depth_map)
+cv::Mat realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &cam, const cv::Mat &points)
 {
   /*
    * Depth computation according to [Hartley2004] "Multiple View Geometry in Computer Vision", S.162 for normalized
    * camera matrix
    */
 
+  if (points.type() != CV_64F)
+    throw(std::invalid_argument("Error: Computing depth map from point cloud failed. Point matrix type should be CV_64F!"));
+
   // Prepare depthmap dimensions
   uint32_t width = cam->width();
   uint32_t height = cam->height();
 
   // Prepare output data
-  depth_map = cv::Mat(height, width, CV_32F, -1.0);
+  cv::Mat depth_map = cv::Mat(height, width, CV_32F, -1.0);
 
   // Prepare extrinsics
   cv::Mat T_w2c = cam->Tw2c();
@@ -168,7 +171,8 @@ void realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &ca
     double w = P[2][0]*pt.at<double>(0) + P[2][1]*pt.at<double>(1) + P[2][2]*pt.at<double>(2) + P[2][3]*1.0;
     auto u = (int)((P[0][0]*pt.at<double>(0) + P[0][1]*pt.at<double>(1) + P[0][2]*pt.at<double>(2) + P[0][3]*1.0)/w);
     auto v = (int)((P[1][0]*pt.at<double>(0) + P[1][1]*pt.at<double>(1) + P[1][2]*pt.at<double>(2) + P[1][3]*1.0)/w);
-    if (u > 0 && u < width && v > 0 && v < height)
+
+    if (u >= 0 && u < width && v >= 0 && v < height)
     {
       if (depth > 0)
         depth_map.at<float>(v, u) = static_cast<float>(depth);
@@ -177,21 +181,24 @@ void realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &ca
     }
   }
   //depth_map = cam.undistort(depth_map, CV_INTER_NN);
+  return depth_map;
 }
 
 cv::Mat realm::stereo::computeNormalsFromDepthMap(const cv::Mat& depth)
 {
-  cv::Mat normals(depth.size(), CV_32FC3);
+  // We have to shrink the normal mat by two, because otherwise we would run into border issues as the Kernel as size 3x3
+  cv::Mat normals(depth.rows-2, depth.cols-2, CV_32FC3);
 
-  for(int x = 0; x < depth.rows; ++x)
-    for(int y = 0; y < depth.cols; ++y)
+  for(int r = 1; r < depth.rows-1; ++r)
+    for(int c = 1; c < depth.cols-1; ++c)
     {
-      float dzdx = (depth.at<float>(x+1, y) - depth.at<float>(x-1, y)) / 2.0f;
-      float dzdy = (depth.at<float>(x, y+1) - depth.at<float>(x, y-1)) / 2.0f;
+      float dzdx = (depth.at<float>(r, c+1) - depth.at<float>(r, c-1)) / 2.0f;
+      float dzdy = (depth.at<float>(r+1, c) - depth.at<float>(r-1, c)) / 2.0f;
 
       cv::Vec3f d(-dzdx, -dzdy, 1.0f);
-      normals.at<cv::Vec3f>(x, y) = cv::normalize(d);
+      normals.at<cv::Vec3f>(r-1, c-1) = d / cv::norm(d);
     }
+  cv::copyMakeBorder(normals, normals, 1, 1, 1, 1, cv::BORDER_REFLECT);
   return normals;
 }
 

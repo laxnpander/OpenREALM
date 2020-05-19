@@ -32,8 +32,7 @@ void densifier::computeDepthMapFromSparseCloud(const cv::Mat &sparse_cloud,
   if (radius < 3.0)
     radius = 3.0;
 
-  cv::Mat depth_sparse;
-  stereo::computeDepthMapFromPointCloud(cam, sparse_cloud, depth_sparse);
+  cv::Mat depth_sparse = stereo::computeDepthMapFromPointCloud(cam, sparse_cloud);
 
   // Optional output thumbnail:
   if (out_thumbnail.needed())
@@ -55,8 +54,7 @@ void densifier::computeSparseMask(const cv::Mat &sparse_cloud,
                                   const camera::Pinhole::Ptr &cam,
                                   cv::OutputArray out_mask)
 {
-  cv::Mat depth_sparse;
-  stereo::computeDepthMapFromPointCloud(cam, sparse_cloud, depth_sparse);
+  cv::Mat depth_sparse = stereo::computeDepthMapFromPointCloud(cam, sparse_cloud);
 
   cv::Mat mask_valid = densifier::internal::computeBoundingPolygon(depth_sparse);
 

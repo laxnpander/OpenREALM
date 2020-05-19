@@ -182,10 +182,16 @@ cv::Mat Pinhole::K() const
 
 cv::Mat Pinhole::P() const
 {
-  assert(!_camera_matrix.empty() && _camera_matrix.type() == CV_64F);
-  assert(!_exterior_rotation.empty() && _exterior_rotation.type() == CV_64F);
-  assert(!_exterior_translation.empty() && _exterior_translation.type() == CV_64F);
-  return _camera_matrix * Tw2c().rowRange(0, 3).colRange(0, 4);
+  if (_exterior_rotation.empty())
+    throw(std::runtime_error("Error: Projection matrix could not be computed. Exterior rotation not set!"));
+  if (_exterior_translation.empty())
+    throw(std::runtime_error("Error: Projection matrix could not be computed. Exterior translation not set!"));
+
+  cv::Mat T_w2c = Tw2c();
+
+  cv::Mat P;
+  hconcat(_camera_matrix * T_w2c.rowRange(0, 3).colRange(0, 3), _camera_matrix * T_w2c.rowRange(0, 3).col(3), P);
+  return P;
 }
 
 cv::Mat Pinhole::distCoeffs() const

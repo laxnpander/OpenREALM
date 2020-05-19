@@ -45,7 +45,7 @@ realm::camera::Pinhole realm::createDummyPinhole()
   int width = 1200;
   int height = 1000;
 
-  cv::Mat K(3, 3, CV_64F);
+  cv::Mat K = cv::Mat::eye(3, 3, CV_64F);
   K.at<double>(0, 0) = 1200.0;
   K.at<double>(1, 1) = 1200.0;
   K.at<double>(0, 2) = 600.0;

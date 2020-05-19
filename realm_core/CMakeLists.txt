@@ -104,7 +104,9 @@ if(CATKIN_ENABLE_TESTING)
             test/cvgridmap_test.cpp
             test/frame_test.cpp
             test/pinhole_test.cpp
+            test/plane_fitter_test.cpp
             test/settings_test.cpp
+            test/stereo_test.cpp
             test/worker_thread_test.cpp
             )
 endif()

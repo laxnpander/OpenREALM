@@ -45,28 +45,25 @@ void remap(const Frame::Ptr &frame,
            cv::Mat &img_remapped);
 
 /*!
- * @brief Function for computation of world points from depth map. Disparity must be normalised to min/max depth.
+ * @brief Function for computation of world points from depth map. Depth must be normalised to min/max depth.
  * @param cam Camera model, e.g. pinhole for projection of points. Must contain R, t and K
- * @param depthmap Disparity map computed with a stereo reconstruction framework of choice, normalised to min/max depth
+ * @param depthmap Depth map computed with a stereo reconstruction framework of choice, normalised to min/max depth
  * @return 3-channel double precision matrix (CV_64FC3) with world point coordinates at each element
  */
-cv::Mat reprojectDepthMap(const camera::Pinhole::Ptr &cam,
-                          const cv::Mat &depthmap);
+cv::Mat reprojectDepthMap(const camera::Pinhole::Ptr &cam, const cv::Mat &depthmap);
 
 /*!
  * @brief Function for computation of depth and depth map from pointcloud and camera model
  * @param cam Camera model, e.g. pinhole for projection of points. Must contain R, t and K
  * @param points Point cloud structured es mat rowise x, y, z coordinates
- * @param depth Output depth map as cv::Mat
+ * @return depth map
  */
-void computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &cam,
-                                   const cv::Mat &points,
-                                   cv::Mat &depth);
+cv::Mat computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &cam, const cv::Mat &points);
 
 /*!
  * @brief Function for computation of normals from an input depth map
  * @param depth Input depth map
- * @return Normal map
+ * @return Normal map with type CV_32FC3
  */
 cv::Mat computeNormalsFromDepthMap(const cv::Mat& depth);
 
