@@ -156,6 +156,12 @@ class Pinhole
     double p2() const;
 
     /*!
+     * @brief Getter for lens distortion coefficient k3
+     * @return Lens distortion coefficient k3
+     */
+    double k3() const;
+
+    /*!
      * @brief Getter for camera pose.
      *        Note: Here pose is defined as 3x4 matrix and mapping from camera TO world (direction is important)
      *              See also in contrast: T_c2w is a 4x4 transformation matrix.

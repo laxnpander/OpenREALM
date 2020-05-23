@@ -236,14 +236,14 @@ realm_msgs::Pinhole to_ros::pinhole(const realm::camera::Pinhole::ConstPtr &cam)
   msg.k2.data = cam->k2();
   msg.p1.data = cam->p1();
   msg.p2.data = cam->p2();
-  msg.k3.data = 0.0;
+  msg.k3.data = cam->k3();
   return msg;
 }
 
 realm::camera::Pinhole::Ptr to_realm::pinhole(const realm_msgs::Pinhole &msg)
 {
   realm::camera::Pinhole cam(msg.fx.data, msg.fy.data, msg.cx.data, msg.cy.data, msg.width.data, msg.height.data);
-  cam.setDistortionMap(msg.k1.data, msg.k2.data, msg.p1.data, msg.p2.data, 0.0);
+  cam.setDistortionMap(msg.k1.data, msg.k2.data, msg.p1.data, msg.p2.data, msg.k3.data);
   return std::make_shared<camera::Pinhole>(cam);
 }
 

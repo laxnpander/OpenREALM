@@ -45,9 +45,10 @@ camera::Pinhole loadCameraFromYaml(const std::string &directory, const std::stri
  * @brief Function for loading camera from .yaml file. For formatted examples see realm_ros/config/...
  *        Interface for filepath one argument
  * @param filepath Absolute path to the file
+ * @param fps Optional parameter if you also want to grab the fps in the loader function
  * @return Loaded camera model
  */
-camera::Pinhole loadCameraFromYaml(const std::string &filepath);
+camera::Pinhole loadCameraFromYaml(const std::string &filepath, double* fps = nullptr);
 
 /*!
  * @brief Function for loading a georeference from .yaml file. Format is OpenCV YAML standard for matrices. The matrix

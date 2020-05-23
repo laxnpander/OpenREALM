@@ -29,7 +29,7 @@ camera::Pinhole io::loadCameraFromYaml(const std::string &directory, const std::
   return loadCameraFromYaml(directory + "/" + filename);
 }
 
-camera::Pinhole io::loadCameraFromYaml(const std::string &filepath)
+camera::Pinhole io::loadCameraFromYaml(const std::string &filepath, double* fps)
 {
   // Identify camera model
   CameraSettings::Ptr settings = CameraSettingsFactory::load(filepath);
@@ -37,12 +37,16 @@ camera::Pinhole io::loadCameraFromYaml(const std::string &filepath)
   // Load camera informations depending on model
   if ((*settings)["type"].toString() == "pinhole")
   {
+    // Grab the fps, as it is note saved in the camera container
+    if (fps != nullptr)
+      *fps = (*settings)["fps"].toDouble();
+
     // Create pinhole model
     camera::Pinhole cam((*settings)["fx"].toDouble(), (*settings)["fy"].toDouble(),
                         (*settings)["cx"].toDouble(), (*settings)["cy"].toDouble(),
               (uint32_t)(*settings)["width"].toInt(), (uint32_t)(*settings)["height"].toInt());
     cam.setDistortionMap((*settings)["k1"].toDouble(), (*settings)["k2"].toDouble(),
-                         (*settings)["p1"].toDouble(), (*settings)["p2"].toDouble(), 0.0);
+                         (*settings)["p1"].toDouble(), (*settings)["p2"].toDouble(), (*settings)["k3"].toDouble());
     return cam;
   }
 }

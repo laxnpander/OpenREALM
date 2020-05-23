@@ -174,6 +174,12 @@ double Pinhole::p2() const
   return _distortion_coeff.at<double>(3);
 }
 
+double Pinhole::k3() const
+{
+  assert(!_distortion_coeff.empty() && _distortion_coeff.type() == CV_64F);
+  return _distortion_coeff.at<double>(4);
+}
+
 cv::Mat Pinhole::K() const
 {
   assert(!_camera_matrix.empty() && _camera_matrix.type() == CV_64F);

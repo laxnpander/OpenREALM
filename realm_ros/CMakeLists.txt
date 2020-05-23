@@ -64,6 +64,7 @@ include_directories(
         ${cmake_modules_INCLUDE_DIRS}
 )
 add_library(${PROJECT_NAME} SHARED
+        src/realm_ros_lib/grabber_ros_node.cpp
         src/realm_ros_lib/grabber_exiv2_node.cpp
         src/realm_ros_lib/stage_node.cpp
         src/realm_ros_lib/conversions.cpp
@@ -81,6 +82,10 @@ add_definitions(-std=c++11)
 #################
 ## Executables ##
 #################
+
+add_executable(realm_ros_grabber src/grabber_ros_node_main.cpp)
+add_dependencies(realm_ros_grabber ${catkin_EXPORTED_TARGETS})
+target_link_libraries(realm_ros_grabber ${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${cmake_modules_LIBRARIES})
 
 add_executable(realm_exiv2_grabber src/grabber_exiv2_node_main.cpp)
 add_dependencies(realm_exiv2_grabber ${catkin_EXPORTED_TARGETS})
