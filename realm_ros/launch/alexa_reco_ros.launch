@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="camera_id" default="alexa"/>
+    <arg name="topic_in_image" default="/down/pointgrey_0/image"/>
+    <arg name="topic_in_gnss" default="/mavros/global_position/global"/>
+    <arg name="topic_in_heading" default="/mavros/global_position/compass_hdg"/>
+    <arg name="topic_in_relative_altitude" default="/mavros/global_position/rel_alt"/>
+    <arg name="topic_out_adapter" default="/realm/$(arg camera_id)/input"/>
+    <arg name="topic_pose_est" default="/realm/$(arg camera_id)/pose_estimation/frame"/>
+    <arg name="topic_dense" default="/realm/$(arg camera_id)/densification/frame"/>
+    <arg name="topic_surf" default="/realm/$(arg camera_id)/surface_generation/frame"/>
+    <arg name="topic_rect" default="/realm/$(arg camera_id)/ortho_rectification/frame"/>
+    <arg name="topic_mosaic" default="/realm/$(arg camera_id)/mosaicing/frame"/>
+
+    <node pkg="realm_ros" type="realm_ros_grabber" name="realm_ros_grabber" output="screen">
+        <param name="config/id" type="string" value="$(arg camera_id)"/>
+        <param name="config/profile" type="string" value="alexa_reco"/>
+        <param name="topic/image" type="string" value="$(arg topic_in_image)"/>
+        <param name="topic/gnss" type="string" value="$(arg topic_in_gnss)"/>
+        <param name="topic/heading" type="string" value="$(arg topic_in_heading)"/>
+        <param name="topic/relative_altitude" type="string" value="$(arg topic_in_relative_altitude)"/>
+        <param name="topic/out" type="string" value="$(arg topic_out_adapter)"/>
+    </node>
+
+    <node pkg="realm_ros" type="realm_stage_node" name="realm_pose_estimation" output="screen">
+        <param name="stage/type" type="string" value="pose_estimation"/>
+	    <param name="stage/master" type="bool" value="true"/>
+        <param name="topics/input" type="string" value="$(arg topic_out_adapter)"/>
+        <param name="topics/output" type="string" value="$(arg topic_pose_est)"/>
+        <param name="config/id" type="string" value="$(arg camera_id)"/>
+        <param name="config/profile" type="string" value="alexa_reco"/>
+        <param name="config/method" type="string" value="orb_slam2"/>
+    </node>
+
+    <node pkg="realm_ros" type="realm_stage_node" name="realm_densification" output="screen">
+        <param name="stage/type" type="string" value="densification"/>
+        <param name="topics/input" type="string" value="$(arg topic_pose_est)"/>
+        <param name="topics/output" type="string" value="$(arg topic_dense)"/>
+        <param name="config/id" type="string" value="$(arg camera_id)"/>
+        <param name="config/profile" type="string" value="alexa_reco"/>
+        <param name="config/method" type="string" value="psl"/>
+    </node>
+
+    <node pkg="realm_ros" type="realm_stage_node" name="realm_surface_generation" output="screen">
+        <param name="stage/type" type="string" value="surface_generation"/>
+        <param name="topics/input" type="string" value="$(arg topic_dense)"/>
+        <param name="topics/output" type="string" value="$(arg topic_surf)"/>
+        <param name="config/id" type="string" value="$(arg camera_id)"/>
+        <param name="config/profile" type="string" value="alexa_reco"/>
+    </node>
+
+    <node pkg="realm_ros" type="realm_stage_node" name="realm_ortho_rectification" output="screen">
+        <param name="stage/type" type="string" value="ortho_rectification"/>
+        <param name="topics/input" type="string" value="$(arg topic_surf)"/>
+        <param name="topics/output" type="string" value="$(arg topic_rect)"/>
+        <param name="config/id" type="string" value="$(arg camera_id)"/>
+        <param name="config/profile" type="string" value="alexa_reco"/>
+    </node>
+
+    <node pkg="realm_ros" type="realm_stage_node" name="realm_mosaicing" output="screen">
+        <param name="stage/type" type="string" value="mosaicing"/>
+        <param name="topics/input" type="string" value="$(arg topic_rect)"/>
+        <param name="config/id" type="string" value="$(arg camera_id)"/>
+        <param name="config/profile" type="string" value="alexa_reco"/>
+    </node>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find realm_ros)/rviz/realm.rviz" />
+
+
+
+</launch>
