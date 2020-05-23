@@ -11,3 +11,4 @@ realm_ros/launch/*
 !realm_ros/launch/alexa_gnss.launch
 !realm_ros/launch/alexa_noreco.launch
 !realm_ros/launch/alexa_reco.launch
+!realm_ros/launch/alexa_reco_ros.launch
