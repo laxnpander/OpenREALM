@@ -22,27 +22,30 @@ set(LIBRARY_NAME realm_io)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+
 ################################################################################
 # Dependencies
 ################################################################################
 
+
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT)
+find_package(OpenCV 3.2 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3)
+    find_package(OpenCV 3 REQUIRED)
 endif()
-find_package(cmake_modules REQUIRED)
 
 find_package(Exiv2 REQUIRED)
 find_package(GDAL REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS
         filesystem
-        )
+)
+
 
 ################################################################################
 # Sources
 ################################################################################
+
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -118,7 +121,7 @@ target_link_libraries(${LIBRARY_NAME}
         ${GDAL_LIBRARY}
         ${Exiv2_LIBRARIES}
         ${Boost_LIBRARIES}
-        ${cmake_modules_LIBRARIES}
+
         realm_core
         -lexiv2
 )

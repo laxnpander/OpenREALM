@@ -22,18 +22,19 @@ set(LIBRARY_NAME realm_vslam_base)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+
 ################################################################################
 # Dependencies
 ################################################################################
 
+
 SET(VSLAM_IMPL_TYPE "ORB_SLAM2")
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT)
+find_package(OpenCV 3.2 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3)
+	find_package(OpenCV 3 REQUIRED)
 endif()
-find_package(cmake_modules REQUIRED)
 
 #fix to find eigen3
 find_package(Eigen3 QUIET)
@@ -43,9 +44,11 @@ if(NOT Eigen3_FOUND)
 	set(Eigen3_INCLUDE_DIR ${Eigen3_INCLUDE_DIRS})
 endif()
 
+
 ################################################################################
 # Sources
 ################################################################################
+
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -108,9 +111,11 @@ endif()
 # Define the folder containing the header files for this library
 set(realm_vslam_base_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
 
+
 ################################################################################
 # Build
 ################################################################################
+
 
 ## realm library
 include_directories(
@@ -118,7 +123,7 @@ include_directories(
 		${CMAKE_BINARY_DIR}
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 		${OpenCV_INCLUDE_DIRS}
-		${cmake_modules_INCLUDE_DIRS}
+
 		${Eigen3_INCLUDE_DIR}
 		${VSLAM_IMPL_LIB_HEADERS}
 		${realm_core_INCLUDE_DIR}
@@ -135,7 +140,7 @@ add_library(${LIBRARY_NAME} SHARED
 
 target_link_libraries(${LIBRARY_NAME}
         ${OpenCV_LIBRARIES}
-        ${cmake_modules_LIBRARIES}
+
 		${VSLAM_IMPL_LIB}
 		realm_core
 		realm_io
@@ -155,10 +160,13 @@ add_definitions(
 		-Wno-deprecated-declarations
 )
 
+
 ################################################################################
 # Install
 ################################################################################
 
+
 ################################################################################
 # Test
 ################################################################################
+

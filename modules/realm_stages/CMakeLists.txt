@@ -22,21 +22,23 @@ set(LIBRARY_NAME realm_stages)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+
 ################################################################################
 # Dependencies
 ################################################################################
 
+
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT)
+find_package(OpenCV 3.2 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3)
+    find_package(OpenCV 3 REQUIRED)
 endif()
-find_package(cmake_modules REQUIRED)
 
 
 ################################################################################
 # Sources
 ################################################################################
+
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -76,16 +78,18 @@ endif()
 # Define the folder containing the header files for this library
 set(realm_stages_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
 
+
 ################################################################################
 # Build
 ################################################################################
+
 
 include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
-        ${cmake_modules_INCLUDE_DIRS}
+
 )
 
 add_library(${LIBRARY_NAME} SHARED
@@ -101,7 +105,7 @@ target_include_directories(${LIBRARY_NAME} PUBLIC
 )
 
 target_link_libraries(${LIBRARY_NAME}
-        ${cmake_modules_LIBRARIES}
+
         ${OpenCV_LIBRARIES}
         realm_core
         realm_io
@@ -118,10 +122,13 @@ add_dependencies(${LIBRARY_NAME}
         realm_ortho
 )
 
+
 ################################################################################
 # Install
 ################################################################################
 
+
 ################################################################################
 # Test
 ################################################################################
+

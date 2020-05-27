@@ -29,11 +29,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT)
+find_package(OpenCV 3.2 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3)
+    find_package(OpenCV 3 REQUIRED)
 endif()
-find_package(cmake_modules REQUIRED)
+
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(Pangolin REQUIRED)
@@ -183,7 +183,7 @@ include_directories(
         ${OpenGL_INCLUDE_DIRS}
         ${GLUT_INCLUDE_DIRS}
         ${Pangolin_INCLUDE_DIRS}
-        ${cmake_modules_INCLUDE_DIRS}
+
 )
 
 ## g2o Library shared
@@ -230,7 +230,7 @@ target_link_libraries(${LIBRARY_NAME}
         ${OpenGL_LIBRARIES}
         ${GLUT_LIBRARIES}
         ${Pangolin_LIBRARIES}
-        ${cmake_modules_LIBRARIES}
+
 )
 
 add_dependencies(${LIBRARY_NAME}
@@ -246,6 +246,7 @@ add_definitions(
 # Install
 ################################################################################
 
+
 # Mark cpp header files for installation
 #install(
 #        DIRECTORY include/${PROJECT_NAME}/ include/g2o include/DBoW2
@@ -255,6 +256,8 @@ add_definitions(
 #            PATTERN "*.hpp"
 #)
 
+
 ################################################################################
 # Test
 ################################################################################
+

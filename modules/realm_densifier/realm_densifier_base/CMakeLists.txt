@@ -22,9 +22,11 @@ set(LIBRARY_NAME realm_densifier_base)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+
 ################################################################################
 # Dependencies
 ################################################################################
+
 
 if(CMAKE_CUDA_COMPILER)
     message(STATUS "CUDA found. Compiling densification with CUDA support...\n")
@@ -35,14 +37,16 @@ else()
 endif()
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT)
+find_package(OpenCV 3.2 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3)
+    find_package(OpenCV 3 REQUIRED)
 endif()
+
 
 ################################################################################
 # Sources
 ################################################################################
+
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -85,9 +89,11 @@ endif()
 # Define the folder containing the header files for this library
 set(realm_densifier_base_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
 
+
 ################################################################################
 # Build
 ################################################################################
+
 
 ## realm densifier
 include_directories(
@@ -125,10 +131,13 @@ add_dependencies(${LIBRARY_NAME}
         ${DENSIFIER_IMPL_LIBS}
 )
 
+
 ################################################################################
 # Install
 ################################################################################
 
+
 ################################################################################
 # Test
 ################################################################################
+

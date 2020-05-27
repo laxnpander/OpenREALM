@@ -22,14 +22,16 @@ set(LIBRARY_NAME realm_core)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+
 ################################################################################
 # Dependencies
 ################################################################################
 
+
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT)
+find_package(OpenCV 3.2 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3)
+    find_package(OpenCV 3 REQUIRED)
 endif()
 
 # Solution to find Eigen3 with Saucy.
@@ -41,9 +43,11 @@ if(NOT EIGEN3_FOUND)
 endif()
 find_package(GDAL REQUIRED)
 
+
 ################################################################################
 # Sources
 ################################################################################
+
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -96,9 +100,11 @@ endif()
 # Define the folder containing the header files for this library
 set(realm_core_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
 
+
 ################################################################################
 # Build
 ################################################################################
+
 
 include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -130,6 +136,7 @@ add_definitions(
         -Wno-deprecated-declarations
 )
 
+
 ################################################################################
 # Install
 ################################################################################
@@ -138,6 +145,7 @@ add_definitions(
 ################################################################################
 # Test
 ################################################################################
+
 
 if(TESTS_ENABLED)
     include(GoogleTest)

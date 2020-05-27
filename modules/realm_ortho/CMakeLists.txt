@@ -22,18 +22,19 @@ set(LIBRARY_NAME realm_ortho)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+
 ################################################################################
 # Dependencies
 ################################################################################
 
-# Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT)
-if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3)
-endif()
-find_package(CGAL REQUIRED)
-find_package(cmake_modules REQUIRED)
 
+# Fix to avoid OpenCV package confusion with ROS melodic
+find_package(OpenCV 3.2 EXACT QUIET)
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 3 REQUIRED)
+endif()
+
+find_package(CGAL REQUIRED)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(EIGEN3 QUIET)
 if(NOT EIGEN3_FOUND)
@@ -42,9 +43,11 @@ if(NOT EIGEN3_FOUND)
     set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
 endif()
 
+
 ################################################################################
 # Sources
 ################################################################################
+
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -75,9 +78,11 @@ endif()
 # Define the folder containing the header files for this library
 set(realm_ortho_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
 
+
 ################################################################################
 # Build
 ################################################################################
+
 
 include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -86,7 +91,7 @@ include_directories(
         ${OpenCV_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIRS}
         ${CGAL_INCLUDE_DIRS}
-        ${cmake_modules_INCLUDE_DIRS}
+
         ${realm_core_INCLUDE_DIR}
         ${realm_io_INCLUDE_DIR}
 )
@@ -105,7 +110,7 @@ target_include_directories(${LIBRARY_NAME} PUBLIC
 
 target_link_libraries(${LIBRARY_NAME}
         ${OpenCV_LIBRARIES}
-        ${cmake_modules_LIBRARIES}
+
         ${CGAL_LIBRARIES}
         -lCGAL
         realm_core
@@ -121,10 +126,13 @@ add_definitions(
         -Wno-deprecated-declarations
 )
 
+
 ################################################################################
 # Install
 ################################################################################
 
+
 ################################################################################
 # Test
 ################################################################################
+

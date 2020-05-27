@@ -22,18 +22,19 @@ set(LIBRARY_NAME psl)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+
 ################################################################################
 # Dependencies
 ################################################################################
 
-# Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT)
-if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3)
-endif()
-find_package(Boost REQUIRED COMPONENTS system filesystem)
-find_package(cmake_modules REQUIRED)
 
+# Fix to avoid OpenCV package confusion with ROS melodic
+find_package(OpenCV 3.2 EXACT QUIET)
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 3 REQUIRED)
+endif()
+
+find_package(Boost REQUIRED COMPONENTS system filesystem)
 find_package(EIGEN3 QUIET)
 if(NOT EIGEN3_FOUND)
     find_package(PkgConfig REQUIRED)
@@ -53,9 +54,11 @@ set(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE OFF)
 add_definitions(-DRMD_CORR_PATCH_SIDE=5)
 add_definitions(-DRMD_MAX_EXTENT_EPIPOLAR_SEARCH=100)
 
+
 ################################################################################
 # Sources
 ################################################################################
+
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -120,9 +123,11 @@ endif()
 # Define the folder containing the header files for this library
 set(psl_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)
 
+
 ################################################################################
 # Build
 ################################################################################
+
 
 ## psl cuda
 include_directories(
@@ -134,7 +139,6 @@ include_directories(
         ${OpenCV_INCLUDE_DIRS}
         ${Eigen3_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
-        ${cmake_modules_INCLUDE_DIRS}
 )
 
 ## psl cuda
@@ -162,7 +166,6 @@ target_link_libraries(${LIBRARY_NAME}
         ${CUDA_CUDART_LIBRARY}
         ${OpenCV_LIBRARIES}
         ${Boost_LIBRARIES}
-        ${cmake_modules_LIBRARIES}
         ${LIBRARY_NAME}_cuda
 )
 
@@ -174,10 +177,13 @@ add_definitions(
         -Wno-deprecated-declarations
 )
 
+
 ################################################################################
 # Install
 ################################################################################
 
+
 ################################################################################
 # Test
 ################################################################################
+
