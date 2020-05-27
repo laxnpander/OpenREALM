@@ -2,31 +2,9 @@
 # https://docs.travis-ci.com/user/installing-dependencies
 
 dist: bionic
-addons:
-  apt:
-    packages:
-      - libeigen3-dev
-      - gdal-bin
-      - libcgal-qt5-dev
-      - libpcl-dev
-      - exiv2
-      - libexiv2-dev
-      - apt-utils
-      - libglew-dev
-      - libxkbcommon-dev
-      - libglu1-mesa-dev
-      - freeglut3-dev
-      - mesa-common-dev
-      - libxi-dev
-      - libxmu-dev
-      - libxmu-headers
-      - x11proto-input-dev
-      - ca-certificates
-      - lsb-release
-      - gnupg2
-      - curl
-      - libopencv-dev
 
 before_install:
-  - ./install_travis_deps.sh
+  - ./install_deps.sh
 
+install:
+  - ./install_openrealm_lib.sh
