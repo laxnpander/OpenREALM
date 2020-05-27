@@ -5,6 +5,18 @@ a polished and bugfree application.
 
 Feel free to fork and contribute. Let's make mapping fast again! :)
 
+## Changelog
+
+**05/2020: Migration to CMAKE only**
+
+Please note, that from now on this repository will contain OpenREALM as CMake only project. We decided to take this step
+due to several reasons, but mainly to make it more independet from the ROS1 build system. This will allow it to move to
+other platforms (e.g. Windows) or transportation frameworks (e.g. ROS2) in the future with less trouble.
+
+In case you still want to use ROS1 with OpenREALM you are free to do it. Refer to the instructions on the following repository:
+
+https://github.com/laxnpander/OpenREALM_ROS1_Bridge
+
 ## Demonstration
 
 [![Demonstration Video](https://img.youtube.com/vi/9MvPTHP0r0c/0.jpg)](https://www.youtube.com/watch?v=9MvPTHP0r0c)
