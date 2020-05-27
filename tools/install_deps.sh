@@ -30,7 +30,7 @@ fi
 sudo apt-get update
 
 # General packages
-sudo apt-get install -y -q apt-utils ca-certificates lsb-release gnupg2 curl
+sudo apt-get install -y -q apt-utils ca-certificates lsb-release gnupg2 curl libproj-dev
 
 #sudo apt-get install -y -q libopencv-dev
 # Eigen3 for several linear algebra problems
