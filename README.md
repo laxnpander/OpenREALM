@@ -163,16 +163,16 @@ roslaunch realm_ros alexa_reco.launch
 OpenREALM can also be used with a docker. The docker is based on Ubuntu 18.04 and all files related to it
 are in the ```docker``` folder of this main repository. Testing it is very simple:
 
-1.Install Docker from 
+**Step 1: Install Docker** 
 
   [Docker Install](https://docs.docker.com/engine/install/)
 
-2.Build the Docker image using the script in ```docker``` folder.
+**Step 2: Build the Docker image using the script in ```docker``` folder**
 ```bash
   /bin/bash docker_build.sh
 ```
 
-3.Run the Docker image using the script in ```docker``` folder.
+**Step 3: Run the Docker image using the script in ```docker``` folder**
 ```bash
   /bin/bash docker_run.sh
 ```
