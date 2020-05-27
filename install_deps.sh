@@ -1,3 +1,28 @@
+# Check CMake version and update if necessary
+OUTPUT=$(cmake --version)
+read CMAKE_VERSION_MAJOR CMAKE_VERSION_MINOR CMAKE_VERSION_PATCH <<< ${OUTPUT//[^0-9]/ }
+
+if [ "${CMAKE_VERSION_MINOR}" -le 9 ]; then
+
+  echo 'CMake Version is too old! Trying to download newer version '
+
+  CMAKE_FILE="cmake-3.10.3-Linux-x86_64"
+
+  # Check if file already exists
+  if [ ! -e "${CMAKE_FILE}.tar.gz" ]; then
+    wget https://cmake.org/files/v3.10/${CMAKE_FILE}.tar.gz
+  fi
+
+  # Remove existing unpacked cmake folder
+  if [ -d "${CMAKE_FILE}" ]; then
+    rm -r ${CMAKE_FILE}
+  fi
+
+  tar xvzf ${CMAKE_FILE}.tar.gz
+
+  export PATH="`pwd`/${CMAKE_FILE}/bin:$PATH"
+fi
+
 # Update the Apt Cache
 sudo apt update
 
