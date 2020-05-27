@@ -1,7 +1,11 @@
 # https://docs.travis-ci.com/user/reference/bionic
 # https://docs.travis-ci.com/user/installing-dependencies
-
-dist: bionic
+jobs:
+  include:
+    - os: linux
+      dist: bionic
+    - os: linux
+      dist: xenial
 
 before_install:
   - ./install_deps.sh
