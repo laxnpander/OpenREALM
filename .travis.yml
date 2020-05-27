@@ -1,42 +1,32 @@
-# This config uses industrial_ci (https://github.com/ros-industrial/industrial_ci.git).
-# For troubleshooting, see readme (https://github.com/ros-industrial/industrial_ci/blob/master/README.rst)
+# https://docs.travis-ci.com/user/reference/bionic
+# https://docs.travis-ci.com/user/installing-dependencies
 
-language: generic # optional, just removes the language badge
+dist: bionic
+addons:
+  apt:
+    packages:
+      - libeigen3-dev
+      - gdal-bin
+      - libcgal-qt5-dev
+      - libpcl-dev
+      - exiv2
+      - libexiv2-dev
+      - apt-utils
+      - libglew-dev
+      - libxkbcommon-dev
+      - libglu1-mesa-dev
+      - freeglut3-dev
+      - mesa-common-dev
+      - libxi-dev
+      - libxmu-dev
+      - libxmu-headers
+      - x11proto-input-dev
+      - ca-certificates
+      - lsb-release
+      - gnupg2
+      - curl
+      - libopencv-dev
 
-services:
-  - docker
+before_install:
+  - ./install_travis_deps.sh
 
-# include the following block if the C/C++ build artifacts should get cached by Travis,
-# CCACHE_DIR needs to get set as well to actually fill the cache
-cache:
-  directories:
-    - $HOME/.ccache
-
-git:
-  quiet: true # optional, silences the cloning of the target repository
-
-# configure the build environment(s)
-# https://github.com/ros-industrial/industrial_ci/blob/master/doc/index.rst#variables-you-can-configure
-env:
-  global: # global settings for all jobs
-    - ROS_REPO=ros
-    - CCACHE_DIR=$HOME/.ccache # enables C/C++ caching in industrial_ci
-    - BEFORE_INIT='sh ./install_deps.sh'
-    - CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
-    - TARGET_WORKSPACE='. -realm_densifier/realm_densifier_impl/psl'
-    - ROSDEP_SKIP_KEYS=psl
-
-  matrix: # each line is a job
-    - ROS_DISTRO="kinetic"
-    - ROS_DISTRO="melodic"
-# allow failures, e.g. for unsupported distros
-matrix:
-  allow_failures:
-    - env: ROS_DISTRO="kinetic"
-
-# clone and run industrial_ci
-install:
-  - git clone --quiet --depth 1 https://github.com/ros-industrial/industrial_ci.git .industrial_ci -b master
-
-script:
-  - .industrial_ci/travis.sh
