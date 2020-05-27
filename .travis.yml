@@ -9,8 +9,8 @@ jobs:
       dist: xenial
 
 before_install:
-  - tools/install_deps.sh
-  - tools/install_opencv.sh
+  - bash ./tools/install_deps.sh
+  - bash ./tools/install_opencv.sh
 
 script:
-  - tools/install_openrealm_lib.sh
+  - bash ./tools/install_openrealm_lib.sh
