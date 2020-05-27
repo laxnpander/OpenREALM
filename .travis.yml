@@ -10,7 +10,7 @@ jobs:
 
 before_install:
   - ./install_deps.sh
+  - ./install_opencv.sh
 
-
-install:
+script:
   - ./install_openrealm_lib.sh
