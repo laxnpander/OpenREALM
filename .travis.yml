@@ -1,5 +1,6 @@
 # https://docs.travis-ci.com/user/reference/bionic
 # https://docs.travis-ci.com/user/installing-dependencies
+language: c++
 jobs:
   include:
     - os: linux
@@ -9,6 +10,7 @@ jobs:
 
 before_install:
   - ./install_deps.sh
+
 
 install:
   - ./install_openrealm_lib.sh
