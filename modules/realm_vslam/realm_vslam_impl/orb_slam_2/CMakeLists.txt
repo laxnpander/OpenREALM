@@ -217,10 +217,14 @@ add_library(${LIBRARY_NAME} SHARED
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
-        ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/DBoW2
-        ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/g2o
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # for headers when building
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rdparty> # for headers when building
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/DBoW2> # for headers when building
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/g2o> # for headers when building
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}> # for client in install mode
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/3rdparty> # for client in install mode
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/3rdparty/DBoW2> # for client in install mode
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/3rdparty/g2o> # for client in install mode
 )
 
 target_link_libraries(${LIBRARY_NAME}
@@ -247,14 +251,24 @@ add_definitions(
 ################################################################################
 
 
-# Mark cpp header files for installation
-#install(
-#        DIRECTORY include/${PROJECT_NAME}/ include/g2o include/DBoW2
-#        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#        FILES_MATCHING
-#            PATTERN "*.h"
-#            PATTERN "*.hpp"
-#)
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "open_realm_${LIBRARY_NAME}-${OpenREALM_VERSION}")
+
+# Library
+install(TARGETS ${LIBRARY_NAME} EXPORT OpenREALMTargets
+        RUNTIME       DESTINATION ${OpenREALM_RUNTIME_INSTALL_DIR}
+        LIBRARY       DESTINATION ${OpenREALM_LIBRARY_INSTALL_DIR}
+        ARCHIVE       DESTINATION ${OpenREALM_ARCHIVE_INSTALL_DIR}
+        FRAMEWORK     DESTINATION ${OpenREALM_FRAMEWORK_INSTALL_DIR})
+
+# Headers
+install(
+        DIRECTORY include/${LIBRARY_NAME} 3rdparty/g2o 3rdparty/DBoW2
+        DESTINATION include/${PROJECT_NAME}/3rdparty
+        FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hpp"
+        PATTERN "*.in"
+)
 
 
 ################################################################################

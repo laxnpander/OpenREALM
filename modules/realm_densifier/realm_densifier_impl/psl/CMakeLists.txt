@@ -157,8 +157,9 @@ add_library(${LIBRARY_NAME} SHARED
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # for headers when building
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}> # for client in install mode
+        )
 
 target_link_libraries(${LIBRARY_NAME}
         cuda
@@ -181,6 +182,24 @@ add_definitions(
 ################################################################################
 # Install
 ################################################################################
+
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "open_realm_${LIBRARY_NAME}-${OpenREALM_VERSION}")
+
+install(TARGETS ${LIBRARY_NAME} ${LIBRARY_NAME}_cuda EXPORT OpenREALMTargets
+        RUNTIME       DESTINATION ${OpenREALM_RUNTIME_INSTALL_DIR}
+        LIBRARY       DESTINATION ${OpenREALM_LIBRARY_INSTALL_DIR}
+        ARCHIVE       DESTINATION ${OpenREALM_ARCHIVE_INSTALL_DIR}
+        FRAMEWORK     DESTINATION ${OpenREALM_FRAMEWORK_INSTALL_DIR})
+
+# Headers
+install(
+        DIRECTORY include/${LIBRARY_NAME}
+        DESTINATION include/${PROJECT_NAME}/3rdparty
+        FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hpp"
+        PATTERN "*.cuh"
+)
 
 
 ################################################################################

@@ -1,14 +1,3 @@
 .idea/*
 cmake-build-debug/*
-realm_ros/output/*
-
-realm_ros/profiles/*
-!realm_ros/profiles/alexa_gnss
-!realm_ros/profiles/alexa_noreco
-!realm_ros/profiles/alexa_reco
-
-realm_ros/launch/*
-!realm_ros/launch/alexa_gnss.launch
-!realm_ros/launch/alexa_noreco.launch
-!realm_ros/launch/alexa_reco.launch
-!realm_ros/launch/alexa_reco_ros.launch
+build/*

@@ -25,6 +25,42 @@ set(OpenREALM_VERSION_NUMBER "1000")
 
 
 ################################################################################
+# Paths
+################################################################################
+
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+if(UNIX)
+    include(GNUInstallDirs)
+
+    set(OpenREALM_INC_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}/OpenREALM")
+    set(OpenREALM_RUNTIME_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
+    set(OpenREALM_LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
+    set(OpenREALM_ARCHIVE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
+    set(OpenREALM_FRAMEWORK_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
+
+    set(OpenREALM_CMAKE_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/OpenREALM")
+    set(OpenREALM_ADDITIONAL_FILES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/OpenREALM")
+
+    set(OpenREALM_RUNTIME_INSTALL_DIR "bin") # for the nodesize_dbg, just ignore version and the like
+    set(OpenREALM_INC_INSTALL_DIR "include/OpenREALM") # header filestree
+
+#elseif(WIN32)
+#    set(OpenREALM_INC_INSTALL_DIR "include/OpenREALM")
+#    set(OpenREALM_RUNTIME_INSTALL_DIR   "bin")
+#    set(OpenREALM_LIBRARY_INSTALL_DIR   "bin")
+#    set(OpenREALM_ARCHIVE_INSTALL_DIR   "lib")
+#    set(OpenREALM_FRAMEWORK_INSTALL_DIR "bin")
+#
+#    set(OpenREALM_CMAKE_CONFIG_INSTALL_DIR "share/OpenREALM/cmake")
+#    set(OpenREALM_ADDITIONAL_FILES_INSTALL_DIR "share/OpenREALM")
+#    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+else()
+    message(FATAL_ERROR "Could not set install folders for this platform!")
+endif()
+
+
+################################################################################
 # Include CMake dependencies
 ################################################################################
 
@@ -84,11 +120,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
 ################################################################################
@@ -101,6 +133,22 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 #add_subdirectory(doc)
 add_subdirectory(modules)
 #add_subdirectory(samples)
+
+
+################################################################################
+# Install
+################################################################################
+
+# install readme and license
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+        DESTINATION ${OpenREALM_ADDITIONAL_FILES_INSTALL_DIR}
+)
+
+install(
+        EXPORT OpenREALMTargets
+        DESTINATION ${OpenREALM_CMAKE_CONFIG_INSTALL_DIR}
+        FILE OpenREALMConfig.cmake
+)
 
 
 ################################################################################
