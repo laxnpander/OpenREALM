@@ -7,8 +7,6 @@ jobs:
       dist: bionic
     - os: linux
       dist: xenial
-    - os: linux
-      dist: focal
 
 before_install:
   - bash ./tools/install_deps.sh
