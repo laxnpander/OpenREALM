@@ -44,7 +44,7 @@ sudo apt-get install -y -q libcgal-dev
 sudo apt-get install -y -q libcgal-qt5-dev
 
 # PCL for writing point clouds and mesh data
-sudo apt-get install -y -q libpcl-dev
+sudo apt-get install -y -q libpcl-dev python-vtk
 
 # Exiv2 for Exif tagging.
 sudo apt-get install -y -q exiv2 libexiv2-dev apt-utils
