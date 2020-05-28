@@ -1,3 +1,6 @@
+#!/bin/bash
+set -ex
+
 # Check CMake version and update if necessary
 OUTPUT=$(cmake --version)
 read CMAKE_VERSION_MAJOR CMAKE_VERSION_MINOR CMAKE_VERSION_PATCH <<< ${OUTPUT//[^0-9]/ }
@@ -24,40 +27,42 @@ if [ "${CMAKE_VERSION_MINOR}" -le 9 ]; then
 fi
 
 # Update the Apt Cache
-sudo apt update
+sudo apt-get update
 
-# Catkin tools for build process
-sudo apt install -y -q python-catkin-tools
+# General packages
+sudo apt-get install -y -q apt-utils ca-certificates lsb-release gnupg2 curl libproj-dev
 
-# Additional ROS package dependencies
-sudo apt install -y -q ros-$ROS_DISTRO-geographic-msgs
-sudo apt install -y -q ros-$ROS_DISTRO-geodesy
-sudo apt install -y -q ros-$ROS_DISTRO-cv-bridge
-sudo apt install -y -q ros-$ROS_DISTRO-rviz
-sudo apt install -y -q ros-$ROS_DISTRO-pcl-ros
-
+#sudo apt-get install -y -q libopencv-dev
 # Eigen3 for several linear algebra problems
-sudo apt install -y -q libeigen3-dev
+sudo apt-get install -y -q libeigen3-dev
 
 # Gdal library for conversions between UTM and WGS84
-sudo apt install -y -q gdal-bin
+sudo apt-get install -y -q gdal-bin
 
 # Cgal library for delauney 2.5D triangulation and mesh creation
-sudo apt install -y -q libcgal-dev
-sudo apt install -y -q libcgal-qt5-dev
+sudo apt-get install -y -q libcgal-dev
+sudo apt-get install -y -q libcgal-qt5-dev
 
 # PCL for writing point clouds and mesh data
-sudo apt install -y -q libpcl-dev
+sudo apt-get install -y -q libpcl-dev
 
 # Exiv2 for Exif tagging.
-sudo apt install -y -q exiv2 libexiv2-dev apt-utils
+sudo apt-get install -y -q exiv2 libexiv2-dev apt-utils
 
 # Used by Pangolin/OpenGL
-sudo apt install -y -q libglew-dev libxkbcommon-dev libglu1-mesa-dev freeglut3-dev mesa-common-dev
-sudo apt install -y -q libxi-dev libxmu-dev libxmu-headers x11proto-input-dev
+sudo apt-get install -y -q libglew-dev libxkbcommon-dev libglu1-mesa-dev freeglut3-dev mesa-common-dev
+sudo apt-get install -y -q libxi-dev libxmu-dev libxmu-headers x11proto-input-dev
+
+if [[ $(lsb_release -rs) == "16.04" ]]; then
+
+       echo "Its Ubuntu 16.04. Repairing the Links for libproj"
+       sudo ln -s /usr/lib/x86_64-linux-gnu/libvtkCommonCore-6.2.so /usr/lib/libvtkproj4.so
+else
+       echo "No problems to repair."
+fi
+
 
 # Pangolin
-
 cd ~ && mkdir Pangolin && cd Pangolin
 git clone https://github.com/stevenlovegrove/Pangolin.git
 cd Pangolin && mkdir build && cd build && cmake ..
