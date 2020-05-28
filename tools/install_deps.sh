@@ -53,7 +53,7 @@ sudo apt-get install -y -q exiv2 libexiv2-dev apt-utils
 sudo apt-get install -y -q libglew-dev libxkbcommon-dev libglu1-mesa-dev freeglut3-dev mesa-common-dev
 sudo apt-get install -y -q libxi-dev libxmu-dev libxmu-headers x11proto-input-dev
 
-ln -s /usr/lib/x86_64-linux-gnu/libvtkCommonCore-6.2.so /usr/lib/libvtkproj4.so
+sudo ln -s /usr/lib/x86_64-linux-gnu/libvtkCommonCore-6.2.so /usr/lib/libvtkproj4.so
 
 
 # Pangolin
