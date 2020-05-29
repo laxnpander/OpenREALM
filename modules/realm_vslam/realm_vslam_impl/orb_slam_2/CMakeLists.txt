@@ -221,25 +221,21 @@ target_include_directories(${LIBRARY_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rdparty> # for headers when building
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/DBoW2> # for headers when building
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/g2o> # for headers when building
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}> # for client in install mode
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/3rdparty> # for client in install mode
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/3rdparty/DBoW2> # for client in install mode
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}/3rdparty/g2o> # for client in install mode
+        $<INSTALL_INTERFACE:${OpenREALM_INC_INSTALL_DIR}> # for client in install mode
+        $<INSTALL_INTERFACE:${OpenREALM_INC_INSTALL_DIR}/3rdparty> # for client in install mode
+        $<INSTALL_INTERFACE:${OpenREALM_INC_INSTALL_DIR}/3rdparty/DBoW2> # for client in install mode
+        $<INSTALL_INTERFACE:${OpenREALM_INC_INSTALL_DIR}/3rdparty/g2o> # for client in install mode
 )
 
 target_link_libraries(${LIBRARY_NAME}
-        ${g2o_LIBRARIES}
-        ${DBoW2_LIBRARIES}
-        ${OpenCV_LIBRARIES}
-        ${OpenGL_LIBRARIES}
-        ${GLUT_LIBRARIES}
-        ${Pangolin_LIBRARIES}
-
-)
-
-add_dependencies(${LIBRARY_NAME}
-        g2o
-        DBoW2
+        PUBLIC
+            ${Pangolin_LIBRARIES}
+        PRIVATE
+            ${OpenCV_LIBRARIES}
+            ${OpenGL_LIBRARIES}
+            ${GLUT_LIBRARIES}
+            g2o
+            DBoW2
 )
 
 add_definitions(
@@ -263,7 +259,7 @@ install(TARGETS ${LIBRARY_NAME} EXPORT OpenREALMTargets
 # Headers
 install(
         DIRECTORY include/${LIBRARY_NAME} 3rdparty/g2o 3rdparty/DBoW2
-        DESTINATION include/${PROJECT_NAME}/3rdparty
+        DESTINATION ${OpenREALM_INC_INSTALL_DIR}/3rdparty
         FILES_MATCHING
         PATTERN "*.h"
         PATTERN "*.hpp"

@@ -99,8 +99,6 @@ include_directories(
         ${GDAL_INCLUDE_DIR}
         ${Exiv2_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
-        ${cmake_modules_INCLUDE_DIR}
-        ${realm_core_INCLUDE_DIR}
 )
 
 add_library(${LIBRARY_NAME} SHARED
@@ -113,27 +111,19 @@ add_library(${LIBRARY_NAME} SHARED
 
 target_include_directories(${LIBRARY_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # for headers when building
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}> # for client in install mode
-        )
+        $<INSTALL_INTERFACE:${OpenREALM_INC_INSTALL_DIR}> # for client in install mode
+)
 
 target_link_libraries(${LIBRARY_NAME}
-        ${OpenCV_LIBRARIES}
-        ${PCL_COMMON_LIBRARIES}
-        ${PCL_IO_LIBRARIES}
-        ${GDAL_LIBRARY}
-        ${Exiv2_LIBRARIES}
-        ${Boost_LIBRARIES}
-
-        realm_core
-        -lexiv2
-)
-
-add_dependencies(${LIBRARY_NAME}
-         realm_core
-)
-
-add_definitions(
-        ${PCL_DEFINITIONS}
+        PUBLIC
+            realm_core
+        PRIVATE
+            ${OpenCV_LIBRARIES}
+            ${GDAL_LIBRARY}
+            ${Exiv2_LIBRARIES}
+            ${Boost_LIBRARIES}
+            ${PCL_LIBRARIES}
+            -lexiv2
 )
 
 ################################################################################
@@ -147,12 +137,13 @@ install(TARGETS ${LIBRARY_NAME} EXPORT OpenREALMTargets
         RUNTIME       DESTINATION ${OpenREALM_RUNTIME_INSTALL_DIR}
         LIBRARY       DESTINATION ${OpenREALM_LIBRARY_INSTALL_DIR}
         ARCHIVE       DESTINATION ${OpenREALM_ARCHIVE_INSTALL_DIR}
-        FRAMEWORK     DESTINATION ${OpenREALM_FRAMEWORK_INSTALL_DIR})
+        FRAMEWORK     DESTINATION ${OpenREALM_FRAMEWORK_INSTALL_DIR}
+)
 
 # Headers
 install(
         DIRECTORY include/${LIBRARY_NAME}
-        DESTINATION include/${PROJECT_NAME}
+        DESTINATION ${OpenREALM_INC_INSTALL_DIR}
         FILES_MATCHING
         PATTERN "*.h"
         PATTERN "*.hpp"

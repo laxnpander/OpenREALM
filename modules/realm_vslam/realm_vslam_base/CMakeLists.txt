@@ -139,22 +139,17 @@ add_library(${LIBRARY_NAME} SHARED
 )
 
 target_link_libraries(${LIBRARY_NAME}
-        ${OpenCV_LIBRARIES}
-
-		${VSLAM_IMPL_LIB}
-		realm_core
-		realm_io
-)
-
-add_dependencies(${LIBRARY_NAME}
-		realm_core
-		realm_io
-		${VSLAM_IMPL_LIB}
+		PUBLIC
+			realm_core
+			realm_io
+			${VSLAM_IMPL_LIB}
+		PRIVATE
+			${OpenCV_LIBRARIES}
 )
 
 target_include_directories(${LIBRARY_NAME} PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # for headers when building
-		$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}> # for client in install mode
+		$<INSTALL_INTERFACE:${OpenREALM_INC_INSTALL_DIR}> # for client in install mode
 )
 
 add_definitions(
@@ -178,7 +173,7 @@ install(TARGETS ${LIBRARY_NAME} EXPORT OpenREALMTargets
 # Headers
 install(
 		DIRECTORY include/${LIBRARY_NAME}
-		DESTINATION include/${PROJECT_NAME}
+		DESTINATION ${OpenREALM_INC_INSTALL_DIR}
 		FILES_MATCHING
 		PATTERN "*.h"
 		PATTERN "*.hpp"

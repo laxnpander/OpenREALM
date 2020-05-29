@@ -33,7 +33,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 if(UNIX)
     include(GNUInstallDirs)
 
-    set(OpenREALM_INC_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}/OpenREALM")
+    set(OpenREALM_INC_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
     set(OpenREALM_RUNTIME_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
     set(OpenREALM_LIBRARY_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
     set(OpenREALM_ARCHIVE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}")
@@ -41,9 +41,6 @@ if(UNIX)
 
     set(OpenREALM_CMAKE_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/OpenREALM")
     set(OpenREALM_ADDITIONAL_FILES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/OpenREALM")
-
-    set(OpenREALM_RUNTIME_INSTALL_DIR "bin") # for the nodesize_dbg, just ignore version and the like
-    set(OpenREALM_INC_INSTALL_DIR "include/OpenREALM") # header filestree
 
 #elseif(WIN32)
 #    set(OpenREALM_INC_INSTALL_DIR "include/OpenREALM")

@@ -135,7 +135,6 @@ include_directories(
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/include/psl
-        ${CUDA_INCLUDE_DIRS}
         ${OpenCV_INCLUDE_DIRS}
         ${Eigen3_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
@@ -145,6 +144,11 @@ include_directories(
 add_library(${LIBRARY_NAME}_cuda
         ${CUDA_HEADER_FILES}
         ${CUDA_SOURCE_FILES}
+)
+
+target_include_directories(${LIBRARY_NAME}_cuda
+        PUBLIC
+            ${CUDA_INCLUDE_DIRS}
 )
 
 ## psl
@@ -158,20 +162,18 @@ add_library(${LIBRARY_NAME} SHARED
 
 target_include_directories(${LIBRARY_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # for headers when building
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}> # for client in install mode
+        $<INSTALL_INTERFACE:${OpenREALM_INC_INSTALL_DIR}> # for client in install mode
         )
 
 target_link_libraries(${LIBRARY_NAME}
-        cuda
-        ${CUDA_LIBRARIES}
-        ${CUDA_CUDART_LIBRARY}
-        ${OpenCV_LIBRARIES}
-        ${Boost_LIBRARIES}
-        ${LIBRARY_NAME}_cuda
-)
-
-add_dependencies(${LIBRARY_NAME}
-        ${LIBRARY_NAME}_cuda
+        PUBLIC
+            ${LIBRARY_NAME}_cuda
+        PRIVATE
+            ${OpenCV_LIBRARIES}
+            ${Boost_LIBRARIES}
+            cuda
+            ${CUDA_LIBRARIES}
+            ${CUDA_CUDART_LIBRARY}
 )
 
 add_definitions(
@@ -194,7 +196,7 @@ install(TARGETS ${LIBRARY_NAME} ${LIBRARY_NAME}_cuda EXPORT OpenREALMTargets
 # Headers
 install(
         DIRECTORY include/${LIBRARY_NAME}
-        DESTINATION include/${PROJECT_NAME}/3rdparty
+        DESTINATION ${OpenREALM_INC_INSTALL_DIR}/3rdparty
         FILES_MATCHING
         PATTERN "*.h"
         PATTERN "*.hpp"
