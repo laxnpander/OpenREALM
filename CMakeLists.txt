@@ -20,7 +20,7 @@ cmake_minimum_required(VERSION 3.9)
 
 project(OpenREALM)
 
-set(OpenREALM_VERSION "1.0")
+set(OpenREALM_VERSION "1.0.0")
 set(OpenREALM_VERSION_NUMBER "1000")
 
 
@@ -66,6 +66,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(CheckCXXCompilerFlag)
 include(CheckLanguage)
+include(CMakePackageConfigHelpers)
 
 
 ################################################################################
@@ -135,6 +136,15 @@ add_subdirectory(modules)
 ################################################################################
 # Install
 ################################################################################
+
+# Create and install version file
+set(version_file "${CMAKE_CURRENT_BINARY_DIR}/OpenREALMConfigVersion.cmake")
+write_basic_package_version_file(${version_file}
+        VERSION ${OpenREALM_VERSION}
+        COMPATIBILITY ExactVersion
+)
+install(FILES ${version_file}
+        DESTINATION ${OpenREALM_CMAKE_CONFIG_INSTALL_DIR})
 
 # install readme and license
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
