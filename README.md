@@ -53,6 +53,8 @@ but at the moment I won't recommend to use it on any other.
 
 ## Prerequisites
 
+Currently we only support Linux systems. However, we have a strong determination to provide an architecture independent
+solution in the close future.
 
 | OS         | Build Status |
 |:----------:|:------------:|
@@ -61,7 +63,7 @@ but at the moment I won't recommend to use it on any other.
 
 ## Optional Dependencies
 
-CUDA for stereo reconstruction with plane sweep lib
+CUDA is optional but will be mandatory for stereo reconstruction with plane sweep lib
 
 -> Refer to https://developer.nvidia.com/cuda-downloads?target_os=Linux
 
