@@ -36,7 +36,8 @@ matrix:
 
 # clone and run industrial_ci
 install:
-  - git clone --quiet --depth 1 https://github.com/ros-industrial/industrial_ci.git .industrial_ci -b master
+  - git clone --quiet https://github.com/ros-industrial/industrial_ci.git .industrial_ci
+  - cd .industrial_ci && git checkout 52ac295 && cd ..
 
 script:
   - .industrial_ci/travis.sh
