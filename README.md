@@ -54,20 +54,10 @@ but at the moment I won't recommend to use it on any other.
 ## Prerequisites
 
 
-| OS         | ROS Distribution | Build Status |
-|:----------:|:----------------:|:------------:|
-|Ubuntu 16.04| ROS Kinetic      | [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
-|Ubuntu 18.04| ROS Melodic      | [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
-
-For ROS installation please refer to: http://wiki.ros.org/
-
-Other dependencies are installed using the  ```install_deps.sh``` script:
-```sh
-chmod u+x install_deps.sh
-./install_deps.sh
-```
-Do not proceed to the next step before 
-you executed this script.
+| OS         | Build Status |
+|:----------:|:------------:|
+|Ubuntu 16.04| [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
+|Ubuntu 18.04| [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
 
 ## Optional Dependencies
 
@@ -86,33 +76,49 @@ echo 'export CPATH=/usr/local/cuda-9.0/include:$CPATH' >> ~/.bashrc
 
 ## Installation
 
-Linux (both Ubuntu 16.04 and 18.04)
-
-```sh
-# Create and init a catkin workspace
-mkdir -p catkin_ws/src
-cd catkin/src
-
-# Clone Open REALM git and compile
+```
+# Get the library
 git clone https://github.com/laxnpander/OpenREALM.git
+
+# Install the dependencies
+cd OpenREALM/tools
+chmod u+x install_deps.sh
+./install_deps.sh
+
+# Build and install the main library
+cd ..
+mkdir build && cd build
+cmake ..
+make all
+sudo make install
 ```
 
-**Option 1:** Configuration WITHOUT cuda
-```sh
-# Make sure you are in your catkin_ws, not src
-# Configure catkin and cmake, blacklist cuda dependent packages
-catkin init --workspace .
-catkin config --blacklist psl --cmake-args -DCMAKE_BUILD_TYPE=Release
-catkin build
+At this point you have installed the OpenREALM main library. You can use it system-wide in your own packages.
+But you are here to get your hands dirty, right? To run OpenREALM on a test dataset some more steps are necessary.
+
+Because the pipeline consists of several, independent processing stages which are not able to communicate with each other,
+a transportation framework has to be provided. Right now we advise to use our ROS1 bridge package for that job:
+
+```
+# Create a ROS workspace for compilation
+mkdir catkin_ws && cd catkin_ws
+mkdir src && cd src
+
+# Get the ROS package
+git clone https://github.com/laxnpander/OpenREALM_ROS1_Bridge.git
+
+# Make sure you are in catkin_ws, not src. Then build it
+cd ..
+catkin_make -DCMAKE_BUILD_TYPE=Release
 ```
 
-**Option 2:** Configuration WITH cuda
-```sh
-# Make sure you are in your catkin_ws, not src
-# Configure catkin and cmake, no blacklisted packages, densifier with cuda
-catkin config --blacklist "" --cmake-args -DCMAKE_BUILD_TYPE=Release -DDENSIFIER_WITH_CUDA=True
-catkin build
-```
+In case something goes wrong creating the ROS workspace, please refer to the bridge repository: 
+
+https://github.com/laxnpander/OpenREALM_ROS1_Bridge
+
+If you successfully installed the main library and built the ROS bridge package, you can continue with the Quick Start.
+
+Have fun!
 
 ## Quick Start
 
