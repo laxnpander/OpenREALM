@@ -2,7 +2,7 @@
 sudo apt update
 
 # Catkin tools for build process
-sudo apt install -y -q python-catkin-tools git wget
+sudo apt install -y -q python-catkin-tools git wget g++ gcc
 
 # Additional ROS package dependencies
 sudo apt install -y -q ros-$ROS_DISTRO-geographic-msgs
