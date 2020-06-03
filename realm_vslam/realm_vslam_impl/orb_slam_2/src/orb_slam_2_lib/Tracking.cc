@@ -1523,6 +1523,9 @@ void Tracking::Reset()
 
     if(mpViewer)
         mpViewer->Release();
+
+    mnLastRelocFrameId = 0;
+    mVelocity = cv::Mat();
 }
 
 void Tracking::ChangeCalibration(const string &strSettingPath)
