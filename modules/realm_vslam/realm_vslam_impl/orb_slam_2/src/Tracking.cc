@@ -210,7 +210,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 }
 
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, const cv::Mat &T_cw_initial)
 {
     mImGray = im;
 
@@ -234,12 +234,13 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
     else
         mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
-    Track();
+    Track(T_cw_initial);
+    //Track();
 
     return mCurrentFrame.mTcw.clone();
 }
 
-void Tracking::Track()
+void Tracking::Track(const cv::Mat &T_cw_initial)
 {
     if(mState==NO_IMAGES_YET)
     {
@@ -279,7 +280,12 @@ void Tracking::Track()
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
 
-                if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+                //if (!T_cw_initial.empty())
+                //{
+                //    bOK = TrackReferenceKeyFrame(T_cw_initial);
+                //}
+                //else if (mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+                if (mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
                     bOK = TrackReferenceKeyFrame();
                 }
@@ -729,7 +735,7 @@ void Tracking::CheckReplacedInLastFrame()
 }
 
 
-bool Tracking::TrackReferenceKeyFrame()
+bool Tracking::TrackReferenceKeyFrame(const cv::Mat &T_cw_initial)
 {
     // Compute Bag of Words vector
     mCurrentFrame.ComputeBoW();
@@ -745,7 +751,11 @@ bool Tracking::TrackReferenceKeyFrame()
         return false;
 
     mCurrentFrame.mvpMapPoints = vpMapPointMatches;
-    mCurrentFrame.SetPose(mLastFrame.mTcw);
+
+    if (T_cw_initial.empty())
+      mCurrentFrame.SetPose(mLastFrame.mTcw);
+    else
+      mCurrentFrame.SetPose(T_cw_initial);
 
     Optimizer::PoseOptimization(&mCurrentFrame);
 
@@ -1523,6 +1533,9 @@ void Tracking::Reset()
 
     if(mpViewer)
         mpViewer->Release();
+
+    mnLastRelocFrameId = 0;
+    mVelocity = cv::Mat(); 
 }
 
 void Tracking::ChangeCalibration(const string &strSettingPath)

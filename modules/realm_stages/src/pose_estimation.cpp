@@ -31,6 +31,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
       _is_georef_initialized(false),
       _use_vslam((*stage_set)["use_vslam"].toInt() > 0),
       _use_fallback((*stage_set)["use_fallback"].toInt() > 0),
+      _use_initial_guess((*stage_set)["use_initial_guess"].toInt() > 0),
       _do_update_georef((*stage_set)["update_georef"].toInt() > 0),
       _do_suppress_outdated_pose_pub((*stage_set)["suppress_outdated_pose_pub"].toInt() > 0),
       _th_error_georef((*stage_set)["th_error_georef"].toDouble()),
@@ -49,12 +50,12 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
     // Set reset callback from vSLAM to this node
     // therefore if SLAM resets itself, node is being informed
     std::function<void(void)> reset_func = std::bind(&PoseEstimation::reset, this);
-    _vslam->RegisterResetCallback(reset_func);
+    _vslam->registerResetCallback(reset_func);
 
     // Set pose update callback
     namespace ph = std::placeholders;
     VisualSlamIF::PoseUpdateFuncCb update_func = std::bind(&PoseEstimation::updateKeyframeCb, this, ph::_1, ph::_2, ph::_3);
-    _vslam->RegisterUpdateTransport(update_func);
+    _vslam->registerUpdateTransport(update_func);
 
     // Create geo reference initializer
     _georeferencer = std::make_shared<GeometricReferencer>(_th_error_georef);
@@ -178,9 +179,17 @@ void PoseEstimation::track(Frame::Ptr &frame)
 {
   LOG_F(INFO, "Tracking frame #%i in visual SLAM...!", frame->getFrameId());
 
+  // Check if initial guess should be computed
+  cv::Mat T_c2w_initial;
+  if (_use_initial_guess && _georeferencer->isInitialized())
+  {
+    LOG_F(INFO, "Computing initial guess of current pose...");
+    T_c2w_initial = computeInitialPoseGuess(frame);
+  }
+
   // Compute visual pose
   _mutex_vslam.lock();
-  VisualSlamIF::State state = _vslam->Track(frame);
+  VisualSlamIF::State state = _vslam->track(frame, T_c2w_initial);
   _mutex_vslam.unlock();
 
   // Identify SLAM state
@@ -204,7 +213,7 @@ void PoseEstimation::track(Frame::Ptr &frame)
   }
   // Save tracked img with features in member
   std::unique_lock<std::mutex> lock(_mutex_img_debug);
-  _vslam->DrawTrackedImage(_img_debug);
+  _vslam->drawTrackedImage(_img_debug);
 }
 
 void PoseEstimation::reset()
@@ -218,7 +227,7 @@ void PoseEstimation::reset()
     LOG_F(INFO, "Reset has been requested!");
     // reset visual slam
     _mutex_vslam.lock();
-    _vslam->Reset();
+    _vslam->reset();
     _mutex_vslam.unlock();
   }
   else  // visual slam reset
@@ -406,7 +415,12 @@ Frame::Ptr PoseEstimation::getNewFramePublish()
 
 void PoseEstimation::applyGeoreferenceToBuffer()
 {
-  // Apply estimated geo reference to all measurements in the buffer
+  // Grab estimated georeference
+  _mutex_t_w2g.lock();
+  _T_w2g = _georeferencer->getTransformation();
+  _mutex_t_w2g.unlock();
+
+  // Apply estimated georeference to all measurements in the buffer
   while(!_buffer_pose_all.empty())
   {
     _mutex_buffer_pose_all.lock();
@@ -414,16 +428,50 @@ void PoseEstimation::applyGeoreferenceToBuffer()
     _buffer_pose_all.pop_front();
     _mutex_buffer_pose_all.unlock();
 
-    _mutex_t_w2g.lock();
-    _T_w2g = _georeferencer->getTransformation();
-    _mutex_t_w2g.unlock();
-
     // But check first, if frame has actually a visually estimated pose information
     // In case of default GNSS pose generated from lat/lon/alt/heading, pose is already in world frame
     if (frame->hasAccuratePose())
       frame->initGeoreference(_T_w2g);
     pushToBufferPublish(frame);
   }
+}
+
+cv::Mat PoseEstimation::computeInitialPoseGuess(const Frame::Ptr &frame)
+{
+  cv::Mat default_pose = frame->getDefaultPose();
+  cv::Mat T_w2g = _georeferencer->getTransformation();
+  T_w2g.pop_back();
+
+  // Compute scale of georeference
+  double sx = cv::norm(T_w2g.col(0));
+  double sy = cv::norm(T_w2g.col(1));
+  double sz = cv::norm(T_w2g.col(2));
+
+  // Remove scale from georeference
+  T_w2g.col(0) /= sx;
+  T_w2g.col(1) /= sy;
+  T_w2g.col(2) /= sz;
+
+  // Invert transformation from world to global frame
+  cv::Mat T_g2w = cv::Mat::eye(4, 4, T_w2g.type());
+  cv::Mat R_t = (T_w2g.rowRange(0, 3).colRange(0, 3)).t();
+  cv::Mat t = -R_t*T_w2g.rowRange(0, 3).col(3);
+  R_t.copyTo(T_g2w.rowRange(0, 3).colRange(0, 3));
+  t.copyTo(T_g2w.rowRange(0, 3).col(3));
+
+  // Add row for homogenous coordinates
+  cv::Mat hom = (cv::Mat_<double>(1, 4) << 0.0, 0.0, 0.0, 1.0);
+  default_pose.push_back(hom);
+
+  // Finally transform default pose from geographic into the world coordinate frame
+  cv::Mat default_pose_in_world = T_g2w * default_pose;
+
+  // Apply scale change
+  default_pose_in_world.at<double>(0, 3) = default_pose_in_world.at<double>(0, 3) / sx;
+  default_pose_in_world.at<double>(1, 3) = default_pose_in_world.at<double>(1, 3) / sy;
+  default_pose_in_world.at<double>(2, 3) = default_pose_in_world.at<double>(2, 3) / sz;
+
+  return default_pose_in_world.rowRange(0, 3);
 }
 
 void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)

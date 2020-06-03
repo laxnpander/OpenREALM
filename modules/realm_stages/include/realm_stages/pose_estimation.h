@@ -77,6 +77,9 @@ class PoseEstimation : public StageBase
     // Flag to disable fallback solution based on lat/lon/alt/heading completely
     bool _use_fallback;
 
+    // Flag to disable using an initial guess of the camera pose to make tracking more stable in the visual SLAM
+    bool _use_initial_guess;
+
     // Flag to disable georeferencing updates after initialization. Might result in a more consistent map, but worse
     // georeferencing results
     bool _do_update_georef;
@@ -148,6 +151,7 @@ class PoseEstimation : public StageBase
     cv::Rect2d estimateProjectedRoi(const Frame::Ptr &frame);
     Frame::Ptr getNewFrameTracking();
     Frame::Ptr getNewFramePublish();
+    cv::Mat computeInitialPoseGuess(const Frame::Ptr &frame);
 };
 
 class PoseEstimationIO : public WorkerThreadBase

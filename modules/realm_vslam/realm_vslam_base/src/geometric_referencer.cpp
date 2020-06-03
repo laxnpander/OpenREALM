@@ -216,7 +216,7 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
 cv::Mat GeometricReferencer::getTransformation()
 {
   std::unique_lock<std::mutex> lock(_mutex_t_c2g);
-  return _transformation_c2g;
+  return _transformation_c2g.clone();
 }
 
 double GeometricReferencer::computeTwoPointScale(const SpatialMeasurement::Ptr &s1, const SpatialMeasurement::Ptr &s2, double th_visual)

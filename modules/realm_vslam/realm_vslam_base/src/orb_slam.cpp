@@ -67,14 +67,23 @@ OrbSlam2::~OrbSlam2()
   delete _slam;
 }
 
-VisualSlamIF::State OrbSlam2::Track(Frame::Ptr &frame)
+VisualSlamIF::State OrbSlam2::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial)
 {
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(_resizing);
 
-  // T_w2c defined as transformation from world to camera frame
+  // ORB SLAM returns a transformation from the world to the camera frame (T_w2c). In case we provide an initial guess
+  // of the current pose, we have to invert this before, because in OpenREALM the standard is defined as T_c2w.
   cv::Mat T_w2c;
-  T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp());
+  if (T_c2w_initial.empty())
+  {
+    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp());
+  }
+  else
+  {
+    cv::Mat T_w2c_initial = invertPose(T_c2w_initial);
+    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp(), T_w2c_initial);
+  }
 
   // In case tracking was successfull and slam not lost
   if (!T_w2c.empty())
@@ -89,7 +98,7 @@ VisualSlamIF::State OrbSlam2::Track(Frame::Ptr &frame)
     T_c2w.pop_back();
     frame->setVisualPose(T_c2w);
 
-    cv::Mat surface_pts = GetTrackedMapPoints();
+    cv::Mat surface_pts = getTrackedMapPoints();
     frame->setSurfacePoints(surface_pts);
 
     // Check if new frame is keyframe by comparing current keyid with last keyid
@@ -115,17 +124,17 @@ VisualSlamIF::State OrbSlam2::Track(Frame::Ptr &frame)
   return State::LOST;
 }
 
-void OrbSlam2::Reset()
+void OrbSlam2::reset()
 {
   _slam->Reset();
 }
 
-void OrbSlam2::Close()
+void OrbSlam2::close()
 {
   _slam->Shutdown();
 }
 
-cv::Mat OrbSlam2::GetTrackedMapPoints() const
+cv::Mat OrbSlam2::getTrackedMapPoints() const
 {
   vector<ORB_SLAM2::MapPoint *> mappoints;
 
@@ -147,23 +156,23 @@ cv::Mat OrbSlam2::GetTrackedMapPoints() const
   return cvpoints;
 }
 
-cv::Mat OrbSlam2::GetMapPoints() const
+cv::Mat OrbSlam2::getMapPoints() const
 {
 
 }
 
-bool OrbSlam2::DrawTrackedImage(cv::Mat &img) const
+bool OrbSlam2::drawTrackedImage(cv::Mat &img) const
 {
   img = _slam->DrawTrackedImage();
   return true;
 }
 
-void OrbSlam2::RegisterUpdateTransport(const VisualSlamIF::PoseUpdateFuncCb &func)
+void OrbSlam2::registerUpdateTransport(const PoseUpdateFuncCb &func)
 {
   _pose_update_func_cb = func;
 }
 
-void OrbSlam2::RegisterResetCallback(const VisualSlamIF::ResetFuncCb &func)
+void OrbSlam2::registerResetCallback(const ResetFuncCb &func)
 {
   if (func)
   {

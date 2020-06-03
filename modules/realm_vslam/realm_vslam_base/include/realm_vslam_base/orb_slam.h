@@ -48,19 +48,19 @@ class OrbSlam2 : public VisualSlamIF
     ~OrbSlam2();
 
     // Process
-    VisualSlamIF::State Track(Frame::Ptr &frame) override;
-    void Close() override;
-    void Reset() override;
+    VisualSlamIF::State track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial) override;
+    void close() override;
+    void reset() override;
 
     // Getter
-    cv::Mat GetMapPoints() const override;
-    cv::Mat GetTrackedMapPoints() const override;
-    bool DrawTrackedImage(cv::Mat &) const override;
+    cv::Mat getMapPoints() const override;
+    cv::Mat getTrackedMapPoints() const override;
+    bool drawTrackedImage(cv::Mat &) const override;
 
     // Transport from realm to ros
     //void SetKeyRosTransport(void (*func)(void *pKey)) override;
-    void RegisterUpdateTransport(const VisualSlamIF::PoseUpdateFuncCb &func) override;
-    void RegisterResetCallback(const VisualSlamIF::ResetFuncCb &func) override;
+    void registerUpdateTransport(const VisualSlamIF::PoseUpdateFuncCb &func) override;
+    void registerResetCallback(const VisualSlamIF::ResetFuncCb &func) override;
 
     void printSettingsToLog() override;
 
