@@ -2,6 +2,8 @@
 cmake-build-debug/*
 realm_ros/output/*
 
+build/*
+
 realm_ros/profiles/*
 !realm_ros/profiles/alexa_gnss
 !realm_ros/profiles/alexa_noreco
