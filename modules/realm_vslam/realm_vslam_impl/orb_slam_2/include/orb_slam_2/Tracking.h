@@ -136,9 +136,9 @@ protected:
     void CreateInitialMapMonocular();
 
     void CheckReplacedInLastFrame();
-    bool TrackReferenceKeyFrame(const cv::Mat &T_cw_initial = cv::Mat());
+    bool TrackReferenceKeyFrame();
     void UpdateLastFrame();
-    bool TrackWithMotionModel();
+    bool TrackWithMotionModel(const cv::Mat &T_cw_initial = cv::Mat());
 
     bool Relocalization();
 

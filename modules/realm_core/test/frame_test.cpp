@@ -39,7 +39,7 @@ TEST(Frame, Container)
   auto cam = std::make_shared<camera::Pinhole>(createDummyPinhole());
 
   // Create the dummy frame -> We usually use it as shared pointer, so test that here
-  auto frame = std::make_shared<Frame>(camera_id, frame_id, timestamp, img, utm, cam);
+  auto frame = std::make_shared<Frame>(camera_id, frame_id, timestamp, img, utm, cam, cv::Mat());
   frame->setPoseAccurate(true);
   frame->setKeyframe(true);
   frame->setImageResizeFactor(0.5);

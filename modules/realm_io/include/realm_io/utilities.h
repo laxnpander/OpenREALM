@@ -25,6 +25,8 @@
 #include <chrono>
 #include <boost/filesystem.hpp>
 
+#include <opencv2/core.hpp>
+
 namespace realm
 {
 namespace io
@@ -95,6 +97,14 @@ uint32_t extractFrameIdFromFilepath(const std::string &filepath);
  * @return Vector of tokens
  */
 std::vector<std::string> split(const char *str, char c = ' ');
+
+/*! TODO: Einbaurichtung implementieren?
+ * @brief Function to compute a 3x3 rotation matrix based on heading data. It is assumed, that the camera is pointing
+ * downwards and the heading roughly aligns with the camera's yaw axis.
+ * @param heading Magnetic heading of the camera / UAV
+ * @return 3x3 rotation matrix
+ */
+cv::Mat computeOrientationFromHeading(double heading);
 
 }
 }

@@ -46,7 +46,7 @@ class PoseEstimationSettings : public StageSettings
     PoseEstimationSettings()
     {
       add("use_vslam", Parameter_t<int>{0, "Flag can be set to 'false', then this stage only works as image stream throttle depending on the max overlap."});
-      add("use_fallback", Parameter_t<int>{0, "Flag can be set to 'false', then fallback solution based on GNSS data only is not computed."});
+      add("fallback_strategy", Parameter_t<int>{0, "Strategy when to use the projection only fallback: 1 - Always, 2 - once orientation is calibrated, 3 - never"});
       add("use_initial_guess", Parameter_t<int>{0, "Flag can be set to 'false', then the initial guess of the pose is not being considered in the visual SLAM."});
       add("update_georef", Parameter_t<int>{0, "Flag can be set to 'false', then georeference will only be computed at initialization."});
       add("suppress_outdated_pose_pub", Parameter_t<int>{0, "Flag to suppress publish of outdated poses after georeference computation."});

@@ -266,9 +266,6 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp, const
 
     cv::Mat Tcw = mpTracker->GrabImageMonocular(im, timestamp, T_cw_initial);
 
-    std::cout << "Tcw:\n" << Tcw << std::endl;
-    std::cout << "Tcw_guess:\n" << T_cw_initial << std::endl;
-
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
     mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;

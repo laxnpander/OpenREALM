@@ -77,12 +77,13 @@ VisualSlamIF::State OrbSlam2::track(Frame::Ptr &frame, const cv::Mat &T_c2w_init
   cv::Mat T_w2c;
   if (T_c2w_initial.empty())
   {
-    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp());
+    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp()*10e-9);
   }
   else
   {
     cv::Mat T_w2c_initial = invertPose(T_c2w_initial);
-    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp(), T_w2c_initial);
+    T_w2c_initial.convertTo(T_w2c_initial, CV_32F);
+    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp()*10e-9, T_w2c_initial);
   }
 
   // In case tracking was successfull and slam not lost
@@ -97,6 +98,9 @@ VisualSlamIF::State OrbSlam2::track(Frame::Ptr &frame, const cv::Mat &T_c2w_init
     T_c2w.convertTo(T_c2w, CV_64F);
     T_c2w.pop_back();
     frame->setVisualPose(T_c2w);
+
+    std::cout << "Soll:\n" << T_c2w << std::endl;
+    std::cout << "Schätz:\n" << T_c2w_initial << std::endl;
 
     cv::Mat surface_pts = getTrackedMapPoints();
     frame->setSurfacePoints(surface_pts);

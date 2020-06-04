@@ -280,11 +280,6 @@ void Tracking::Track(const cv::Mat &T_cw_initial)
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
 
-                //if (!T_cw_initial.empty())
-                //{
-                //    bOK = TrackReferenceKeyFrame(T_cw_initial);
-                //}
-                //else if (mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 if (mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
                     bOK = TrackReferenceKeyFrame();
@@ -292,6 +287,8 @@ void Tracking::Track(const cv::Mat &T_cw_initial)
                 else
                 {
                     bOK = TrackWithMotionModel();
+                    if (!bOK)
+                      bOK = TrackWithMotionModel(T_cw_initial);
                     if(!bOK)
                         bOK = TrackReferenceKeyFrame();
                 }
@@ -735,7 +732,7 @@ void Tracking::CheckReplacedInLastFrame()
 }
 
 
-bool Tracking::TrackReferenceKeyFrame(const cv::Mat &T_cw_initial)
+bool Tracking::TrackReferenceKeyFrame()
 {
     // Compute Bag of Words vector
     mCurrentFrame.ComputeBoW();
@@ -752,10 +749,7 @@ bool Tracking::TrackReferenceKeyFrame(const cv::Mat &T_cw_initial)
 
     mCurrentFrame.mvpMapPoints = vpMapPointMatches;
 
-    if (T_cw_initial.empty())
-      mCurrentFrame.SetPose(mLastFrame.mTcw);
-    else
-      mCurrentFrame.SetPose(T_cw_initial);
+    mCurrentFrame.SetPose(mLastFrame.mTcw);
 
     Optimizer::PoseOptimization(&mCurrentFrame);
 
@@ -849,7 +843,7 @@ void Tracking::UpdateLastFrame()
     }
 }
 
-bool Tracking::TrackWithMotionModel()
+bool Tracking::TrackWithMotionModel(const cv::Mat &T_cw_initial)
 {
     ORBmatcher matcher(0.9,true);
 
@@ -857,7 +851,10 @@ bool Tracking::TrackWithMotionModel()
     // Create "visual odometry" points if in Localization Mode
     UpdateLastFrame();
 
-    mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
+    if (T_cw_initial.empty())
+      mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
+    else
+      mCurrentFrame.SetPose(T_cw_initial);
 
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
 
@@ -867,6 +864,10 @@ bool Tracking::TrackWithMotionModel()
         th=15;
     else
         th=7;
+
+    if (!T_cw_initial.empty())
+      th *= 2.0;
+
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
 
     // If few matches, uses a wider window search

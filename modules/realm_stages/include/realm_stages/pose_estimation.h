@@ -49,6 +49,19 @@ class PoseEstimation : public StageBase
     using ConstPtr = std::shared_ptr<const PoseEstimation>;
     friend PoseEstimationIO;
 
+    /*!
+     * @brief Fallback strategies ensure, that even when tracking is lost, the mapping process can continue. This is realized
+     * by using the UAV's GPS coordinates and assume a default camera pose can be estimated, e.g.
+     * - based on magnetic heading and a downward pointing camera
+     * - based on IMU readings provided with each frame
+     */
+    enum class FallbackStrategy
+    {
+      ALWAYS,               // Use this strategy, only, when provided orientation in the frame aligns with the camera orientation
+      WHEN_ORIENTATION_CALIBRATED,   // Use this strategy, when orientation in the frame is based on IMU readings, but you don't know if it aligns with the camera
+      NEVER                 // Use this strategy, when you don't want fallback projection based on GPS coordinates only
+    };
+
     struct SaveSettings
     {
         bool save_trajectory_gnss;
@@ -92,6 +105,7 @@ class PoseEstimation : public StageBase
     double _th_error_georef;
 
     // settings
+    FallbackStrategy _strategy_fallback;
     double _overlap_max;          // [%] Maxmimum overlap for every publish to be checked, even keyframes
     double _overlap_max_fallback; // [%] Maximum overlap for fallback publishes, e.g. GNSS only
 
@@ -100,6 +114,12 @@ class PoseEstimation : public StageBase
     // Transformation from visual world to geo coordinate frame
     std::mutex _mutex_t_w2g;
     cv::Mat _T_w2g;
+
+    // Orientation correction
+    bool _pending_orientation_calibration;
+    bool _use_orientation_correction;
+    cv::Mat _orientation_correction;
+    int _nrof_orientation_correction_terms;
 
     // Current debug image, gets published by PoseEstimationIO
     // Warning: As soon as published, it will get released
@@ -134,6 +154,8 @@ class PoseEstimation : public StageBase
 
     void track(Frame::Ptr &frame);
 
+    void evaluateFallbackStrategy(FallbackStrategy strategy);
+
     void reset() override;
     void initStageCallback() override;
     void printSettingsToLog() override;
@@ -152,6 +174,7 @@ class PoseEstimation : public StageBase
     Frame::Ptr getNewFrameTracking();
     Frame::Ptr getNewFramePublish();
     cv::Mat computeInitialPoseGuess(const Frame::Ptr &frame);
+    void updateOrientationCorrection(const Frame::Ptr &frame);
 };
 
 class PoseEstimationIO : public WorkerThreadBase

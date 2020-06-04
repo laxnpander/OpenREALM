@@ -30,8 +30,13 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
     : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _is_georef_initialized(false),
       _use_vslam((*stage_set)["use_vslam"].toInt() > 0),
-      _use_fallback((*stage_set)["use_fallback"].toInt() > 0),
+      _strategy_fallback(PoseEstimation::FallbackStrategy((*stage_set)["fallback_strategy"].toInt())),
+      _use_fallback(false),
       _use_initial_guess((*stage_set)["use_initial_guess"].toInt() > 0),
+      _pending_orientation_calibration(false),
+      _use_orientation_correction(true),
+      _orientation_correction(cv::Mat()),
+      _nrof_orientation_correction_terms(0),
       _do_update_georef((*stage_set)["update_georef"].toInt() > 0),
       _do_suppress_outdated_pose_pub((*stage_set)["suppress_outdated_pose_pub"].toInt() > 0),
       _th_error_georef((*stage_set)["th_error_georef"].toDouble()),
@@ -61,6 +66,8 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
     _georeferencer = std::make_shared<GeometricReferencer>(_th_error_georef);
   }
 
+  evaluateFallbackStrategy(_strategy_fallback);
+
   // Create Pose Estimation publisher
   _stage_publisher.reset(new PoseEstimationIO(this, rate, true));
   _stage_publisher->start();
@@ -77,6 +84,38 @@ PoseEstimation::~PoseEstimation()
 {
   _stage_publisher->requestFinish();
   _stage_publisher->join();
+}
+
+void PoseEstimation::evaluateFallbackStrategy(PoseEstimation::FallbackStrategy strategy)
+{
+  LOG_F(INFO, "Evaluating fallback strategy...");
+
+  // Orientation correction computes the difference between the assumed pose based on IMU or magnetic heading of the UAV
+  // (aka default pose) and the visually estimated pose and applies it afterwards to it. That way slightly misaligned
+  // heading or IMU's can be calibrated and transformed into the camera frame. This, however, is only possible when using
+  // visual SLAM for calibration.
+  _use_orientation_correction = _use_vslam;
+
+  switch (strategy)
+  {
+    case FallbackStrategy::ALWAYS:
+      LOG_F(INFO, "Selected: ALWAYS - Images will be projected whenever tracking is lost.");
+      _use_fallback = true;
+      _pending_orientation_calibration = true;
+      break;
+    case FallbackStrategy::WHEN_ORIENTATION_CALIBRATED:
+      // use_fallback flag is set later
+      _pending_orientation_calibration = true;
+      LOG_F(INFO, "Selected: WHEN_ORIENTATION_CALIBRATED - Images will be projected, once tracking is lost but the orientation was already calibrated.");
+      break;
+    case FallbackStrategy::NEVER:
+      _use_fallback = false;
+      _pending_orientation_calibration = false;
+      LOG_F(INFO, "Selected: NEVER - Image projection will not be used.");
+      break;
+    default:
+      throw(std::invalid_argument("Error: Unknown fallback strategy!"));
+  }
 }
 
 void PoseEstimation::addFrame(const Frame::Ptr &frame)
@@ -109,11 +148,10 @@ void PoseEstimation::addFrame(const Frame::Ptr &frame)
 
 bool PoseEstimation::process()
 {
-  // Trigger; true if during this processing something
-  // has been sucessfully processed.
+  // Trigger; true if there happened any processing in this cycle.
   bool has_processed = false;
 
-  // Grab georeference flag once at the beginning, to avoid multithread problems
+  // Grab georeference flag once at the beginning, to avoid multithreading problems
   if (_use_vslam)
     _is_georef_initialized = _georeferencer->isInitialized();
 
@@ -129,14 +167,18 @@ bool PoseEstimation::process()
     track(frame);
 
     // Identify buffer for push
-    if (frame->hasAccuratePose() && _is_georef_initialized)
+    if (frame->hasAccuratePose())
     {
-      if (_do_update_georef && !_georeferencer->isBuisy())
+      // Branch accurate pose and georef initialized
+      if (_is_georef_initialized)
       {
-        std::thread t(std::bind(&GeospatialReferencerIF::update, _georeferencer, frame));
-        t.detach();
+        if (_do_update_georef && !_georeferencer->isBuisy())
+        {
+          std::thread t(std::bind(&GeospatialReferencerIF::update, _georeferencer, frame));
+          t.detach();
+        }
+        pushToBufferAll(frame);
       }
-      pushToBufferAll(frame);
     }
     if (frame->isKeyframe() && !_is_georef_initialized)
     {
@@ -431,7 +473,29 @@ void PoseEstimation::applyGeoreferenceToBuffer()
     // But check first, if frame has actually a visually estimated pose information
     // In case of default GNSS pose generated from lat/lon/alt/heading, pose is already in world frame
     if (frame->hasAccuratePose())
+    {
       frame->initGeoreference(_T_w2g);
+
+      // Check if orientation should be corrected. If yes, we now have the geographic pose of the camera as well as the
+      // apriori orientation (from heading or IMU). To find out how to transform the orientation into the geographic pose
+      // use the orientation correction
+      if (_use_orientation_correction)
+      {
+        updateOrientationCorrection(frame);
+        if (_pending_orientation_calibration && !_orientation_correction.empty())
+        {
+          LOG_F(INFO, "Found pending orientation calibration. Calibration from UAV coordinate frame to camera:");
+          LOG_F(INFO, "%4.2f %4.2f %4.2f", _orientation_correction.at<double>(0, 0), _orientation_correction.at<double>(0, 1), _orientation_correction.at<double>(0, 2));
+          LOG_F(INFO, "%4.2f %4.2f %4.2f", _orientation_correction.at<double>(1, 0), _orientation_correction.at<double>(1, 1), _orientation_correction.at<double>(1, 2));
+          LOG_F(INFO, "%4.2f %4.2f %4.2f", _orientation_correction.at<double>(2, 0), _orientation_correction.at<double>(2, 1), _orientation_correction.at<double>(2, 2));
+          _pending_orientation_calibration = false;
+
+          if (_strategy_fallback == PoseEstimation::FallbackStrategy::WHEN_ORIENTATION_CALIBRATED)
+            _use_fallback = true;
+        }
+      }
+    }
+
     pushToBufferPublish(frame);
   }
 }
@@ -471,7 +535,34 @@ cv::Mat PoseEstimation::computeInitialPoseGuess(const Frame::Ptr &frame)
   default_pose_in_world.at<double>(1, 3) = default_pose_in_world.at<double>(1, 3) / sy;
   default_pose_in_world.at<double>(2, 3) = default_pose_in_world.at<double>(2, 3) / sz;
 
+  if (_use_orientation_correction && !_orientation_correction.empty())
+  {
+    cv::Mat R_u2w = default_pose_in_world.rowRange(0, 3).colRange(0, 3);
+    cv::Mat R_c2w = (_orientation_correction*R_u2w.t()).t();
+    R_c2w.copyTo(default_pose_in_world.rowRange(0, 3).colRange(0, 3));
+  }
+
   return default_pose_in_world.rowRange(0, 3);
+}
+
+void PoseEstimation::updateOrientationCorrection(const Frame::Ptr &frame)
+{
+  LOG_F(INFO, "Computing correction for default UAV orientation...");
+  cv::Mat R_default = frame->getDefaultPose().rowRange(0, 3).colRange(0, 3);
+  cv::Mat R_visual = frame->getGeographicPose().rowRange(0, 3).colRange(0, 3);
+
+  cv::Mat diff = R_visual.t() * R_default;
+  if (_orientation_correction.empty())
+  {
+    _orientation_correction = diff;
+  }
+  else
+  {
+    auto n = static_cast<double>(_nrof_orientation_correction_terms);
+    _orientation_correction = n/(n+1.0)*_orientation_correction + 1/(n+1.0)*diff;
+  }
+
+  _nrof_orientation_correction_terms++;
 }
 
 void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
@@ -585,6 +676,12 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 {
   // First update statistics about outgoing frame rate
   _stage_handle->updateFpsStatisticsOutgoing();
+
+  if (_stage_handle->_use_orientation_correction && !_stage_handle->_orientation_correction.empty())
+  {
+    LOG_F(INFO, "Applying orientation correction on input frame before publish...");
+    frame->updateOrientation(_stage_handle->_orientation_correction);
+  }
 
   // Two situation can occure, when publishing a frame is triggered
   // 1) Frame is marked as keyframe by the SLAM -> publish directly

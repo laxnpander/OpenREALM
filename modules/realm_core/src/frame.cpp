@@ -30,7 +30,8 @@ Frame::Frame(const std::string &camera_id,
              const uint64_t &timestamp,
              const cv::Mat &img,
              const UTMPose &utm,
-             const camera::Pinhole::Ptr &cam)
+             const camera::Pinhole::Ptr &cam,
+             const cv::Mat &orientation)
     : _camera_id(camera_id),
       _frame_id(frame_id),
       _is_keyframe(false),
@@ -43,6 +44,7 @@ Frame::Frame(const std::string &camera_id,
       _img(img),
       _utm(utm),
       _camera_model(cam),
+      _orientation(orientation),
       _img_resize_factor(0.0),
       _min_scene_depth(0.0),
       _max_scene_depth(0.0),
@@ -125,24 +127,9 @@ cv::Mat Frame::getDefaultPose() const
   t.at<double>(1) = _utm.northing;
   t.at<double>(2) = _utm.altitude;
 
-  // TODO: implement camera mounting
-  // Rotation to the world in camera frame
-  cv::Mat R_wc = cv::Mat::eye(3, 3, CV_64F);
-  R_wc.at<double>(1, 1) = -1;
-  R_wc.at<double>(2, 2) = -1;
-
-  // Rotation around z considering uav heading
-  double gamma = _utm.heading * M_PI / 180;
-  cv::Mat R_wc_z = cv::Mat::eye(3, 3, CV_64F);
-  R_wc_z.at<double>(0, 0) = cos(-gamma);
-  R_wc_z.at<double>(0, 1) = -sin(-gamma);
-  R_wc_z.at<double>(1, 0) = sin(-gamma);
-  R_wc_z.at<double>(1, 1) = cos(-gamma);
-  cv::Mat R = R_wc_z * R_wc;
-
   // Create default pose
   cv::Mat default_pose = cv::Mat::eye(3, 4, CV_64F);
-  R.copyTo(default_pose.rowRange(0, 3).colRange(0, 3));
+  _orientation.copyTo(default_pose.rowRange(0, 3).colRange(0, 3));
   t.col(0).copyTo(default_pose.col(3));
   return default_pose;
 }
@@ -455,6 +442,11 @@ void Frame::updateGeoreference(const cv::Mat &T, bool do_update_surface_points)
   computeSceneDepth();
 
   setGeoreference(T);
+}
+
+void Frame::updateOrientation(const cv::Mat &R_u2c)
+{
+  _orientation = (R_u2c * _orientation.t()).t();
 }
 
 void Frame::applyTransformationToSurfacePoints(const cv::Mat &T)

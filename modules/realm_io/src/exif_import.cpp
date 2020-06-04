@@ -67,7 +67,7 @@ Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id
     else
       timestamp_val = getCurrentTimeNano();
 
-    return std::make_shared<Frame>(camera_id, frame_id, timestamp_val, img, utm, cam);
+    return std::make_shared<Frame>(camera_id, frame_id, timestamp_val, img, utm, cam, computeOrientationFromHeading(utm.heading));
   }
   return nullptr;
 }

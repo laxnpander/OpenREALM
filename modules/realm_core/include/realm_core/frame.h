@@ -58,13 +58,15 @@ class Frame
      * @param img Image data captured by a camera
      * @param utm UTM coordinates the camera that took the image (geotag)
      * @param cam Camera model that handles all projection and cv math
+     * @param orientation Orientation of the camera (not the vehicle)
      */
     Frame(const std::string &camera_id,
           const uint32_t &frame_id,
           const uint64_t &timestamp,
           const cv::Mat &img,
           const UTMPose &utm,
-          const camera::Pinhole::Ptr &cam);
+          const camera::Pinhole::Ptr &cam,
+          const cv::Mat &orientation);
 
     /*
      * @brief Frame represents a unique container of acquired and computed data and is therefore designed to be non-copyable.
@@ -306,6 +308,13 @@ class Frame
     void updateGeoreference(const cv::Mat &T, bool do_update_surface_points = false);
 
     /*!
+     * @brief Updates the orientation with another rotation matrix. Can be used, if the visual SLAM calibrated the camera
+     * orientation and therefore improves the results.
+     * @param R_update 3x3 rotation matrix update
+     */
+    void updateOrientation(const cv::Mat &R_update);
+
+    /*!
      * @brief Getter to check if this frame is marked as keyframe
      * @return true if yes
      */
@@ -401,6 +410,7 @@ class Frame
     uint64_t _timestamp;                // timestamp of acquisition in nano seconds
     cv::Mat _img;                       // Image data captured
     UTMPose _utm;                       // GNSS measurement or "GeoTag"
+    cv::Mat _orientation;               // Orientation of the camera
 
     /**########################################################
      * ########## Data computed after frame creation ##########
