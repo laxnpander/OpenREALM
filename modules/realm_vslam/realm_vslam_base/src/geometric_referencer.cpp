@@ -63,7 +63,7 @@ void GeometricReferencer::setIdle()
 void GeometricReferencer::setReference(const cv::Mat &T_c2g)
 {
   std::unique_lock<std::mutex> lock(_mutex_t_c2g);
-  _transformation_c2g = T_c2g.clone();
+  _transformation_w2g = T_c2g.clone();
 }
 
 void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
@@ -189,7 +189,7 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
   if (computeTwoPointScale(s_curr, s_prev, 0.02*frame->getMedianSceneDepth()) > 0.0)
   {
     _spatials.push_back(s_curr);
-    cv::Mat T_c2g = refineReference(_spatials, _transformation_c2g.clone(), 3.0);
+    cv::Mat T_c2g = refineReference(_spatials, _transformation_w2g.clone(), 3.0);
     setReference(T_c2g);
 
     double error = computeAverageReferenceError(_spatials, T_c2g);
@@ -216,7 +216,7 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
 cv::Mat GeometricReferencer::getTransformation()
 {
   std::unique_lock<std::mutex> lock(_mutex_t_c2g);
-  return _transformation_c2g.clone();
+  return _transformation_w2g.clone();
 }
 
 double GeometricReferencer::computeTwoPointScale(const SpatialMeasurement::Ptr &s1, const SpatialMeasurement::Ptr &s2, double th_visual)

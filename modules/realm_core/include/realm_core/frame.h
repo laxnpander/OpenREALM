@@ -149,6 +149,13 @@ class Frame
     cv::Mat getGeographicPose() const;
 
     /*!
+     * @brief Getter for the provided camera orientation. It is assumed to be measured by another source than the visual
+     * SLAM.
+     * @return 3x3 orientation matrix of the camera
+     */
+    cv::Mat getOrientation() const;
+
+    /*!
      * @brief Getter for transformation matrix from visual world to geographic coordinate system.
      * @return (4x4) transformation matrix from visual to geographic world.
      */
@@ -310,9 +317,9 @@ class Frame
     /*!
      * @brief Updates the orientation with another rotation matrix. Can be used, if the visual SLAM calibrated the camera
      * orientation and therefore improves the results.
-     * @param R_update 3x3 rotation matrix update
+     * @param 3x3 rotation matrix update
      */
-    void updateOrientation(const cv::Mat &R_update);
+    void setOrientation(const cv::Mat &R_u2c);
 
     /*!
      * @brief Getter to check if this frame is marked as keyframe

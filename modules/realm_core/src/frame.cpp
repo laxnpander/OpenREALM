@@ -444,9 +444,14 @@ void Frame::updateGeoreference(const cv::Mat &T, bool do_update_surface_points)
   setGeoreference(T);
 }
 
-void Frame::updateOrientation(const cv::Mat &R_u2c)
+cv::Mat Frame::getOrientation() const
 {
-  _orientation = (R_u2c * _orientation.t()).t();
+  return _orientation.clone();
+}
+
+void Frame::setOrientation(const cv::Mat &orientation)
+{
+  _orientation = orientation;
 }
 
 void Frame::applyTransformationToSurfacePoints(const cv::Mat &T)

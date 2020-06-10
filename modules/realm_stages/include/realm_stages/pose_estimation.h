@@ -58,7 +58,6 @@ class PoseEstimation : public StageBase
     enum class FallbackStrategy
     {
       ALWAYS,               // Use this strategy, only, when provided orientation in the frame aligns with the camera orientation
-      WHEN_ORIENTATION_CALIBRATED,   // Use this strategy, when orientation in the frame is based on IMU readings, but you don't know if it aligns with the camera
       NEVER                 // Use this strategy, when you don't want fallback projection based on GPS coordinates only
     };
 
@@ -114,12 +113,6 @@ class PoseEstimation : public StageBase
     // Transformation from visual world to geo coordinate frame
     std::mutex _mutex_t_w2g;
     cv::Mat _T_w2g;
-
-    // Orientation correction
-    bool _pending_orientation_calibration;
-    bool _use_orientation_correction;
-    cv::Mat _orientation_correction;
-    int _nrof_orientation_correction_terms;
 
     // Current debug image, gets published by PoseEstimationIO
     // Warning: As soon as published, it will get released

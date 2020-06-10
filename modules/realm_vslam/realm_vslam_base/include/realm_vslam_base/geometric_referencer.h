@@ -32,8 +32,8 @@
 namespace realm
 {
 
-class GeometricReferencer : public GeospatialReferencerIF
-{
+  class GeometricReferencer : public GeospatialReferencerIF
+  {
   public:
     // First Mat: GIS pose (E,N,U,Heading), Second Mat: Visual Pose
     struct SpatialMeasurement
@@ -45,10 +45,15 @@ class GeometricReferencer : public GeospatialReferencerIF
 
   public:
     explicit GeometricReferencer(double th_error);
+
     void init(const std::vector<Frame::Ptr> &frames) override;
+
     bool isBuisy() override;
+
     cv::Mat getTransformation() override;
+
     void update(const Frame::Ptr &frame) override;
+
     bool isInitialized() override;
 
   private:
@@ -65,7 +70,7 @@ class GeometricReferencer : public GeospatialReferencerIF
     double _error;
 
     std::mutex _mutex_t_c2g;
-    cv::Mat _transformation_c2g;
+    cv::Mat _transformation_w2g;
 
     std::vector<SpatialMeasurement::Ptr> _spatials;
 
@@ -75,6 +80,8 @@ class GeometricReferencer : public GeospatialReferencerIF
 
     void setReference(const cv::Mat &T_c2g);
 
+    void calibrateOrientation();
+
     static double computeTwoPointScale(const SpatialMeasurement::Ptr &f1, const SpatialMeasurement::Ptr &f2, double th_visual);
 
     static double computeAverageReferenceError(const std::vector<SpatialMeasurement::Ptr> &spatials, const cv::Mat &T_c2w);
@@ -82,7 +89,7 @@ class GeometricReferencer : public GeospatialReferencerIF
     static cv::Mat refineReference(const std::vector<SpatialMeasurement::Ptr> &frames, const cv::Mat &T_c2w, double z_weight);
 
     static cv::Mat applyTransformation(const cv::Mat &T, const cv::Mat &pt);
-};
+  };
 
 } // namespace realm
 
