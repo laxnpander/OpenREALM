@@ -449,11 +449,6 @@ cv::Mat Frame::getOrientation() const
   return _orientation.clone();
 }
 
-void Frame::setOrientation(const cv::Mat &orientation)
-{
-  _orientation = orientation;
-}
-
 void Frame::applyTransformationToSurfacePoints(const cv::Mat &T)
 {
   if (_surface_points.rows > 0)

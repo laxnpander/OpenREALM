@@ -315,13 +315,6 @@ class Frame
     void updateGeoreference(const cv::Mat &T, bool do_update_surface_points = false);
 
     /*!
-     * @brief Updates the orientation with another rotation matrix. Can be used, if the visual SLAM calibrated the camera
-     * orientation and therefore improves the results.
-     * @param 3x3 rotation matrix update
-     */
-    void setOrientation(const cv::Mat &R_u2c);
-
-    /*!
      * @brief Getter to check if this frame is marked as keyframe
      * @return true if yes
      */
