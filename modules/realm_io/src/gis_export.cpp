@@ -74,7 +74,7 @@ void io::saveGeoTIFF(const cv::Mat &img,
                      const uint8_t &zone)
 {
   const char *format = "GTiff";
-  char **options = nullptr;
+  char **options = getExportOptionsGeoTIFF();
 
   auto bands = static_cast<uint8_t>(img.channels());
   auto rows = static_cast<uint32_t>(img.rows);
@@ -156,4 +156,13 @@ void io::saveGeoTIFF(const cv::Mat &img,
   }
 
   GDALClose((GDALDatasetH) dataset);
+}
+
+char** io::getExportOptionsGeoTIFF()
+{
+  char** options;
+  options = CSLSetNameValue( options, "TILED", "YES" );
+  options = CSLSetNameValue( options, "COPY_SRC_OVERVIEWS", "YES" );
+  options = CSLSetNameValue( options, "COMPRESS", "LZW" );
+  return options;
 }

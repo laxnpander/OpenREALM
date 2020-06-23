@@ -103,6 +103,8 @@ void saveGeoTIFF(const cv::Mat &img,
                  double *geoinfo,
                  const uint8_t &zone);
 
+char** getExportOptionsGeoTIFF();
+
 } // namespace io
 } // namespace realm
 
