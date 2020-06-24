@@ -25,38 +25,13 @@ using namespace realm;
 void io::saveGeoTIFF(const CvGridMap &map,
                      const std::string &color_layer_name,
                      const uint8_t &zone,
-                     const std::string &directory,
-                     const std::string &name,
+                     const std::string &filename,
                      GDALProfile gdal_profile)
-{
-  // Create unique filename
-  std::string filename = (directory + "/" + name + ".tif");
-  io::saveGeoTIFF(map, color_layer_name, zone, filename, gdal_profile);
-}
-
-void io::saveGeoTIFF(const CvGridMap &map,
-                     const std::string &color_layer_name,
-                     const uint8_t &zone,
-                     const std::string &directory,
-                     const std::string &name,
-                     uint32_t id,
-                     GDALProfile gdal_profile)
-{
-  // Create unique filename
-  std::string filename = io::createFilename(directory + "/" + name + "_", id, ".tif");
-  io::saveGeoTIFF(map, color_layer_name, zone, filename, gdal_profile);
-}
-
-void io::saveGeoTIFF(const CvGridMap &map,
-                 const std::string &color_layer_name,
-                 const uint8_t &zone,
-                 const std::string &filename,
-                 GDALProfile gdal_profile)
 {
   // Get relevant data from container class
   double GSD = map.resolution();
   cv::Rect2d roi = map.roi();
-  cv::Mat color_layer = map[color_layer_name];
+  cv::Mat img = map[color_layer_name];
 
   // Creating geo informations for GDAL
   double geoproj[6];
@@ -67,16 +42,6 @@ void io::saveGeoTIFF(const CvGridMap &map,
   geoproj[4] = 0;
   geoproj[5] = -GSD;
 
-  // Call to minimal saving function
-  io::saveGeoTIFF(color_layer, filename.c_str(), geoproj, zone, gdal_profile);
-}
-
-void io::saveGeoTIFF(const cv::Mat &img,
-                     const char *filename,
-                     double *geoinfo,
-                     const uint8_t &zone,
-                     GDALProfile gdal_profile)
-{
   const char *format = "GTiff";
   char **options = getExportOptionsGeoTIFF(gdal_profile);
 
@@ -90,8 +55,6 @@ void io::saveGeoTIFF(const cv::Mat &img,
 
   GDALAllRegister();
 
-  driver = GetGDALDriverManager()->GetDriverByName(format);
-
   GDALDataType pix_type;
   if (img.type() == CV_8UC1 || img.type() == CV_8UC3 || img.type() == CV_8UC4)
     pix_type = GDT_Byte;
@@ -104,11 +67,12 @@ void io::saveGeoTIFF(const cv::Mat &img,
   else
     throw(std::invalid_argument("Error saving GTiff: Image format not recognized!"));
 
-  dataset = driver->Create(filename, cols, rows, bands, pix_type, options);
+  driver = GetGDALDriverManager()->GetDriverByName(format);
+  dataset = driver->Create(filename.c_str(), cols, rows, bands, pix_type, options);
 
   char *pszSRS_WKT = nullptr;
 
-  dataset->SetGeoTransform(geoinfo);
+  dataset->SetGeoTransform(geoproj);
   oSRS.SetUTM(zone, TRUE);
   oSRS.SetWellKnownGeogCS("WGS84");
   oSRS.exportToWkt(&pszSRS_WKT);
@@ -173,8 +137,6 @@ char** io::getExportOptionsGeoTIFF(GDALProfile gdal_profile)
       options = CSLSetNameValue( options, "BLOCKXSIZE", "256" );
       options = CSLSetNameValue( options, "BLOCKYSIZE", "256" );
       options = CSLSetNameValue( options, "PHOTOMETRIC", "MINISBLACK");
-      options = CSLSetNameValue( options, "ZLEVEL", "1");
-      options = CSLSetNameValue( options, "ZSTD_LEVEL", "9");
       options = CSLSetNameValue( options, "BIGTIFF", "IF_SAFER");
       options = CSLSetNameValue( options, "COPY_SRC_OVERVIEWS", "YES" );
       options = CSLSetNameValue( options, "COMPRESS", "LZW" );

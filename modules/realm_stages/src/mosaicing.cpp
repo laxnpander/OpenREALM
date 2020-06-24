@@ -290,7 +290,7 @@ void Mosaicing::saveIter(uint32_t id)
   if (_settings_save.save_num_obs_all)
     io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff_all)
-    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho", "ortho", id);
+    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, io::createFilename(_stage_path + "/ortho/ortho_", id, ".tif"));
 }
 
 void Mosaicing::saveAll()
@@ -307,11 +307,11 @@ void Mosaicing::saveAll()
   if (_settings_save.save_num_obs_one)
     io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
   if (_settings_save.save_num_obs_one)
-    io::saveGeoTIFF(*_global_map, "num_observations", _utm_reference->zone, _stage_path + "/nobs", "nobs");
+    io::saveGeoTIFF(*_global_map, "num_observations", _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
   if (_settings_save.save_ortho_gtiff_one)
-    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho", "ortho");
+    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho/ortho.tif");
   if (_settings_save.save_elevation_one)
-    io::saveGeoTIFF(*_global_map, "elevation", _utm_reference->zone, _stage_path + "/elevation/gtiff", "elevation");
+    io::saveGeoTIFF(*_global_map, "elevation", _utm_reference->zone, _stage_path + "/elevation/gtiff/elevation.tif");
 
   // 3D Point cloud output
   if (_settings_save.save_dense_ply)

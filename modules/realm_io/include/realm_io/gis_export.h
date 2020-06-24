@@ -61,24 +61,6 @@ void saveGeoTIFF(const CvGridMap &map,
                  GDALProfile gdal_profile = GDALProfile::COG);
 
 /*!
- * @brief Save function for GeoTIFFs interfaced through a CvGridMap with unique name creation based on given id.
- * @param map Observed scene that should be saved as GeoTIFF
- * @param color_layer_name Name of the color layer to be saved in the grid map
- * @param zone UTM zone of the passed position
- * @param directory Directory for saving
- * @param name Filename of the output file
- * @param id Unique ID for saving
- * @return True if successfull
- */
-void saveGeoTIFF(const CvGridMap &map,
-                 const std::string &color_layer_name,
-                 const uint8_t &zone,
-                 const std::string &directory,
-                 const std::string &name,
-                 uint32_t id,
-                 GDALProfile gdal_profile = GDALProfile::COG);
-
-/*!
  * @brief Save function for GeoTIFFs interfaced through a CvGridMap.
  * @param map Observed scene that should be saved as GeoTIFF
  * @param color_layer_name Name of the color layer to be saved in the grid map
@@ -91,26 +73,6 @@ void saveGeoTIFF(const CvGridMap &map,
                  const uint8_t &zone,
                  const std::string &filename,
                  GDALProfile gdal_profile = GDALProfile::COG);
-
-/*!
- * @brief Save function for GeoTIFFs interfaced through raw minimum input.
- * @param img Image data of the observed scene
- * @param filename Filename of the output file including directory
- * @param geoinfo 6x1 raw array of geo informations organized as:
- * (UTM upper left coordinate eastings,
- *  ground sampling distance,
- *  0.0,
- *  UTM upper left coordinate northings,
- *  0.0,
- *  -ground sampling distance)
- * @param zone UTM zone of the passed position
- * @return
- */
-void saveGeoTIFF(const cv::Mat &img,
-                 const char *filename,
-                 double *geoinfo,
-                 const uint8_t &zone,
-                 GDALProfile gdal_profile);
 
 char** getExportOptionsGeoTIFF(GDALProfile gdal_profile);
 

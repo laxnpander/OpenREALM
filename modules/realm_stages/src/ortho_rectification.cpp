@@ -123,9 +123,9 @@ void OrthoRectification::saveIter(const CvGridMap& map, uint8_t zone, uint32_t i
   if (_settings_save.save_elevation_angle)
     io::saveImageColorMap(map["elevation_angle"], map["valid"], _stage_path + "/angle", "angle", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff)
-    io::saveGeoTIFF(map, "color_rgb", zone, _stage_path + "/gtiff", "gtiff", id);
+    io::saveGeoTIFF(map, "color_rgb", zone, io::createFilename(_stage_path + "/gtiff/gtiff_", id, ".tif"));
   if (_settings_save.save_elevation)
-    io::saveGeoTIFF(map, "elevation", zone, _stage_path + "/elevation", "elevation", id);
+    io::saveGeoTIFF(map, "elevation", zone, io::createFilename(_stage_path + "/elevation/elevation_", id, ".tif"));
 }
 
 void OrthoRectification::publish(const Frame::Ptr &frame)
