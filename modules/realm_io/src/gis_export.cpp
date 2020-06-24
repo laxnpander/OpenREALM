@@ -26,11 +26,12 @@ void io::saveGeoTIFF(const CvGridMap &map,
                      const std::string &color_layer_name,
                      const uint8_t &zone,
                      const std::string &directory,
-                     const std::string &name)
+                     const std::string &name,
+                     GDALProfile gdal_profile)
 {
   // Create unique filename
   std::string filename = (directory + "/" + name + ".tif");
-  io::saveGeoTIFF(map, color_layer_name, zone, filename);
+  io::saveGeoTIFF(map, color_layer_name, zone, filename, gdal_profile);
 }
 
 void io::saveGeoTIFF(const CvGridMap &map,
@@ -38,17 +39,19 @@ void io::saveGeoTIFF(const CvGridMap &map,
                      const uint8_t &zone,
                      const std::string &directory,
                      const std::string &name,
-                     uint32_t id)
+                     uint32_t id,
+                     GDALProfile gdal_profile)
 {
   // Create unique filename
   std::string filename = io::createFilename(directory + "/" + name + "_", id, ".tif");
-  io::saveGeoTIFF(map, color_layer_name, zone, filename);
+  io::saveGeoTIFF(map, color_layer_name, zone, filename, gdal_profile);
 }
 
 void io::saveGeoTIFF(const CvGridMap &map,
                  const std::string &color_layer_name,
                  const uint8_t &zone,
-                 const std::string &filename)
+                 const std::string &filename,
+                 GDALProfile gdal_profile)
 {
   // Get relevant data from container class
   double GSD = map.resolution();
@@ -65,16 +68,17 @@ void io::saveGeoTIFF(const CvGridMap &map,
   geoproj[5] = -GSD;
 
   // Call to minimal saving function
-  io::saveGeoTIFF(color_layer, filename.c_str(), geoproj, zone);
+  io::saveGeoTIFF(color_layer, filename.c_str(), geoproj, zone, gdal_profile);
 }
 
 void io::saveGeoTIFF(const cv::Mat &img,
                      const char *filename,
                      double *geoinfo,
-                     const uint8_t &zone)
+                     const uint8_t &zone,
+                     GDALProfile gdal_profile)
 {
   const char *format = "GTiff";
-  char **options = getExportOptionsGeoTIFF();
+  char **options = getExportOptionsGeoTIFF(gdal_profile);
 
   auto bands = static_cast<uint8_t>(img.channels());
   auto rows = static_cast<uint32_t>(img.rows);
@@ -158,11 +162,25 @@ void io::saveGeoTIFF(const cv::Mat &img,
   GDALClose((GDALDatasetH) dataset);
 }
 
-char** io::getExportOptionsGeoTIFF()
+char** io::getExportOptionsGeoTIFF(GDALProfile gdal_profile)
 {
   char** options;
-  options = CSLSetNameValue( options, "TILED", "YES" );
-  options = CSLSetNameValue( options, "COPY_SRC_OVERVIEWS", "YES" );
-  options = CSLSetNameValue( options, "COMPRESS", "LZW" );
+  switch(gdal_profile)
+  {
+    case GDALProfile::COG:
+      options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
+      options = CSLSetNameValue( options, "TILED", "YES" );
+      options = CSLSetNameValue( options, "BLOCKXSIZE", "256" );
+      options = CSLSetNameValue( options, "BLOCKYSIZE", "256" );
+      options = CSLSetNameValue( options, "PHOTOMETRIC", "MINISBLACK");
+      options = CSLSetNameValue( options, "ZLEVEL", "1");
+      options = CSLSetNameValue( options, "ZSTD_LEVEL", "9");
+      options = CSLSetNameValue( options, "BIGTIFF", "IF_SAFER");
+      options = CSLSetNameValue( options, "COPY_SRC_OVERVIEWS", "YES" );
+      options = CSLSetNameValue( options, "COMPRESS", "LZW" );
+      break;
+    default:
+      throw(std::invalid_argument("Error: Unknown GDAL export profile."));
+  }
   return options;
 }

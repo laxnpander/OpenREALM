@@ -39,6 +39,11 @@ namespace realm
 namespace io
 {
 
+enum class GDALProfile
+{
+  COG /// Cloud Optimized GeoTIFF: https://trac.osgeo.org/gdal/wiki/CloudOptimizedGeoTIFF
+};
+
 /*!
  * @brief Save function for GeoTIFFs interfaced through a CvGridMap.
  * @param map Observed scene that should be saved as GeoTIFF
@@ -52,7 +57,8 @@ void saveGeoTIFF(const CvGridMap &map,
                  const std::string &color_layer_name,
                  const uint8_t &zone,
                  const std::string &directory,
-                 const std::string &name);
+                 const std::string &name,
+                 GDALProfile gdal_profile = GDALProfile::COG);
 
 /*!
  * @brief Save function for GeoTIFFs interfaced through a CvGridMap with unique name creation based on given id.
@@ -69,7 +75,8 @@ void saveGeoTIFF(const CvGridMap &map,
                  const uint8_t &zone,
                  const std::string &directory,
                  const std::string &name,
-                 uint32_t id);
+                 uint32_t id,
+                 GDALProfile gdal_profile = GDALProfile::COG);
 
 /*!
  * @brief Save function for GeoTIFFs interfaced through a CvGridMap.
@@ -82,7 +89,8 @@ void saveGeoTIFF(const CvGridMap &map,
 void saveGeoTIFF(const CvGridMap &map,
                  const std::string &color_layer_name,
                  const uint8_t &zone,
-                 const std::string &filename);
+                 const std::string &filename,
+                 GDALProfile gdal_profile = GDALProfile::COG);
 
 /*!
  * @brief Save function for GeoTIFFs interfaced through raw minimum input.
@@ -101,9 +109,10 @@ void saveGeoTIFF(const CvGridMap &map,
 void saveGeoTIFF(const cv::Mat &img,
                  const char *filename,
                  double *geoinfo,
-                 const uint8_t &zone);
+                 const uint8_t &zone,
+                 GDALProfile gdal_profile);
 
-char** getExportOptionsGeoTIFF();
+char** getExportOptionsGeoTIFF(GDALProfile gdal_profile);
 
 } // namespace io
 } // namespace realm
