@@ -44,36 +44,60 @@ enum class GDALProfile
   COG /// Cloud Optimized GeoTIFF: https://trac.osgeo.org/gdal/wiki/CloudOptimizedGeoTIFF
 };
 
-/*!
- * @brief Save function for GeoTIFFs interfaced through a CvGridMap.
- * @param map Observed scene that should be saved as GeoTIFF
- * @param color_layer_name Name of the color layer to be saved in the grid map
- * @param zone UTM zone of the passed position
- * @param directory Directory for saving
- * @param name Filename of the output file
- * @return True if successfull
- */
-void saveGeoTIFF(const CvGridMap &map,
-                 const std::string &color_layer_name,
-                 const uint8_t &zone,
-                 const std::string &directory,
-                 const std::string &name,
-                 GDALProfile gdal_profile = GDALProfile::COG);
+struct GDALDatasetMeta
+{
+  GDALDataType datatype;
+  uint8_t zone;
+  double geoinfo[6];
+};
 
 /*!
- * @brief Save function for GeoTIFFs interfaced through a CvGridMap.
- * @param map Observed scene that should be saved as GeoTIFF
- * @param color_layer_name Name of the color layer to be saved in the grid map
- * @param zone UTM zone of the passed position
- * @param name Absolute filename of the output file
- * @return True if successfull
+ * @brief Interface function to save GeoTIFFs from CvGridMap
+ * @param map CvGridMap containing the image data and geo information in UTM coordinates
+ * @param color_layer_name Name of the layer to be rendered
+ * @param zone UTM zone of the map ROI
+ * @param filename Full name of the image to be saved. In case of split save the name will be modified adding channel information
+ * @param do_build_overview Flag to build internal overviews with GDAL before the .tif is translated
+ * @param do_split_save Flag to save all channels separately. The filename is modified in this case to represent the channel
+ * information also, e.g. ortho -> ortho_b, ortho_g, ortho_r, ortho_a
+ * @param gdal_profile Collection of options that are passed to the GDAL driver
  */
 void saveGeoTIFF(const CvGridMap &map,
                  const std::string &color_layer_name,
                  const uint8_t &zone,
                  const std::string &filename,
+                 bool do_build_overview = false,
+                 bool do_split_save = false,
                  GDALProfile gdal_profile = GDALProfile::COG);
 
+/*!
+ * @brief Internal function to save GeoTIFFs. Usually the user should not be forced to compute the GDALDatasetMeta beforehand.
+ * @param data OpenCV matrix data, can be multi or single layered
+ * @param meta Meta informations about the dataset
+ * @param filename Full filename of the resulting .tif file
+ * @param do_build_overview Flag to build internal overviews with GDAL before the .tif is translated
+ * @param gdal_profile Collection of options that are passed to the GDAL driver
+ */
+void saveGeoTIFF(const cv::Mat &data,
+                 const GDALDatasetMeta &meta,
+                 const std::string &filename,
+                 bool do_build_overview,
+                 GDALProfile gdal_profile);
+
+/*!
+ * @brief Internal function to translate CvGridMap information to GDAL meta data.
+ * @param map CvGridMap which should be saved as GeoTIFF
+ * @param color_layer_name Name of the layer inside the grid map to be saved
+ * @param zone UTM zone of the geo position
+ * @return GDAL meta information about the dataset
+ */
+GDALDatasetMeta* computeGDALDatasetMeta(const CvGridMap &map, const std::string &color_layer_name, uint8_t zone);
+
+/*!
+ * @brief
+ * @param gdal_profile
+ * @return
+ */
 char** getExportOptionsGeoTIFF(GDALProfile gdal_profile);
 
 } // namespace io
