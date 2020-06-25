@@ -38,6 +38,8 @@ namespace realm {
         explicit Timer(const std::chrono::milliseconds &period, const std::function<void()> &func);
         ~Timer();
 
+        static long getCurrentTimeMilliseconds();
+
     private:
         std::chrono::milliseconds _period;
         std::function<void()> _func;

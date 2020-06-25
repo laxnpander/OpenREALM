@@ -46,3 +46,10 @@ Timer::~Timer()
     _in_flight = false;
     _thread.join();
 }
+
+long Timer::getCurrentTimeMilliseconds()
+{
+  using namespace std::chrono;
+  milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+  return ms.count();
+}
