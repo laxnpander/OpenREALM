@@ -1536,11 +1536,7 @@ void Tracking::Reset()
         mpViewer->Release();
 
     mnLastRelocFrameId = 0;
-<<<<<<< HEAD:realm_vslam/realm_vslam_impl/orb_slam_2/src/orb_slam_2_lib/Tracking.cc
     mVelocity = cv::Mat();
-=======
-    mVelocity = cv::Mat(); 
->>>>>>> cmake_only:modules/realm_vslam/realm_vslam_impl/orb_slam_2/src/Tracking.cc
 }
 
 void Tracking::ChangeCalibration(const string &strSettingPath)
