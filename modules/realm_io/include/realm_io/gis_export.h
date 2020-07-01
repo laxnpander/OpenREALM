@@ -75,14 +75,14 @@ void saveGeoTIFF(const CvGridMap &map,
  * @param data OpenCV matrix data, can be multi or single layered
  * @param meta Meta informations about the dataset
  * @param filename Full filename of the resulting .tif file
- * @param do_build_overview Flag to build internal overviews with GDAL before the .tif is translated
+ * @param do_build_overviews Flag to build internal overviews with GDAL before the .tif is translated
  * @param gdal_profile Collection of options that are passed to the GDAL driver
  */
-void saveGeoTIFF(const cv::Mat &data,
-                 const GDALDatasetMeta &meta,
-                 const std::string &filename,
-                 bool do_build_overview,
-                 GDALProfile gdal_profile);
+void saveGeoTIFFtoFile(const cv::Mat &data,
+                       const GDALDatasetMeta &meta,
+                       const std::string &filename,
+                       bool do_build_overviews,
+                       GDALProfile gdal_profile);
 
 /*!
  * @brief Internal function to translate CvGridMap information to GDAL meta data.
@@ -93,12 +93,16 @@ void saveGeoTIFF(const cv::Mat &data,
  */
 GDALDatasetMeta* computeGDALDatasetMeta(const CvGridMap &map, const std::string &color_layer_name, uint8_t zone);
 
+GDALDataset* generateMemoryDataset(const cv::Mat &data, const GDALDatasetMeta &meta);
+
 /*!
  * @brief
  * @param gdal_profile
  * @return
  */
 char** getExportOptionsGeoTIFF(GDALProfile gdal_profile);
+
+void setGDALBandNan(GDALRasterBand* band, const cv::Mat &data);
 
 } // namespace io
 } // namespace realm

@@ -18,6 +18,8 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <realm_core/loguru.h>
+
 #include <realm_io/utilities.h>
 
 using namespace realm;
@@ -43,7 +45,7 @@ void io::createDir(const std::string &directory)
   }
   catch (...)
   {
-    // Currently no exception handling provided
+    LOG_F(WARNING, "Creating path failed: %s", directory.c_str());
   }
 }
 

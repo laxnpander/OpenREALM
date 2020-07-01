@@ -37,56 +37,65 @@ void io::saveGeoTIFF(const CvGridMap &map,
   long t = Timer::getCurrentTimeMilliseconds();
 
   cv::Mat img = map[color_layer_name];
-  if (img.channels() == 4)
-  {
-    cv::cvtColor(img, img, CV_BGRA2BGR);
-  }
+
+  cv::Mat img_converted;
+  if (img_converted.channels() == 3)
+    cv::cvtColor(img, img_converted, CV_BGR2RGB);
+  else if (img.channels() == 4)
+    cv::cvtColor(img, img_converted, CV_BGRA2RGBA);
+  else
+    img_converted = img;
 
   GDALDatasetMeta* meta = io::computeGDALDatasetMeta(map, color_layer_name, zone);
 
-  if (!do_split_save || img.channels() == 1)
+  if (!do_split_save || img_converted.channels() == 1)
   {
-    io::saveGeoTIFF(img, *meta, filename, do_build_overview, gdal_profile);
+    io::saveGeoTIFFtoFile(img_converted, *meta, filename, do_build_overview, gdal_profile);
 
     LOG_F(INFO, "GeoTIFF saved, t = [%4.2f s], location: %s", (Timer::getCurrentTimeMilliseconds()-t)/1000.0, filename.c_str());
   }
   else
   {
-    cv::Mat img_bands[img.channels()];
-    cv::split(img, img_bands);
+    cv::Mat img_bands[img_converted.channels()];
+    cv::split(img_converted, img_bands);
 
-    for (int i = 0; i < img.channels(); ++i)
+    for (int i = 0; i < img_converted.channels(); ++i)
     {
       std::string filename_split = filename;
       switch(i)
       {
         case 0:
-          filename_split.insert(filename_split.size()-4, "_b");
+          filename_split.insert(filename_split.size()-4, "_r");
           break;
         case 1:
           filename_split.insert(filename_split.size()-4, "_g");
           break;
         case 2:
-          filename_split.insert(filename_split.size()-4, "_r");
+          filename_split.insert(filename_split.size()-4, "_b");
+          break;
+        case 3:
+          filename_split.insert(filename_split.size()-4, "_a");
           break;
         default:
           throw(std::invalid_argument("Error: Exporting GeoTIFF split is only supported up to 3 channels."));
       }
 
-      io::saveGeoTIFF(img_bands[i], *meta, filename_split, do_build_overview, gdal_profile);
+      io::saveGeoTIFFtoFile(img_converted, *meta, filename_split, do_build_overview, gdal_profile);
 
       LOG_F(INFO, "GeoTIFF saved, t = [%4.2f s], location: %s", (Timer::getCurrentTimeMilliseconds()-t)/1000.0, filename_split.c_str());
+
+      t = Timer::getCurrentTimeMilliseconds();
     }
   }
 
   delete meta;
 }
 
-void io::saveGeoTIFF(const cv::Mat &data,
-                     const GDALDatasetMeta &meta,
-                     const std::string &filename,
-                     bool do_build_overviews,
-                     GDALProfile gdal_profile)
+void io::saveGeoTIFFtoFile(const cv::Mat &data,
+                           const GDALDatasetMeta &meta,
+                           const std::string &filename,
+                           bool do_build_overviews,
+                           GDALProfile gdal_profile)
 {
   const char *format = "GTiff";
   char **options = nullptr;
@@ -94,68 +103,13 @@ void io::saveGeoTIFF(const cv::Mat &data,
   GDALDriver* driver;
   GDALDataset* dataset_mem;
   GDALDatasetH dataset_tif;
-  OGRSpatialReference oSRS;
-  GDALAllRegister();
 
-  cv::Mat img_bands[data.channels()];
-  cv::split(data, img_bands);
+  GDALAllRegister(); // -> This should be called only once according to the docs, move it in the future
 
   // First a memory drive is created and the dataset loaded. This is done to provide the functionality of adding
   // internal overviews before translating the data to tif format. This is particularly used for Cloud Optimized GeoTIFFS,
   // see also: https://geoexamples.com/other/2019/02/08/cog-tutorial.html
-  driver = GetGDALDriverManager()->GetDriverByName("MEM");
-  dataset_mem = driver->Create(filename.c_str(), data.cols, data.rows, data.channels(), meta.datatype, options);
-
-  char *pszSRS_WKT = nullptr;
-  double geoinfo[6] = {meta.geoinfo[0], meta.geoinfo[1], meta.geoinfo[2], meta.geoinfo[3], meta.geoinfo[4], meta.geoinfo[5]};
-
-  dataset_mem->SetGeoTransform(geoinfo);
-  oSRS.SetUTM(meta.zone, TRUE);
-  oSRS.SetWellKnownGeogCS("WGS84");
-  oSRS.exportToWkt(&pszSRS_WKT);
-  dataset_mem->SetProjection(pszSRS_WKT);
-  CPLFree(pszSRS_WKT);
-
-  for (uint8_t i = 1; i <= data.channels(); i++)
-  {
-    GDALRasterBand *band = dataset_mem->GetRasterBand(i);
-    CPLErr error_code = band->RasterIO(GF_Write, 0, 0, data.cols, data.rows, img_bands[i - 1].data, data.cols, data.rows, meta.datatype, 0, 0);
-
-    if (error_code != CE_None)
-      throw(std::runtime_error("Error saving GeoTIFF: Unhandled error code."));
-
-    if (data.type() == CV_8UC1 || data.type() == CV_8UC2 || data.type() == CV_8UC1 || data.type() == CV_8UC4)
-      band->SetNoDataValue(0);
-    else if (data.type() == CV_16UC1)
-      band->SetNoDataValue(0);
-    else if (data.type() == CV_32F)
-      band->SetNoDataValue(std::numeric_limits<float>::quiet_NaN());
-    else if (data.type() == CV_64F)
-      band->SetNoDataValue(std::numeric_limits<double>::quiet_NaN());
-
-    if (data.channels() == 1)
-      band->SetColorInterpretation(GCI_GrayIndex);
-    else
-    {
-      switch (i)
-      {
-        case 1:
-          band->SetColorInterpretation(GCI_BlueBand);
-          break;
-        case 2:
-          band->SetColorInterpretation(GCI_GreenBand);
-          break;
-        case 3:
-          band->SetColorInterpretation(GCI_RedBand);
-          break;
-        case 4:
-          band->SetColorInterpretation(GCI_AlphaBand);
-          break;
-        default:
-          break;
-      }
-    }
-  }
+  dataset_mem = generateMemoryDataset(data, meta);
 
   if (do_build_overviews)
   {
@@ -167,6 +121,11 @@ void io::saveGeoTIFF(const cv::Mat &data,
   // and additional options added.
   driver = GetGDALDriverManager()->GetDriverByName(format);
   options = getExportOptionsGeoTIFF(gdal_profile);
+
+  // Check if multi channel image, therefore RGB/BGR
+  if (data.channels() >= 3)
+    options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
+
   dataset_tif = GDALCreateCopy(driver, filename.c_str(), dataset_mem, 0, options, NULL, NULL);
 
   GDALClose((GDALDatasetH) dataset_mem);
@@ -205,6 +164,43 @@ io::GDALDatasetMeta* io::computeGDALDatasetMeta(const CvGridMap &map, const std:
   return meta;
 }
 
+GDALDataset* io::generateMemoryDataset(const cv::Mat &data, const io::GDALDatasetMeta &meta)
+{
+  GDALDriver* driver = nullptr;
+  GDALDataset* dataset = nullptr;
+  OGRSpatialReference oSRS;
+
+  char **options = nullptr;
+
+  driver = GetGDALDriverManager()->GetDriverByName("MEM");
+  dataset = driver->Create("", data.cols, data.rows, data.channels(), meta.datatype, options);
+
+  char *pszSRS_WKT = nullptr;
+  double geoinfo[6] = {meta.geoinfo[0], meta.geoinfo[1], meta.geoinfo[2], meta.geoinfo[3], meta.geoinfo[4], meta.geoinfo[5]};
+
+  dataset->SetGeoTransform(geoinfo);
+  oSRS.SetUTM(meta.zone, TRUE);
+  oSRS.SetWellKnownGeogCS("WGS84");
+  oSRS.exportToWkt(&pszSRS_WKT);
+  dataset->SetProjection(pszSRS_WKT);
+  CPLFree(pszSRS_WKT);
+
+  cv::Mat img_bands[data.channels()];
+  cv::split(data, img_bands);
+
+  for (int i = 1; i <= data.channels(); i++)
+  {
+    GDALRasterBand *band = dataset->GetRasterBand(i);
+    CPLErr error_code = band->RasterIO(GF_Write, 0, 0, data.cols, data.rows, img_bands[i - 1].data, data.cols, data.rows, meta.datatype, 0, 0);
+
+    if (error_code != CE_None)
+      throw(std::runtime_error("Error saving GeoTIFF: Unhandled error code."));
+
+    setGDALBandNan(band, data);
+  }
+  return dataset;
+}
+
 char** io::getExportOptionsGeoTIFF(GDALProfile gdal_profile)
 {
   char** options;
@@ -224,4 +220,16 @@ char** io::getExportOptionsGeoTIFF(GDALProfile gdal_profile)
       throw(std::invalid_argument("Error: Unknown GDAL export profile."));
   }
   return options;
+}
+
+void io::setGDALBandNan(GDALRasterBand *band, const cv::Mat &data)
+{
+  if (data.type() == CV_8U)
+    band->SetNoDataValue(0);
+  else if (data.type() == CV_16UC1)
+    band->SetNoDataValue(0);
+  else if (data.type() == CV_32F)
+    band->SetNoDataValue(std::numeric_limits<float>::quiet_NaN());
+  else if (data.type() == CV_64F)
+    band->SetNoDataValue(std::numeric_limits<double>::quiet_NaN());
 }

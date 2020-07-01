@@ -55,6 +55,7 @@ set(HEADER_FILES
         ${root}/include/realm_io/exif_export.h
         ${root}/include/realm_io/exif_import.h
         ${root}/include/realm_io/gis_export.h
+        ${root}/include/realm_io/gdal_continuous_writer.h
         ${root}/include/realm_io/pcl_export.h
         ${root}/include/realm_io/realm_export.h
         ${root}/include/realm_io/realm_import.h
@@ -66,11 +67,12 @@ set(SOURCE_FILES
         ${root}/src/exif_export.cpp
         ${root}/src/exif_import.cpp
         ${root}/src/gis_export.cpp
+        ${root}/src/gdal_continuous_writer.cpp
         ${root}/src/pcl_export.cpp
         ${root}/src/realm_export.cpp
         ${root}/src/realm_import.cpp
         ${root}/src/utilities.cpp
-)
+        include/realm_io/gdal_continuous_writer.h src/gdal_continuous_writer.cpp)
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})
