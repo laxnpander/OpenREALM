@@ -16,7 +16,7 @@
    viewBox="0 0 148.77336 39.077183"
    version="1.1"
    id="svg8"
-   sodipodi:docname="logo_cropped.svg"
+   sodipodi:docname="logo.svg"
    inkscape:version="0.92.3 (2405546, 2018-03-11)">
   <defs
      id="defs2">
@@ -63,9 +63,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="107.91616"
-     inkscape:cy="153.8506"
+     inkscape:zoom="2.8284272"
+     inkscape:cx="157.63587"
+     inkscape:cy="57.887241"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -89,7 +89,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -123,11 +123,11 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:17.64572334px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;opacity:0.97000002;fill:#88b5a9;fill-opacity:1;stroke:none;stroke-width:0.60155869"
-       x="174.62117"
+       x="180.04674"
        y="-36.345356"
        id="text456-2"><tspan
          sodipodi:role="line"
-         x="174.62117"
+         x="180.04674"
          y="-36.345356"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:18.71716309px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#88b5a9;fill-opacity:1;stroke-width:0.60155869"
          id="tspan1281-8">Open</tspan></text>
