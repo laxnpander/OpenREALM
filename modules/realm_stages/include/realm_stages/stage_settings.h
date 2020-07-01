@@ -118,6 +118,7 @@ class MosaicingSettings : public StageSettings
       add("publish_mesh_every_nth_kf", Parameter_t<int>{0, "Activate global map publish every n keyframes as mesh"});
       add("publish_mesh_at_finish", Parameter_t<int>{0, "Activate global map publish as mesh at finishCallback call"});
       add("downsample_publish_mesh", Parameter_t<double>{0.0, "Downsample published mesh to lower GSD for performance. Unit: [m/pix]"});
+      add("split_gtiff_channels", Parameter_t<int>{0, "Splits all channels of an OpenCV matrix into separate tif files while saving"});
       add("save_valid", Parameter_t<int>{0, "Save valid global map grid elements"});
       add("save_ortho_rgb_one", Parameter_t<int>{0, "Save global map ortho foto as one PNG image file"});
       add("save_ortho_rgb_all", Parameter_t<int>{0, "Save global map ortho foto as incremental PNG image files"});

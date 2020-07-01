@@ -28,6 +28,9 @@ using namespace stages;
 Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _utm_reference(nullptr),
+      _global_map(nullptr),
+      _mesher(nullptr),
+      _gdal_writer(nullptr),
       _publish_mesh_nth_iter(0),
       _publish_mesh_every_nth_kf((*stage_set)["publish_mesh_every_nth_kf"].toInt()),
       _do_publish_mesh_at_finish((*stage_set)["publish_mesh_at_finish"].toInt() > 0),
@@ -35,7 +38,8 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
       _use_surface_normals(true),
       _th_elevation_min_nobs((*stage_set)["th_elevation_min_nobs"].toInt()),
       _th_elevation_var((*stage_set)["th_elevation_variance"].toFloat()),
-      _settings_save({(*stage_set)["save_valid"].toInt() > 0,
+      _settings_save({(*stage_set)["split_gtiff_channels"].toInt() > 0,
+                      (*stage_set)["save_valid"].toInt() > 0,
                       (*stage_set)["save_ortho_rgb_one"].toInt() > 0,
                       (*stage_set)["save_ortho_rgb_all"].toInt() > 0,
                       (*stage_set)["save_ortho_gtiff_one"].toInt() > 0,
@@ -53,6 +57,17 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
 {
   std::cout << "Stage [" << _stage_name << "]: Created Stage with Settings: " << std::endl;
   stage_set->print();
+
+  if (_settings_save.save_ortho_gtiff_all)
+  {
+    _gdal_writer.reset(new io::GDALContinuousWriter("mosaicing_gtiff_writer", 100, true));
+    _gdal_writer->start();
+  }
+
+}
+
+Mosaicing::~Mosaicing()
+{
 }
 
 void Mosaicing::addFrame(const Frame::Ptr &frame)
@@ -131,7 +146,7 @@ bool Mosaicing::process()
     publish(frame, _global_map, map_update, frame->getTimestamp());
 
     // Savings every iteration
-    saveIter(frame->getFrameId());
+    saveIter(frame->getFrameId(), map_update);
 
     has_processed = true;
   }
@@ -275,7 +290,7 @@ void Mosaicing::setGridElement(const GridQuickAccess::Ptr &ref, const GridQuickA
     *ref->normal = *inp->normal;
 }
 
-void Mosaicing::saveIter(uint32_t id)
+void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 {
   if (_settings_save.save_valid)
     io::saveImage((*_global_map)["valid"], _stage_path + "/valid", "valid", id);
@@ -289,8 +304,10 @@ void Mosaicing::saveIter(uint32_t id)
     io::saveImageColorMap((*_global_map)["elevation_angle"], (*_global_map)["valid"], _stage_path + "/obs_angle", "angle", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_num_obs_all)
     io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
-  if (_settings_save.save_ortho_gtiff_all)
-    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, io::createFilename(_stage_path + "/ortho/ortho_", id, ".tif"));
+  if (_settings_save.save_ortho_gtiff_all && _gdal_writer != nullptr)
+    _gdal_writer->requestSaveGeoTIFF(_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho/ortho_iter.tif", true, _settings_save.split_gtiff_channels);
+
+    //io::saveGeoTIFF(*map_update, "color_rgb", _utm_reference->zone, io::createFilename(_stage_path + "/ortho/ortho_", id, ".tif"));
 }
 
 void Mosaicing::saveAll()
@@ -309,7 +326,7 @@ void Mosaicing::saveAll()
   if (_settings_save.save_num_obs_one)
     io::saveGeoTIFF(*_global_map, "num_observations", _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
   if (_settings_save.save_ortho_gtiff_one)
-    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho/ortho.tif");
+    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho/ortho.tif", true, _settings_save.split_gtiff_channels);
   if (_settings_save.save_elevation_one)
     io::saveGeoTIFF(*_global_map, "elevation", _utm_reference->zone, _stage_path + "/elevation/gtiff/elevation.tif");
 
@@ -342,6 +359,12 @@ void Mosaicing::finishCallback()
 {
   // First polish results
   runPostProcessing();
+
+  if (_gdal_writer != nullptr)
+  {
+    _gdal_writer->requestFinish();
+    _gdal_writer->join();
+  }
 
   // Trigger savings
   saveAll();

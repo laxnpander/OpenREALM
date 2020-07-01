@@ -32,7 +32,8 @@
 #include <realm_core/analysis.h>
 #include <realm_io/cv_export.h>
 #include <realm_io/pcl_export.h>
-#include "realm_io/gis_export.h"
+#include <realm_io/gis_export.h>
+#include <realm_io/gdal_continuous_writer.h>
 #include <realm_io/utilities.h>
 #include <realm_ortho/delaunay_2d.h>
 
@@ -49,6 +50,7 @@ class Mosaicing : public StageBase
 
     struct SaveSettings
     {
+        bool split_gtiff_channels;
         bool save_valid;
         bool save_ortho_rgb_one;
         bool save_ortho_rgb_all;
@@ -98,6 +100,7 @@ class Mosaicing : public StageBase
 
   public:
     explicit Mosaicing(const StageSettings::Ptr &stage_set, double rate);
+    ~Mosaicing();
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
     void runPostProcessing();
@@ -122,6 +125,7 @@ class Mosaicing : public StageBase
     UTMPose::Ptr _utm_reference;
     CvGridMap::Ptr _global_map;
     Delaunay2D::Ptr _mesher;
+    io::GDALContinuousWriter::Ptr _gdal_writer;
 
     void finishCallback() override;
     void printSettingsToLog() override;
@@ -137,7 +141,7 @@ class Mosaicing : public StageBase
 
     void publish(const Frame::Ptr &frame, const CvGridMap::Ptr &global_map, const CvGridMap::Ptr &update, uint64_t timestamp);
 
-    void saveIter(uint32_t id);
+    void saveIter(uint32_t id, const CvGridMap::Ptr &map_update);
     Frame::Ptr getNewFrame();
 };
 
