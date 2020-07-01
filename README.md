@@ -1,4 +1,6 @@
-# Open REALM: Real-time Aerial Localization and Mapping
+
+![Alt text](resources/imgs/logo.svg?raw=true "Title")
+
 
 This is the repository for Open REALM, a real-time aerial mapping framework. It is currently in alpha state, so don't expect
 a polished and bugfree application. 
