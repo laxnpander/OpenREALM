@@ -1,16 +1,6 @@
 .idea/*
 cmake-build-debug/*
-realm_ros/output/*
-
 build/*
 
-realm_ros/profiles/*
-!realm_ros/profiles/alexa_gnss
-!realm_ros/profiles/alexa_noreco
-!realm_ros/profiles/alexa_reco
-
-realm_ros/launch/*
-!realm_ros/launch/alexa_gnss.launch
-!realm_ros/launch/alexa_noreco.launch
-!realm_ros/launch/alexa_reco.launch
-!realm_ros/launch/alexa_reco_ros.launch
+modules/realm_vslam/realm_vslam_impl/*
+!modules/realm_vslam/realm_vslam_impl/orb_slam_2

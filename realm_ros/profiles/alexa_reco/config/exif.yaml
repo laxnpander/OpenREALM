@@ -1,7 +1,0 @@
-%YAML:1.0
-Frame.timestamp: Xmp.exif.REALM.Timestamp
-Frame.camera_id: Exif.Image.Model
-Frame.heading: Xmp.exif.REALM.Heading
-Frame.latitude_tag: Exif.GPSInfo.GPSLatitude
-Frame.longitude_tag: Exif.GPSInfo.GPSLongitude
-Frame.altitude_tag: Exif.GPSInfo.GPSAltitude
