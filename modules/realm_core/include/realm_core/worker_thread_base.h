@@ -34,6 +34,9 @@ class WorkerThreadBase
   public:
     /*!
      * @brief Basic constructor for worker thread class
+     * @param thread_name Name of the thread
+     * @param sleep_time Duration the thread is sleeping after processing in milliseconds
+     * @param verbose Flag for verbose output
      */
     explicit WorkerThreadBase(const std::string &thread_name, int64_t sleep_time, bool verbose);
 
