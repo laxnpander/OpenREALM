@@ -99,8 +99,8 @@ VisualSlamIF::State OrbSlam2::track(Frame::Ptr &frame, const cv::Mat &T_c2w_init
     T_c2w.pop_back();
     frame->setVisualPose(T_c2w);
 
-    std::cout << "Soll:\n" << T_c2w << std::endl;
-    std::cout << "Schätz:\n" << T_c2w_initial << std::endl;
+    //std::cout << "Soll:\n" << T_c2w << std::endl;
+    //std::cout << "Schätz:\n" << T_c2w_initial << std::endl;
 
     cv::Mat surface_pts = getTrackedMapPoints();
     frame->setSurfacePoints(surface_pts);
