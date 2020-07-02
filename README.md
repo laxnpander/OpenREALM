@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img alt="OpenREALM Logo" src="https://github.com/laxnpander/OpenREALM/blob/cmake_only/resources/imgs/logo.png?raw=true">
+  <img alt="OpenREALM Logo" src="https://github.com/laxnpander/OpenREALM/blob/master/resources/imgs/logo.png?raw=true">
 </p>
 
 This is the repository for Open REALM, a real-time aerial mapping framework. It is currently in alpha state, so don't expect
