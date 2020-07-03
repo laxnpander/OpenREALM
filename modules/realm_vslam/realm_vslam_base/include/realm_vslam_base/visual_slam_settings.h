@@ -89,6 +89,20 @@ class DsoSettings : public VisualSlamSettings
     }
 };
 
+class OpenVslamSettings : public VisualSlamSettings
+{
+public:
+  OpenVslamSettings()
+  {
+    add("nrof_features", Parameter_t<int>{0, "ORB Extractor: Number of features per image."});
+    add("scale_factor", Parameter_t<double>{0, "ORB Extractor: Scale factor between levels in the scale pyramid."});
+    add("n_pyr_levels", Parameter_t<int>{0, "ORB Extractor: Number of levels in the scale pyramid."});
+    add("ini_th_FAST", Parameter_t<int>{0, "Initial FAST features threshold for detection."});
+    add("min_th_FAST", Parameter_t<int>{0, "Minimum response of FAST features."});
+    add("path_vocabulary", Parameter_t<std::string>{"", "Path to ORB_SLAM2 vocabulary file."});
+  }
+};
+
 } // namespace realm
 
 #endif //PROJECT_VISUAL_SLAM_SETTINGS_H

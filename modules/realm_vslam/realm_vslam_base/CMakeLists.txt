@@ -28,10 +28,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 ################################################################################
 
 
-SET(VSLAM_IMPL_TYPE "ORB_SLAM2")
+SET(VSLAM_IMPL_TYPE "OPEN_VSLAM")
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT QUIET)
+find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
 	find_package(OpenCV 3 REQUIRED)
 endif()
@@ -41,7 +41,11 @@ find_package(Eigen3 QUIET)
 if(NOT Eigen3_FOUND)
 	find_package(PkgConfig REQUIRED)
 	pkg_check_modules(Eigen3 REQUIRED eigen3)
-	set(Eigen3_INCLUDE_DIR ${Eigen3_INCLUDE_DIRS})
+	set(Eigen3_INCLUDE_DIR
+			${Eigen3_INCLUDE_DIRS}
+			/usr/include/eigen3
+			/usr/local/include/eigen3
+	)
 endif()
 
 
@@ -49,16 +53,22 @@ endif()
 # Sources
 ################################################################################
 
-
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(VSLAM_IMPL_TYPE STREQUAL "ORB_SLAM2")
-	add_definitions(-DUSE_ORB_SLAM2)
 	set(VSLAM_IMPL_LIB orb_slam_2)
 	set(VSLAM_IMPL_LIB_HEADERS ${orb_slam_2_INCLUDE_DIR})
 	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/orb_slam.h)
 	set(VSLAM_IF_SOURCES ${root}/src/orb_slam.cpp)
+	set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM2=ON")
 	message(STATUS "Selected ORB SLAM 2 for visual pose estimation")
+elseif(VSLAM_IMPL_TYPE STREQUAL "OPEN_VSLAM")
+	set(VSLAM_IMPL_LIB openvslam)
+	set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR} /usr/local/include/openvslam/3rd/json/include)
+	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
+	set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
+	set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM2=OFF" "-DUSE_OPEN_VSLAM=ON" "-DUSE_DBOW2=ON")
+	message(STATUS "Selected OpenVSLAM for visual pose estimation")
 
 	#ELSEIF(VSLAM_TYPE STREQUAL "SVO")
 	#	add_definitions(-DUSE_SVO)
@@ -82,7 +92,6 @@ set(HEADER_FILES
 		${root}/include/realm_vslam_base/dummy_referencer.h
 		${root}/include/realm_vslam_base/geometric_referencer.h
 		${root}/include/realm_vslam_base/geospatial_referencer_IF.h
-		${root}/include/realm_vslam_base/orb_slam.h
 		${root}/include/realm_vslam_base/visual_slam_factory.h
 		${root}/include/realm_vslam_base/visual_slam_IF.h
 		${root}/include/realm_vslam_base/visual_slam_settings.h
@@ -125,6 +134,7 @@ include_directories(
 		${OpenCV_INCLUDE_DIRS}
 
 		${Eigen3_INCLUDE_DIR}
+		/usr/include/eigen3
 		${VSLAM_IMPL_LIB_HEADERS}
 		${realm_core_INCLUDE_DIR}
 		${realm_io_INCLUDE_DIR}
@@ -154,6 +164,7 @@ target_include_directories(${LIBRARY_NAME} PUBLIC
 
 add_definitions(
 		-Wno-deprecated-declarations
+		${VSLAM_IF_COMPILE_FLAG}
 )
 
 

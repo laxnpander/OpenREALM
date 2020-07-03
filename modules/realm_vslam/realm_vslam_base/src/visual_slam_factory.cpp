@@ -29,6 +29,9 @@ VisualSlamIF::Ptr VisualSlamFactory::create(const VisualSlamSettings::Ptr &vslam
 #ifdef USE_ORB_SLAM2
   if ((*vslam_set)["type"].toString() == "ORB_SLAM2")
     return std::make_shared<OrbSlam2>(vslam_set, cam_set);
+#elif USE_OPEN_VSLAM
+  if ((*vslam_set)["type"].toString() == "OPEN_VSLAM")
+    return std::make_shared<OpenVslam>(vslam_set, cam_set);
 #elif USE_SVO
   if ((*vslam_set)["type"].toString() == "SVO")
     return std::make_shared<SVO>(vslam_set, cam_set);

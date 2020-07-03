@@ -39,6 +39,7 @@ class VisualSlamSettingsFactory
                                         const std::string &directory);
   private:
     static VisualSlamSettings::Ptr loadOrbSlam2(const std::string &filepath, const std::string &directory);
+    static VisualSlamSettings::Ptr loadOpenVslam(const std::string &filepath, const std::string &directory);
     template <typename T>
     static VisualSlamSettings::Ptr loadDefault(const std::string &filepath, const std::string &directory);
 };

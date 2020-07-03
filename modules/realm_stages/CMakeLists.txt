@@ -29,7 +29,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT QUIET)
+find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
     find_package(OpenCV 3 REQUIRED)
 endif()
