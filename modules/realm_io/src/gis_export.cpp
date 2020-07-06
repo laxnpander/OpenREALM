@@ -224,7 +224,7 @@ char** io::getExportOptionsGeoTIFF(GDALProfile gdal_profile)
 
 void io::setGDALBandNan(GDALRasterBand *band, const cv::Mat &data)
 {
-  if (data.type() == CV_8U)
+  if (data.type() == CV_8UC1 || data.type() == CV_8UC2 || data.type() == CV_8UC3 || data.type() == CV_8UC4)
     band->SetNoDataValue(0);
   else if (data.type() == CV_16UC1)
     band->SetNoDataValue(0);
