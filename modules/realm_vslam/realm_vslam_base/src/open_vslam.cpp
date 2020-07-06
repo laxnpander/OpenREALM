@@ -34,38 +34,33 @@ OpenVslam::OpenVslam(const VisualSlamSettings::Ptr &vslam_set, const CameraSetti
 {
   // ov: OpenVSLAM
   // or: OpenREALM
-  std::cout << "test" << std::endl;
-  LOG_F(INFO, "Test1");
-  _settings["Camera.name"] = "cam";
-  _settings["Camera.setup"] = "monocular";
-  _settings["Camera.model"] = "perspective";
-  _settings["Camera.fx"] = (*cam_set)["fx"].toDouble();
-  _settings["Camera.fy"] = (*cam_set)["fy"].toDouble();
-  _settings["Camera.cx"] = (*cam_set)["cx"].toDouble();
-  _settings["Camera.cy"] = (*cam_set)["cy"].toDouble();
-  _settings["Camera.k1"] = (*cam_set)["k1"].toDouble();
-  _settings["Camera.k2"] = (*cam_set)["k2"].toDouble();
-  _settings["Camera.p1"] = (*cam_set)["p1"].toDouble();
-  _settings["Camera.p2"] = (*cam_set)["p2"].toDouble();
-  _settings["Camera.k3"] = (*cam_set)["k3"].toDouble();
-  _settings["Camera.fps"] = (*cam_set)["fps"].toDouble();
-  _settings["Camera.cols"] = (*cam_set)["width"].toInt();
-  _settings["Camera.rows"] = (*cam_set)["height"].toInt();
-  _settings["Feature.max_num_keypoints"] = (*vslam_set)["nrof_features"].toInt();
-  _settings["Feature.scale_factor"] = (*vslam_set)["scale_factor"].toFloat();
-  _settings["Feature.ini_fast_threshold"] = (*vslam_set)["ini_th_FAST"].toInt();
-  _settings["Feature.min_fast_threshold"] = (*vslam_set)["min_th_FAST"].toInt();
+  YAML::Node settings;
+  settings["Camera.name"] = "cam";
+  settings["Camera.setup"] = "monocular";
+  settings["Camera.model"] = "perspective";
+  settings["Camera.color_order"] = "RGB";
+  settings["Camera.fx"] = (*cam_set)["fx"].toDouble() * _resizing;
+  settings["Camera.fy"] = (*cam_set)["fy"].toDouble() * _resizing;
+  settings["Camera.cx"] = (*cam_set)["cx"].toDouble() * _resizing;
+  settings["Camera.cy"] = (*cam_set)["cy"].toDouble() * _resizing;
+  settings["Camera.k1"] = (*cam_set)["k1"].toDouble();
+  settings["Camera.k2"] = (*cam_set)["k2"].toDouble();
+  settings["Camera.p1"] = (*cam_set)["p1"].toDouble();
+  settings["Camera.p2"] = (*cam_set)["p2"].toDouble();
+  settings["Camera.k3"] = (*cam_set)["k3"].toDouble();
+  settings["Camera.fps"] = (*cam_set)["fps"].toDouble();
+  settings["Camera.cols"] = (*cam_set)["width"].toInt() * _resizing;
+  settings["Camera.rows"] = (*cam_set)["height"].toInt() * _resizing;
+  settings["Feature.max_num_keypoints"] = (*vslam_set)["nrof_features"].toInt();
+  settings["Feature.scale_factor"] = (*vslam_set)["scale_factor"].toFloat();
+  settings["Feature.ini_fast_threshold"] = (*vslam_set)["ini_th_FAST"].toInt();
+  settings["Feature.min_fast_threshold"] = (*vslam_set)["min_th_FAST"].toInt();
 
-  LOG_F(INFO, "Test2");
-  auto ov_config = std::make_shared<openvslam::config>(_settings, "");
-  LOG_F(INFO, "Test3");
-  _vslam = std::make_shared<openvslam::system>(ov_config, _path_vocabulary);
-  LOG_F(INFO, "Test4");
+  _config = std::make_shared<openvslam::config>(settings, "");
+  _vslam = std::make_shared<openvslam::system>(_config, _path_vocabulary);
   _frame_publisher = _vslam->get_frame_publisher();
-  LOG_F(INFO, "Test5");
   _map_publisher = _vslam->get_map_publisher();
 
-  LOG_F(INFO, "Test6");
   _vslam->startup();
 }
 
@@ -96,6 +91,18 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
   // In case tracking was successfull and slam not lost
   if (!T_w2c.empty())
   {
+    // Get list of keyframes
+    std::vector<openvslam::data::keyframe*> keyframes;
+    unsigned int current_nrof_keyframes = _map_publisher->get_keyframes(keyframes);
+
+    if (current_nrof_keyframes == 0)
+      return State::LOST;
+
+    // Set last keyframe
+    _mutex_last_keyframe.lock();
+    _last_keyframe = keyframes.back();
+    _mutex_last_keyframe.unlock();
+
     // Pose definition as 3x4 matrix, calculated as 4x4 with last row (0, 0, 0, 1)
     // ORB SLAM 2 pose is defined as T_w2c, however the more intuitive way to describe
     // it for mapping is T_c2w (camera to world) therefore invert the pose matrix
@@ -104,15 +111,6 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
     // Remove last row of 0,0,0,1
     T_c2w.pop_back();
     frame->setVisualPose(T_c2w);
-
-    // Get list of keyframes
-    std::vector<openvslam::data::keyframe*> keyframes;
-    unsigned int current_nrof_keyframes = _map_publisher->get_keyframes(keyframes);
-
-    // Set last keyframe
-    _mutex_last_keyframe.lock();
-    _last_keyframe = keyframes.back();
-    _mutex_last_keyframe.unlock();
 
     cv::Mat surface_pts = getTrackedMapPoints();
     frame->setSurfacePoints(surface_pts);
@@ -152,14 +150,19 @@ cv::Mat OpenVslam::getTrackedMapPoints() const
   std::vector<openvslam::data::landmark*> landmarks = _last_keyframe->get_landmarks();
   _mutex_last_keyframe.unlock();
 
-  cv::Mat points(landmarks.size(), 3, CV_64F);
-  for (int i = 0; i < points.rows; ++i)
+  cv::Mat points;
+  points.reserve(landmarks.size());
+  for (const auto &lm : landmarks)
   {
-    openvslam::Vec3_t pos = landmarks[i]->get_pos_in_world();
-    points.at<double>(i, 0) = pos[0];
-    points.at<double>(i, 1) = pos[1];
-    points.at<double>(i, 2) = pos[2];
+    if (!lm || lm->will_be_erased())
+    {
+      continue;
+    }
+    openvslam::Vec3_t pos = lm->get_pos_in_world();
+    cv::Mat pt = (cv::Mat_<double>(1, 3) << pos[0], pos[1], pos[2]);
+    points.push_back(pt);
   }
+  return points;
 }
 
 bool OpenVslam::drawTrackedImage(cv::Mat &img) const
@@ -186,8 +189,12 @@ cv::Mat OpenVslam::invertPose(const cv::Mat &pose) const
 
 cv::Mat OpenVslam::convertToCv(const openvslam::Mat44_t &mat_eigen) const
 {
-  cv::Mat mat_cv(4, 4, CV_64F);
-
+  cv::Mat mat_cv = (cv::Mat_<double>(4, 4) <<
+      mat_eigen(0, 0), mat_eigen(0, 1), mat_eigen(0, 2), mat_eigen(0, 3),
+      mat_eigen(1, 0), mat_eigen(1, 1), mat_eigen(1, 2), mat_eigen(1, 3),
+      mat_eigen(2, 0), mat_eigen(2, 1), mat_eigen(2, 2), mat_eigen(2, 3),
+      mat_eigen(3, 0), mat_eigen(3, 1), mat_eigen(3, 2), mat_eigen(3, 3)
+      );
   return mat_cv;
 }
 

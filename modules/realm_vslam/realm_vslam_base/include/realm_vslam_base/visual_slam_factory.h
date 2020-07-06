@@ -27,7 +27,7 @@
 #include <realm_vslam_base/visual_slam_settings.h>
 #ifdef USE_ORB_SLAM2
   #include <realm_vslam_base/orb_slam.h>
-elif USE_OPEN_VSLAM
+#elif USE_OPEN_VSLAM
   #include <realm_vslam_base/open_vslam.h>
 #elif USE_SVO
   #include <realm_vslam_base/svo.h>

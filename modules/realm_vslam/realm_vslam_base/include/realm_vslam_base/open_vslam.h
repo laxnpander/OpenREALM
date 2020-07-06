@@ -50,7 +50,7 @@ public:
 
 private:
 
-  int _nrof_keyframes;
+  unsigned int _nrof_keyframes;
 
   double _resizing;
 
@@ -62,8 +62,8 @@ private:
   mutable std::mutex _mutex_last_keyframe;
   openvslam::data::keyframe* _last_keyframe;
 
-  YAML::Node _settings;
   std::shared_ptr<openvslam::system> _vslam;
+  std::shared_ptr<openvslam::config> _config;
   std::shared_ptr<openvslam::publish::frame_publisher> _frame_publisher;
   std::shared_ptr<openvslam::publish::map_publisher> _map_publisher;
 

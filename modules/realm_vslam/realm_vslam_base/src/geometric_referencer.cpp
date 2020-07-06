@@ -90,7 +90,7 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   if (valid_input.empty())
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
-    LOG_F(INFO, "Valid frames: %lu", frames.size());
+    LOG_F(INFO, "Valid frames: %lu. Sparse cloud empty!", valid_input.size());
     setIdle();
     return;
   }
