@@ -27,7 +27,7 @@
 using namespace realm;
 
 void io::saveGeoTIFF(const CvGridMap &map,
-                     const std::string &color_layer_name,
+                     const std::string &layer_name,
                      const uint8_t &zone,
                      const std::string &filename,
                      bool do_build_overview,
@@ -36,7 +36,7 @@ void io::saveGeoTIFF(const CvGridMap &map,
 {
   long t = Timer::getCurrentTimeMilliseconds();
 
-  cv::Mat img = map[color_layer_name];
+  cv::Mat img = map[layer_name];
 
   cv::Mat img_converted;
   if (img_converted.channels() == 3)
@@ -46,7 +46,7 @@ void io::saveGeoTIFF(const CvGridMap &map,
   else
     img_converted = img;
 
-  GDALDatasetMeta* meta = io::computeGDALDatasetMeta(map, color_layer_name, zone);
+  GDALDatasetMeta* meta = io::computeGDALDatasetMeta(map, layer_name, zone);
 
   if (!do_split_save || img_converted.channels() == 1)
   {
@@ -77,7 +77,7 @@ void io::saveGeoTIFF(const CvGridMap &map,
           filename_split.insert(filename_split.size()-4, "_a");
           break;
         default:
-          throw(std::invalid_argument("Error: Exporting GeoTIFF split is only supported up to 3 channels."));
+          throw(std::invalid_argument("Error: Exporting GeoTIFF split is only supported up to 4 channels."));
       }
 
       io::saveGeoTIFFtoFile(img_converted, *meta, filename_split, do_build_overview, gdal_profile);
@@ -123,7 +123,7 @@ void io::saveGeoTIFFtoFile(const cv::Mat &data,
   options = getExportOptionsGeoTIFF(gdal_profile);
 
   // Check if multi channel image, therefore RGB/BGR
-  if (data.channels() >= 3)
+  if (data.channels() == 3 || data.channels() == 4)
     options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
 
   dataset_tif = GDALCreateCopy(driver, filename.c_str(), dataset_mem, 0, options, NULL, NULL);
