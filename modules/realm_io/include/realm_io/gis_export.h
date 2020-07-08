@@ -63,7 +63,6 @@ struct GDALDatasetMeta
  * @param gdal_profile Collection of options that are passed to the GDAL driver
  */
 void saveGeoTIFF(const CvGridMap &map,
-                 const std::string &layer_name,
                  const uint8_t &zone,
                  const std::string &filename,
                  bool do_build_overview = false,
@@ -91,7 +90,7 @@ void saveGeoTIFFtoFile(const cv::Mat &data,
  * @param zone UTM zone of the geo position
  * @return GDAL meta information about the dataset
  */
-GDALDatasetMeta* computeGDALDatasetMeta(const CvGridMap &map, const std::string &color_layer_name, uint8_t zone);
+GDALDatasetMeta* computeGDALDatasetMeta(const CvGridMap &map, uint8_t zone);
 
 GDALDataset* generateMemoryDataset(const cv::Mat &data, const GDALDatasetMeta &meta);
 

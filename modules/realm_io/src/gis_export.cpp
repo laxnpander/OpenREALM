@@ -27,7 +27,6 @@
 using namespace realm;
 
 void io::saveGeoTIFF(const CvGridMap &map,
-                     const std::string &layer_name,
                      const uint8_t &zone,
                      const std::string &filename,
                      bool do_build_overview,
@@ -36,7 +35,11 @@ void io::saveGeoTIFF(const CvGridMap &map,
 {
   long t = Timer::getCurrentTimeMilliseconds();
 
-  cv::Mat img = map[layer_name];
+  std::vector<std::string> layer_names = map.getAllLayerNames();
+  if (layer_names.size() > 1)
+    throw(std::invalid_argument("Error: Exporting Gtiff from CvGridMap is currently supported for single layer objects only."));
+
+  cv::Mat img = map[map.getAllLayerNames()[0]];
 
   cv::Mat img_converted;
   if (img_converted.channels() == 3)
@@ -46,7 +49,7 @@ void io::saveGeoTIFF(const CvGridMap &map,
   else
     img_converted = img;
 
-  GDALDatasetMeta* meta = io::computeGDALDatasetMeta(map, layer_name, zone);
+  GDALDatasetMeta* meta = io::computeGDALDatasetMeta(map, zone);
 
   if (!do_split_save || img_converted.channels() == 1)
   {
@@ -132,14 +135,14 @@ void io::saveGeoTIFFtoFile(const cv::Mat &data,
   GDALClose(dataset_tif);
 }
 
-io::GDALDatasetMeta* io::computeGDALDatasetMeta(const CvGridMap &map, const std::string &layer_name, uint8_t zone)
+io::GDALDatasetMeta* io::computeGDALDatasetMeta(const CvGridMap &map, uint8_t zone)
 {
   auto meta = new GDALDatasetMeta();
 
   cv::Rect2d roi = map.roi();
   double GSD = map.resolution();
 
-  cv::Mat img = map[layer_name];
+  cv::Mat img = map[map.getAllLayerNames()[0]];
 
   if (img.type() == CV_8UC1 || img.type() == CV_8UC3 || img.type() == CV_8UC4)
     meta->datatype = GDT_Byte;

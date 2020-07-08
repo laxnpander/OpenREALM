@@ -29,7 +29,6 @@ io::GDALContinuousWriter::GDALContinuousWriter(const std::string &thread_name, i
 }
 
 bool io::GDALContinuousWriter::requestSaveGeoTIFF(const CvGridMap::Ptr &map,
-                                                  const std::string &color_layer_name,
                                                   const uint8_t &zone,
                                                   const std::string &filename,
                                                   bool do_build_overview,
@@ -38,7 +37,7 @@ bool io::GDALContinuousWriter::requestSaveGeoTIFF(const CvGridMap::Ptr &map,
 {
   // Create new save job
   QueueElement::Ptr queue_element;
-  queue_element.reset(new QueueElement{map, color_layer_name, zone, filename, do_build_overview, do_split_save, gdal_profile});
+  queue_element.reset(new QueueElement{map, zone, filename, do_build_overview, do_split_save, gdal_profile});
 
   // Push it to the processing queue
   _mutex_save_requests.lock();
@@ -61,7 +60,6 @@ bool io::GDALContinuousWriter::process()
 
     io::saveGeoTIFF(
       *queue_element->map,
-      queue_element->color_layer,
       queue_element->zone,
       queue_element->filename,
       queue_element->do_build_overview,
