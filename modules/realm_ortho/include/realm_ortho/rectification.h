@@ -35,19 +35,24 @@ namespace ortho
 {
 
 /*!
- * @brief Rectification for elevation assumption. This is a 2.5D surface, that has one elevation value per grid element.
- * @param frame container for aerial measurement data. Here mainly the image and the camera model must be set.
- * @return
+ * @brief Simplified interface function for rectification
+ * @param frame container for aerial measurement data
+ * @return Rectified input data
  */
 CvGridMap::Ptr rectify(const Frame::Ptr &frame);
 
 /*!
- * @brief Projects every element of a grid structure with its world coordinate consisting of (utm east, utm north,
- *        elevation) back int the camera and sets corresponding value in the grid with the color of the image.
- * @param frame container for aerial measurement data. Here mainly the image and the camera model must be set.
- * @param surface container for the surface structure, also known as digital surface model (DSM). Current implementation
- *        needs a layer named "elevation", which is further used for backprojection from grid structure.
- * @param map result is written into this parameter, it contains the layer "color_rgb" and "observation angle"
+ * @brief Rectification is achieved using the workflow presented in: http://www.timohinzmann.com/publications/fsr_2017_hinzmann.pdf.
+ * It is assumed, that we have a 2.5D surface grid with an elevation value in each cell. The coordinates of the cell in turn
+ * resemble a geographic point with x = utm eastings, y = utm northing. Then the camera model is applied to backproject every
+ * world point into the camera image. The math does not change, when the surface is planar (elevation = 0 for each cell).
+ * @param img Image data that is corrected from lens distortion
+ * @param cam Underlying camera model, currently only pinhole camera is supported
+ * @param surface Surface structure as matrix with each element resembling the elevation to a reference plane
+ * @param valid_surface Not each cell of the surface has actual data, this is the mask to identify regions that are
+ * @param roi Region of interest in geographic coordinates with (x, y) = lower left corner
+ * @param GSD Ground sampling distance, therefore the resolution of the surface cells
+ * @param is_elevated Flag to set whether the surface is planar or has elevation
  */
 CvGridMap::Ptr backprojectFromGrid(
     const cv::Mat &img,

@@ -25,6 +25,7 @@ using namespace realm;
 
 CvGridMap::Ptr ortho::rectify(const Frame::Ptr &frame)
 {
+  // Check if all relevant layers are in the observed map
   CvGridMap::Ptr observed_map = frame->getObservedMap();
 
   if (!observed_map->exists("elevation") || (*observed_map)["elevation"].type() != CV_32F)
@@ -32,6 +33,7 @@ CvGridMap::Ptr ortho::rectify(const Frame::Ptr &frame)
   if (!observed_map->exists("valid") || (*observed_map)["valid"].type() != CV_8UC1)
     throw(std::invalid_argument("Error: Layer 'valid' does not exist or type is wrong"));
 
+  // Apply rectification using the backprojection from grid
   CvGridMap::Ptr rectification =
       backprojectFromGrid(
           frame->getImageUndistorted(),
@@ -72,26 +74,27 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
   double t[3] = {t_pose.at<double>(0), t_pose.at<double>(1), t_pose.at<double>(2)};
 
   uchar is_elevated_val = (is_elevated ? (uchar)0 : (uchar)255);
-  cv::Mat color_data = cv::Mat::zeros(surface.size(), CV_8UC4);
-  cv::Mat elevation_angle = cv::Mat::zeros(surface.size(), CV_32F);
-  cv::Mat elevated = cv::Mat::zeros(surface.size(), CV_8UC1);
-  cv::Mat num_observations = cv::Mat::zeros(surface.size(), CV_16UC1);
-  cv::Mat valid_rect = cv::Mat::zeros(surface.size(), CV_8UC1);
+  cv::Mat color_data       = cv::Mat::zeros(surface.size(), CV_8UC4);   // contains BGRA color data
+  cv::Mat elevation_angle  = cv::Mat::zeros(surface.size(), CV_32F);         // contains the observed elevation angle
+  cv::Mat elevated         = cv::Mat::zeros(surface.size(), CV_8UC1);   // flag to set wether the surface has elevation info or not
+  cv::Mat num_observations = cv::Mat::zeros(surface.size(), CV_16UC1);  // number of observations, should be one if it's a valid surface point
+  cv::Mat valid_rect       = cv::Mat::zeros(surface.size(), CV_8UC1);   // mask to set valid elements of the rectification process
 
   LOG_F(INFO, "Processing rectification:");
   LOG_F(INFO, "- ROI (%f, %f, %f, %f)", roi.x, roi.y, roi.width, roi.height);
   LOG_F(INFO, "- Dimensions: %i x %i", surface.rows, surface.cols);
 
-  // Iterate through
+  // Iterate through surface and project every cell to the image
   for (uint32_t r = 0; r < surface.rows; ++r)
     for (uint32_t c = 0; c < surface.cols; ++c)
     {
-      auto elevation_val = static_cast<double>(surface.at<float>(r, c));
-
-      if (valid_surface.at<uchar>(r, c) == 0)
+      if (!valid_surface.at<uchar>(r, c))
       {
         continue;
       }
+
+      auto elevation_val = static_cast<double>(surface.at<float>(r, c));
+
       double pt[3]{roi.x+(double)c*GSD, roi.y+roi.height-(double)r*GSD, elevation_val};
       double z = P[2][0]*pt[0]+P[2][1]*pt[1]+P[2][2]*pt[2]+P[2][3]*1.0;
       double x = (P[0][0]*pt[0]+P[0][1]*pt[1]+P[0][2]*pt[2]+P[0][3]*1.0)/z;
@@ -99,11 +102,11 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
 
       if (x > 0.0 && x < img.cols && y > 0.0 && y < img.rows)
       {
-        color_data.at<cv::Vec4b>(r, c) = img.at<cv::Vec4b>((int)y, (int)x);
-        elevation_angle.at<float>(r, c) = static_cast<float>(ortho::internal::computeElevationAngle(t, pt));
-        elevated.at<uchar>(r, c) = is_elevated;
+        color_data.at<cv::Vec4b>(r, c)      = img.at<cv::Vec4b>((int)y, (int)x);
+        elevation_angle.at<float>(r, c)     = static_cast<float>(ortho::internal::computeElevationAngle(t, pt));
+        elevated.at<uchar>(r, c)            = is_elevated_val;
         num_observations.at<uint16_t>(r, c) = 1;
-        valid_rect.at<uchar>(r, c) = 255;
+        valid_rect.at<uchar>(r, c)          = 255;
       }
     }
 
