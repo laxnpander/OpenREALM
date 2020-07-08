@@ -94,9 +94,8 @@ bool OrthoRectification::process()
 
     // Rectification needs img data, surface map and camera pose -> All contained in frame
     // Output, therefore the new additional data is written into rectified map
-    CvGridMap map_rect;
-    ortho::rectify(frame, map_rect);
-    observed_map->add(map_rect, REALM_OVERWRITE_ALL, false);
+    CvGridMap::Ptr map_rect = ortho::rectify(frame);
+    observed_map->add(*map_rect, REALM_OVERWRITE_ALL, false);
 
     // Transport results
     publish(frame);
@@ -123,9 +122,9 @@ void OrthoRectification::saveIter(const CvGridMap& map, uint8_t zone, uint32_t i
   if (_settings_save.save_elevation_angle)
     io::saveImageColorMap(map["elevation_angle"], map["valid"], _stage_path + "/angle", "angle", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff)
-    io::saveGeoTIFF(map, "color_rgb", zone, io::createFilename(_stage_path + "/gtiff/gtiff_", id, ".tif"));
+    io::saveGeoTIFF(map.getSubmap({"color_rgb"}), zone, io::createFilename(_stage_path + "/gtiff/gtiff_", id, ".tif"));
   if (_settings_save.save_elevation)
-    io::saveGeoTIFF(map, "elevation", zone, io::createFilename(_stage_path + "/elevation/elevation_", id, ".tif"));
+    io::saveGeoTIFF(map.getSubmap({"elevation"}), zone, io::createFilename(_stage_path + "/elevation/elevation_", id, ".tif"));
 }
 
 void OrthoRectification::publish(const Frame::Ptr &frame)

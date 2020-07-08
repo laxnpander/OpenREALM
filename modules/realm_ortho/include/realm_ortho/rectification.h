@@ -37,11 +37,9 @@ namespace ortho
 /*!
  * @brief Rectification for elevation assumption. This is a 2.5D surface, that has one elevation value per grid element.
  * @param frame container for aerial measurement data. Here mainly the image and the camera model must be set.
- * @param surface container for the surface structure, also known as digital surface model (DSM). Current implementation
- *        needs a layer named "elevation", which is further used for backprojection from grid structure.
- * @param map_rect result is written into this parameter, it contains the layer "color_rgb" and "observation angle"
+ * @return
  */
-void rectify(const Frame::Ptr &frame, CvGridMap &map);
+CvGridMap::Ptr rectify(const Frame::Ptr &frame);
 
 /*!
  * @brief Projects every element of a grid structure with its world coordinate consisting of (utm east, utm north,
@@ -51,7 +49,14 @@ void rectify(const Frame::Ptr &frame, CvGridMap &map);
  *        needs a layer named "elevation", which is further used for backprojection from grid structure.
  * @param map result is written into this parameter, it contains the layer "color_rgb" and "observation angle"
  */
-void backprojectFromGrid(const Frame::Ptr &frame, CvGridMap &map_rectified);
+CvGridMap::Ptr backprojectFromGrid(
+    const cv::Mat &img,
+    const camera::Pinhole &cam,
+    const cv::Mat &surface,
+    const cv::Mat &valid_surface,
+    const cv::Rect2d &roi,
+    double GSD,
+    bool is_elevated);
 
 namespace internal
 {
