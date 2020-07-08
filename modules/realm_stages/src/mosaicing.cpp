@@ -157,50 +157,67 @@ CvGridMap Mosaicing::blend(CvGridMap::Overlap *overlap)
 {
   // Overlap between global mosaic (ref) and new data (inp)
   CvGridMap ref = *overlap->first;
-  CvGridMap inp = *overlap->second;
+  CvGridMap src = *overlap->second;
 
-  // Data layers to grab from reference
-  std::vector<std::string> ref_layers;
-  // Data layers to grab from input map
-  std::vector<std::string> inp_layers;
+  cv::Mat ref_elevation_angle = ref["elevation_angle"];
+  cv::Mat src_elevation_angle = src["elevation_angle"];
 
-  // Surface normal computation is optional, therefore use only if set
-  if (_use_surface_normals)
-  {
-    ref_layers = {"elevation", "elevation_normal", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
-    inp_layers = {"elevation", "elevation_normal", "elevation_angle", "elevated", "color_rgb", "valid"};
-  }
-  else
-  {
-    ref_layers = {"elevation", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
-    inp_layers = {"elevation", "elevation_angle", "elevated", "color_rgb", "valid"};
-  }
+  cv::Mat src_elevated = src["elevated"];
+  cv::Mat ref_not_elevated;
+  cv::bitwise_not(ref["elevated"], ref_not_elevated);
 
-  GridQuickAccess::Ptr ref_grid_element = std::make_shared<GridQuickAccess>(ref_layers, ref);
-  GridQuickAccess::Ptr inp_grid_element = std::make_shared<GridQuickAccess>(inp_layers, inp);
+  cv::Mat mask_angle = (src_elevation_angle > ref_elevation_angle);
 
-  cv::Size size = ref.size();
-  for (int r = 0; r < size.height; ++r)
-    for (int c = 0; c < size.width; ++c)
-    {
-      // Move the quick access element to current position
-      ref_grid_element->move(r, c);
-      inp_grid_element->move(r, c);
-
-      // Check cases for input
-      if (*inp_grid_element->valid == 0)
-        continue;
-      if (*ref_grid_element->elevated && !*inp_grid_element->elevated)
-        continue;
-
-      if (*ref_grid_element->nobs == 0 || (*inp_grid_element->elevated && !*ref_grid_element->elevated))
-        setGridElement(ref_grid_element, inp_grid_element);
-      else
-        updateGridElement(ref_grid_element, inp_grid_element);
-
-    }
+  src["color_rgb"].copyTo(ref["color_rgb"], mask_angle);
+  src["elevation"].copyTo(ref["elevation"], mask_angle);
+  src["elevation_angle"].copyTo(ref["elevation_angle"], mask_angle);
+  src["valid"].copyTo(ref["valid"], mask_angle);
+  cv::add(ref["num_observations"], cv::Mat::ones(ref.size().height, ref.size().width, CV_16UC1), ref["num_observations"], mask_angle);
 
   return ref;
+
+//  // Data layers to grab from reference
+//  std::vector<std::string> ref_layers;
+//  // Data layers to grab from input map
+//  std::vector<std::string> inp_layers;
+//
+//  // Surface normal computation is optional, therefore use only if set
+//  if (_use_surface_normals)
+//  {
+//    ref_layers = {"elevation", "elevation_normal", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
+//    inp_layers = {"elevation", "elevation_normal", "elevation_angle", "elevated", "color_rgb", "valid"};
+//  }
+//  else
+//  {
+//    ref_layers = {"elevation", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
+//    inp_layers = {"elevation", "elevation_angle", "elevated", "color_rgb", "valid"};
+//  }
+//
+//  GridQuickAccess::Ptr ref_grid_element = std::make_shared<GridQuickAccess>(ref_layers, ref);
+//  GridQuickAccess::Ptr inp_grid_element = std::make_shared<GridQuickAccess>(inp_layers, inp);
+//
+//  cv::Size size = ref.size();
+//  for (int r = 0; r < size.height; ++r)
+//    for (int c = 0; c < size.width; ++c)
+//    {
+//      // Move the quick access element to current position
+//      ref_grid_element->move(r, c);
+//      inp_grid_element->move(r, c);
+//
+//      // Check cases for input
+//      if (*inp_grid_element->valid == 0)
+//        continue;
+//      if (*ref_grid_element->elevated && !*inp_grid_element->elevated)
+//        continue;
+//
+//      if (*ref_grid_element->nobs == 0 || (*inp_grid_element->elevated && !*ref_grid_element->elevated))
+//        setGridElement(ref_grid_element, inp_grid_element);
+//      else
+//        updateGridElement(ref_grid_element, inp_grid_element);
+//
+//    }
+//
+//  return ref;
 }
 
 void Mosaicing::updateGridElement(const GridQuickAccess::Ptr &ref, const GridQuickAccess::Ptr &inp)
@@ -305,7 +322,7 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
   if (_settings_save.save_num_obs_all)
     io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff_all && _gdal_writer != nullptr)
-    _gdal_writer->requestSaveGeoTIFF(_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho/ortho_iter.tif", true, _settings_save.split_gtiff_channels);
+    _gdal_writer->requestSaveGeoTIFF(std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb"})), _utm_reference->zone, _stage_path + "/ortho/ortho_iter.tif", true, _settings_save.split_gtiff_channels);
 
     //io::saveGeoTIFF(*map_update, "color_rgb", _utm_reference->zone, io::createFilename(_stage_path + "/ortho/ortho_", id, ".tif"));
 }
@@ -324,11 +341,11 @@ void Mosaicing::saveAll()
   if (_settings_save.save_num_obs_one)
     io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
   if (_settings_save.save_num_obs_one)
-    io::saveGeoTIFF(*_global_map, "num_observations", _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
+    io::saveGeoTIFF(_global_map->getSubmap({"num_observations"}), _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
   if (_settings_save.save_ortho_gtiff_one)
-    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho/ortho.tif", true, _settings_save.split_gtiff_channels);
+    io::saveGeoTIFF(_global_map->getSubmap({"color_rgb"}), _utm_reference->zone, _stage_path + "/ortho/ortho.tif", true, _settings_save.split_gtiff_channels);
   if (_settings_save.save_elevation_one)
-    io::saveGeoTIFF(*_global_map, "elevation", _utm_reference->zone, _stage_path + "/elevation/gtiff/elevation.tif");
+    io::saveGeoTIFF(_global_map->getSubmap({"elevation"}), _utm_reference->zone, _stage_path + "/elevation/gtiff/elevation.tif");
 
   // 3D Point cloud output
   if (_settings_save.save_dense_ply)
