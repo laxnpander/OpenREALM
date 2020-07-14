@@ -61,7 +61,8 @@ CvGridMap::Ptr backprojectFromGrid(
     const cv::Mat &valid_surface,
     const cv::Rect2d &roi,
     double GSD,
-    bool is_elevated);
+    bool is_elevated,
+    bool verbose = true);
 
 namespace internal
 {

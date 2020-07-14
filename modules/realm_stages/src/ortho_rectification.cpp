@@ -65,6 +65,9 @@ bool OrthoRectification::process()
   bool has_processed = false;
   if (!_buffer.empty())
   {
+    // Prepare timing
+    long t;
+
     Frame::Ptr frame = getNewFrame();
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
@@ -75,33 +78,32 @@ bool OrthoRectification::process()
     LOG_IF_F(INFO, resize_quotient < 0.9, "Loss of resolution! Consider downsizing depth map or increase GSD.");
     LOG_IF_F(INFO, resize_quotient > 1.1, "Large resizing of elevation map detected. Keep in mind that ortho resolution is now >> spatial resolution");
 
-    // Check ranges of input elevation, this is necessary to correct resizing interpolation errors
-    double ele_min, ele_max;
-    cv::Point2i min_loc, max_loc;
-    cv::minMaxLoc((*observed_map)["elevation"], &ele_min, &ele_max, &min_loc, &max_loc, (*observed_map)["valid"]);
-
     // First change resolution of observed map to desired GSD
     observed_map->setLayerInterpolation("valid", CV_INTER_NN);
-    observed_map->changeResolution(_GSD);
 
-    // After resizing through bilinear interpolation there can occure bad elevation values at the border
-    cv::Mat mask_low = ((*observed_map)["elevation"] < ele_min);
-    cv::Mat mask_high = ((*observed_map)["elevation"] > ele_max);
-    (*observed_map)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_low);
-    (*observed_map)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_high);
-    (*observed_map)["valid"].setTo(0, mask_low);
-    (*observed_map)["valid"].setTo(0, mask_high);
+    t = getCurrentTimeMilliseconds();
+    observed_map->changeResolution(_GSD);
+    LOG_F(INFO, "Timing[resizing]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
 
     // Rectification needs img data, surface map and camera pose -> All contained in frame
     // Output, therefore the new additional data is written into rectified map
+    t = getCurrentTimeMilliseconds();
     CvGridMap::Ptr map_rect = ortho::rectify(frame);
+    LOG_F(INFO, "Timing[rectification]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
+
+    t = getCurrentTimeMilliseconds();
     observed_map->add(*map_rect, REALM_OVERWRITE_ALL, false);
+    LOG_F(INFO, "Timing[add]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
 
     // Transport results
+    t = getCurrentTimeMilliseconds();
     publish(frame);
+    LOG_F(INFO, "Timing[publish]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
 
     // Savings every iteration
+    t = getCurrentTimeMilliseconds();
     saveIter(*observed_map, frame->getGnssUtm().zone, frame->getFrameId());
+    LOG_F(INFO, "Timing[save]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
 
     has_processed = true;
   }
@@ -135,12 +137,13 @@ void OrthoRectification::publish(const Frame::Ptr &frame)
   _transport_frame(frame, "output/frame");
   _transport_img((*frame->getObservedMap())["color_rgb"], "output/rectified");
 
+  /*
   cv::Mat point_cloud;
   if (frame->getObservedMap()->exists("elevation_normal"))
     point_cloud = cvtToPointCloud(*frame->getObservedMap(), "elevation", "color_rgb", "elevation_normal", "valid");
   else
     point_cloud = cvtToPointCloud(*frame->getObservedMap(), "elevation", "color_rgb", "", "valid");
-  _transport_pointcloud(point_cloud, "output/pointcloud");
+  _transport_pointcloud(point_cloud, "output/pointcloud");*/
 }
 
 

@@ -55,7 +55,8 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
     const cv::Mat &valid_surface,
     const cv::Rect2d &roi,
     double GSD,
-    bool is_elevated)
+    bool is_elevated,
+    bool verbose)
 {
   // Implementation details:
   // Implementation is chosen as a compromise between readability and performance. Especially the raw array operations
@@ -73,16 +74,16 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
   cv::Mat t_pose = cam.t();
   double t[3] = {t_pose.at<double>(0), t_pose.at<double>(1), t_pose.at<double>(2)};
 
-  uchar is_elevated_val = (is_elevated ? (uchar)0 : (uchar)255);
+  uchar is_elevated_val    = (is_elevated ? (uchar)0 : (uchar)255);
   cv::Mat color_data       = cv::Mat::zeros(surface.size(), CV_8UC4);   // contains BGRA color data
   cv::Mat elevation_angle  = cv::Mat::zeros(surface.size(), CV_32F);         // contains the observed elevation angle
   cv::Mat elevated         = cv::Mat::zeros(surface.size(), CV_8UC1);   // flag to set wether the surface has elevation info or not
   cv::Mat num_observations = cv::Mat::zeros(surface.size(), CV_16UC1);  // number of observations, should be one if it's a valid surface point
   cv::Mat valid_rect       = cv::Mat::zeros(surface.size(), CV_8UC1);   // mask to set valid elements of the rectification process
 
-  LOG_F(INFO, "Processing rectification:");
-  LOG_F(INFO, "- ROI (%f, %f, %f, %f)", roi.x, roi.y, roi.width, roi.height);
-  LOG_F(INFO, "- Dimensions: %i x %i", surface.rows, surface.cols);
+  LOG_IF_F(INFO, verbose, "Processing rectification:");
+  LOG_IF_F(INFO, verbose, "- ROI (%f, %f, %f, %f)", roi.x, roi.y, roi.width, roi.height);
+  LOG_IF_F(INFO, verbose, "- Dimensions: %i x %i", surface.rows, surface.cols);
 
   // Iterate through surface and project every cell to the image
   for (uint32_t r = 0; r < surface.rows; ++r)
@@ -110,7 +111,7 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
       }
     }
 
-  LOG_F(INFO, "Image successfully rectified.");
+  LOG_IF_F(INFO, verbose, "Image successfully rectified.");
 
   auto rectification = std::make_shared<CvGridMap>(roi, GSD);
   rectification->add("color_rgb", color_data);
