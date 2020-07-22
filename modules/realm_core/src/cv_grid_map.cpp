@@ -22,8 +22,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include <opencv2/imgproc.hpp>
-
 #include <realm_core/loguru.h>
 #include <realm_core/cv_grid_map.h>
 
@@ -61,8 +59,13 @@ CvGridMap CvGridMap::cloneSubmap(const std::vector<std::string> &layer_names)
   return copy;
 }
 
-void CvGridMap::add(const Layer &layer)
+void CvGridMap::add(const Layer &layer, bool is_data_empty)
 {
+  if (!is_data_empty && (layer.data.size().width != _size.width || layer.data.size().height != _size.height))
+  {
+    throw(std::invalid_argument("Error: Adding Layer failed. Size of data does not match grid map size."));
+  }
+
   // Add data if layer already exists, push to container if not
   if (!exists(layer.name))
     _layers.push_back(layer);
@@ -70,11 +73,6 @@ void CvGridMap::add(const Layer &layer)
   {
     _layers[findContainerIdx(layer.name)] = layer;
   }
-}
-
-void CvGridMap::add(const std::string &layer_name, const cv::Mat &layer_data)
-{
-  add(Layer{layer_name, layer_data, CV_INTER_LINEAR});
 }
 
 void CvGridMap::add(const std::string &layer_name, const cv::Mat &layer_data, int interpolation)
@@ -120,7 +118,7 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
   {
     // Add of submap to this, if not existing
     if (!exists(submap_layer.name))
-      add(submap_layer.name, cv::Mat());
+      add(Layer{submap_layer.name, cv::Mat()}, true);
 
     // Now layers will exist, get it
     uint32_t idx_layer = findContainerIdx(submap_layer.name);

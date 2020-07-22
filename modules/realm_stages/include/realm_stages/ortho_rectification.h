@@ -59,6 +59,8 @@ class OrthoRectification : public StageBase
     bool process() override;
   private:
 
+    bool _do_publish_pointcloud;
+
     double _GSD;
     SaveSettings _settings_save;
 

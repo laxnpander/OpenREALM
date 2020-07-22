@@ -275,7 +275,7 @@ void Frame::setGeoreference(const cv::Mat &T_w2g)
   _is_georeferenced = true;
 }
 
-void Frame::setSurfacePoints(const cv::Mat &surface_pts)
+void Frame::setSurfacePoints(const cv::Mat &surface_pts, bool in_visual_frame)
 {
   if (surface_pts.empty())
     return;
@@ -284,7 +284,16 @@ void Frame::setSurfacePoints(const cv::Mat &surface_pts)
   _surface_points = surface_pts;
   _mutex_surface_pts.unlock();
 
-  computeSceneDepth();
+  _mutex_flags.lock();
+  if (in_visual_frame && _is_georeferenced)
+  {
+    _mutex_T_w2g.lock();
+    applyTransformationToSurfacePoints(_transformation_w2g);
+    _mutex_T_w2g.unlock();
+  }
+  _mutex_flags.unlock();
+
+  computeSceneDepth(1000);
 }
 
 void Frame::setObservedMap(const CvGridMap::Ptr &observed_map)
@@ -383,7 +392,7 @@ std::string Frame::print()
   return std::string(buffer);
 }
 
-void Frame::computeSceneDepth()
+void Frame::computeSceneDepth(int max_nrof_points)
 {
   /*
    * Depth computation according to [Hartley2004] "Multiple View Geometry in Computer Vision", S.162:
@@ -397,7 +406,26 @@ void Frame::computeSceneDepth()
     return;
 
   std::lock_guard<std::mutex> lock(_mutex_surface_pts);
-  int n = _surface_points.rows;
+
+  // The user can limit the number of points on which the depth is computed. The increment for the iteration later on
+  // is changed accordingly.
+  int n = 0;
+  int inc = 1;
+
+  if (max_nrof_points == 0 || _surface_points.rows < max_nrof_points)
+  {
+    n = _surface_points.rows;
+  }
+  else
+  {
+    n = max_nrof_points;
+    inc = _surface_points.rows * (max_nrof_points / _surface_points.rows);
+
+    // Just to make sure we don't run into an infinite loop
+    if (inc <= 0)
+      inc = 1;
+  }
+
   std::vector<double> depths;
   depths.reserve(n);
 
@@ -410,7 +438,7 @@ void Frame::computeSceneDepth()
   cv::Mat R_wc2 = T_w2c.row(2).colRange(0, 3).t();
   double z_wc = T_w2c.at<double>(2, 3);
 
-  for (int i = 0; i < n; ++i)
+  for (int i = 0; i < n; i += inc)
   {
     cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
 
@@ -439,7 +467,7 @@ void Frame::updateGeoreference(const cv::Mat &T, bool do_update_surface_points)
   }
 
   // Pose and / or surface points have changed. So update scene depth accordingly
-  computeSceneDepth();
+  computeSceneDepth(1000);
 
   setGeoreference(T);
 }

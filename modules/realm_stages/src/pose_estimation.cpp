@@ -136,6 +136,9 @@ bool PoseEstimation::process()
   // Trigger; true if there happened any processing in this cycle.
   bool has_processed = false;
 
+  // Prepare timing
+  long t;
+
   // Grab georeference flag once at the beginning, to avoid multithreading problems
   if (_use_vslam)
     _is_georef_initialized = _georeferencer->isInitialized();
@@ -149,7 +152,9 @@ bool PoseEstimation::process()
     LOG_F(INFO, "Processing frame #%i with timestamp %lu!", frame->getFrameId(), frame->getTimestamp());
 
     // Track current frame -> compute visual accurate pose
+    t = getCurrentTimeMilliseconds();
     track(frame);
+    LOG_F(INFO, "Timing [Tracking]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Identify buffer for push
     if (frame->hasAccuratePose())
@@ -360,7 +365,7 @@ void PoseEstimation::pushToBufferPublish(const Frame::Ptr &frame)
 
 void PoseEstimation::updatePreviousRoi(const Frame::Ptr &frame)
 {
-  _roi_prev = estimateProjectedRoi(frame);
+  _roi_prev = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
 }
 
 void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat &points)
@@ -374,7 +379,7 @@ void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat
       if (!pose.empty())
         frame->setVisualPose(pose);
       if (!points.empty())
-        frame->setSurfacePoints(points);
+        frame->setSurfacePoints(points, true);
       frame->setKeyframe(true);
     }
 
@@ -391,37 +396,8 @@ void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat
 
 double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
 {
-  cv::Rect2d roi_curr = estimateProjectedRoi(frame);
-
-  if (roi_curr.x + roi_curr.width < _roi_prev.x
-      || roi_curr.x > _roi_prev.x + _roi_prev.width
-      || roi_curr.y - roi_curr.height > _roi_prev.y
-      || roi_curr.y < _roi_prev.y - _roi_prev.y - _roi_prev.height)
-    return 0.0;
-
-  // Assume full roi overlap
-  cv::Point2d pt_ulc(roi_curr.x, roi_curr.y);
-  cv::Point2d pt_lrc(roi_curr.x + roi_curr.width, roi_curr.y - roi_curr.height);
-
-  // Adjust the roi to the overlap
-  if (roi_curr.x < _roi_prev.x)
-    pt_ulc.x = _roi_prev.x;
-  if (roi_curr.x+roi_curr.width > _roi_prev.x+_roi_prev.width)
-    pt_lrc.x = _roi_prev.x+_roi_prev.width;
-  if (roi_curr.y > _roi_prev.y)
-    pt_ulc.y = _roi_prev.y;
-  if (roi_curr.y-roi_curr.height < _roi_prev.y-_roi_prev.height)
-    pt_lrc.y = _roi_prev.y-_roi_prev.height;
-
-  // create world frame roi
-  cv::Rect2d roi_overlap(pt_ulc.x, pt_ulc.y, pt_lrc.x-pt_ulc.x, pt_ulc.y-pt_lrc.y);
-
-  return (roi_overlap.area() / roi_curr.area())*100;
-}
-
-cv::Rect2d PoseEstimation::estimateProjectedRoi(const Frame::Ptr &frame)
-{
-  return frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
+  cv::Rect2d roi_curr = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
+  return ((roi_curr & _roi_prev).area() / roi_curr.area())*100;
 }
 
 Frame::Ptr PoseEstimation::getNewFrameTracking()
@@ -536,6 +512,7 @@ void PoseEstimationIO::setOutputPath(const std::string &path)
 void PoseEstimationIO::initLog(const std::string &filepath)
 {
   loguru::add_file((filepath + "/publisher.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+
   LOG_F(INFO, "Successfully initialized %s publisher!", _stage_handle->_stage_name.c_str());
 }
 
@@ -674,4 +651,15 @@ void PoseEstimationIO::publishScheduled()
     _mutex_schedule.unlock();
     publishFrame(task.second);
   }
+}
+
+void PoseEstimationIO::publishAll()
+{
+  _mutex_schedule.lock();
+  for (const auto &task : _schedule)
+  {
+    publishFrame(task.second);
+  }
+  _schedule.clear();
+  _mutex_schedule.unlock();
 }

@@ -130,7 +130,16 @@ void saveDepthMap(const cv::Mat &img, const std::string &filename, uint32_t id, 
 
   char buffer[1000];
   sprintf(buffer, filename.c_str(), id);
-  cv::imwrite(std::string(buffer), img_normalized);
+
+  double min_depth, max_depth;
+  cv::minMaxLoc(img, &min_depth, &max_depth, nullptr, nullptr, mask);
+
+  std::string full_filename = std::string(buffer);
+  std::ofstream metafile(full_filename.substr(0, full_filename.size()-3) + "txt");
+  metafile << "Scaling\nMin: " << min_depth << "\nMax: " << max_depth;
+  metafile.close();
+
+  cv::imwrite(full_filename, img_normalized);
 }
 
 

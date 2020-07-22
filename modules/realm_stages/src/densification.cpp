@@ -47,6 +47,10 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
   _n_frames = _densifier->getNrofInputFrames();
   _use_dense_depth = (_n_frames > 0);
 
+  // Creation of reference plane, currently only the one below is supported
+  _plane_ref.pt = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0);
+  _plane_ref.n = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0);
+
   bool no_densification = !(_use_sparse_depth || _use_dense_depth);
 
   LOG_IF_F(WARNING, no_densification, "Densification launched, but settings forbid.");
@@ -96,6 +100,9 @@ bool Densification::process()
 {
   // NOTE: All depthmap maps are CV_32F except they are explicitly casted
 
+  // Prepare timing
+  long t;
+
   // First update current processing mode based on buffer elements
   ProcessingElement element = getProcessingElement();
 
@@ -103,25 +110,34 @@ bool Densification::process()
     return false;
 
   // Processing step
+  t = getCurrentTimeMilliseconds();
   cv::Mat depthmap;
   if (element.mode == ProcessingMode::NO_RECONSTRUCTION)
     if (!processNoReconstruction(element.buffer, depthmap))
       return true;
+  LOG_IF_F(INFO, _verbose && (element.mode == ProcessingMode::NO_RECONSTRUCTION), "Timing [Sparse Reconstruction]: %lu ms", getCurrentTimeMilliseconds()-t);
 
+  t = getCurrentTimeMilliseconds();
   if (element.mode == ProcessingMode::STEREO_RECONSTRUCTION)
     if (!processStereoReconstruction(element.buffer, depthmap))
       return true;
+  LOG_IF_F(INFO, _verbose && (element.mode == ProcessingMode::STEREO_RECONSTRUCTION), "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds()-t);
 
   // Post processing steps
+  t = getCurrentTimeMilliseconds();
   cv::Mat depthmap_filtered = applyDepthMapPostProcessing(depthmap);
+  LOG_IF_F(INFO, _verbose, "Timing [Post Processing]: %lu ms", getCurrentTimeMilliseconds()-t);
 
+  t = getCurrentTimeMilliseconds();
   cv::Mat normals;
   if (_compute_normals)
     normals = stereo::computeNormalsFromDepthMap(depthmap_filtered);
+  LOG_IF_F(INFO, _verbose, "Timing [Computing Normals]: %lu ms", getCurrentTimeMilliseconds()-t);
 
   // Output step
   LOG_F(INFO, "Scene depthmap force in range %4.2f ... %4.2f", _depth_min_current, _depth_max_current);
 
+  t = getCurrentTimeMilliseconds();
   cv::Mat mask = computeDepthMapMask(depthmap_filtered, element.mode == ProcessingMode::NO_RECONSTRUCTION);
 
   if (_compute_normals)
@@ -129,15 +145,26 @@ bool Densification::process()
 
   LOG_F(INFO, "Reprojecting depthmap map into space...");
   cv::Mat img3d = stereo::reprojectDepthMap(_frame_current->getResizedCamera(), depthmap_filtered);
-  cv::Mat surface_pts = cvtToPointCloud(img3d, _frame_current->getResizedImageUndistorted(), normals, mask);
+  LOG_IF_F(INFO, _verbose, "Timing [Depth Reprojection]: %lu ms", getCurrentTimeMilliseconds()-t);
 
-  _frame_current->setSurfacePoints(surface_pts);
+  t = getCurrentTimeMilliseconds();
+  cv::Mat surface_pts = cvtToPointCloud(img3d, _frame_current->getResizedImageUndistorted(), normals, mask);
+  LOG_IF_F(INFO, _verbose, "Timing [PCL Conversion]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+  t = getCurrentTimeMilliseconds();
+  _frame_current->setSurfacePoints(surface_pts, false);
+  LOG_IF_F(INFO, _verbose, "Timing [Add to Frame]: %lu ms", getCurrentTimeMilliseconds()-t);
 
   // Savings
+  t = getCurrentTimeMilliseconds();
   saveIter(_frame_current, normals, mask);
+  LOG_IF_F(INFO, _verbose, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
   // Republish frame to next stage
+  t = getCurrentTimeMilliseconds();
   publish(_frame_current, depthmap_filtered);
+  LOG_IF_F(INFO, _verbose, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
+
   return true;
 }
 
@@ -192,21 +219,18 @@ bool Densification::processStereoReconstruction(const FrameBuffer &buffer, cv::O
   _depth_min_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 0.25f;
   _depth_max_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 1.75f;
 
-  // In case the newest frame has a different georeference than the rest, use the most recent one
-  cv::Mat georef_newest = buffer.back()->getGeoreference();
-  for (auto &f : buffer)
-  {
-    f->updateGeoreference(georef_newest);
-  }
-
   // Compute baseline information for all frames
+  std::vector<double> baselines;
+  baselines.reserve(buffer.size());
+
   std::string stringbuffer;
   for (auto &f : buffer)
   {
     if (f == _frame_current)
       continue;
-    double baseline = stereo::computeBaselineFromPose(_frame_current->getPose(), f->getPose());
-    stringbuffer += std::to_string(baseline) + "m ";
+
+    baselines.push_back(stereo::computeBaselineFromPose(_frame_current->getPose(), f->getPose()));
+    stringbuffer += std::to_string(baselines.back()) + "m ";
   }
   LOG_F(INFO, "Baselines to reference frame: %s", stringbuffer.c_str());
 
@@ -223,8 +247,15 @@ bool Densification::processStereoReconstruction(const FrameBuffer &buffer, cv::O
   }
 
   // Saving raw
+  if (_settings_save.save_sparse)
+  {
+    cv::Mat sparse_cloud = stereo::computeDepthMapFromPointCloud(_frame_current->getCamera(), _frame_current->getSurfacePoints());
+    io::saveDepthMap(sparse_cloud,_stage_path + "/sparse/sparse_%06i.tif", _frame_current->getFrameId(),
+        _depth_min_current, _depth_max_current);
+  }
   if (_settings_save.save_dense)
-    io::saveDepthMap(depthmap_dense, _stage_path + "/dense/dense_%06i.tif", _frame_current->getFrameId(), _depth_min_current, _depth_max_current);
+    io::saveDepthMap(depthmap_dense, _stage_path + "/dense/dense_%06i.tif", _frame_current->getFrameId(),
+        _depth_min_current, _depth_max_current);
 
   depthmap.assign(depthmap_dense);
   popFromBufferReco(_frame_current->getCameraId());

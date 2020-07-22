@@ -25,68 +25,53 @@ namespace realm
 
 cv::Mat cvtToPointCloud(const cv::Mat &img3d, const cv::Mat &color, const cv::Mat &normals, const cv::Mat &mask)
 {
-  assert(!img3d.empty());
+  if (img3d.empty())
+    throw(std::invalid_argument("Error: Depth map empty. Conversion to point cloud failed."));
 
   size_t n = (size_t)img3d.cols*img3d.rows;
 
-  cv::Mat points;
-  points.reserve(n);
+  cv::Mat points = img3d.reshape(1, n);
 
-  // Create one point per valid grid element
-  for (int r = 0; r < img3d.rows; ++r)
-    for (int c = 0; c < img3d.cols; ++c)
+  if (!color.empty())
+  {
+    cv::Mat color_reshaped = color.reshape(1, n);
+    color_reshaped.convertTo(color_reshaped, CV_64FC1);
+
+    if(color.channels() < 4)
     {
-      if (mask.at<uchar>(r, c) == 0)
-        continue;
-
-      cv::Mat pt = cv::Mat::zeros(1, 9, CV_64F);
-
-      // Position informations
-      auto pos = img3d.at<cv::Vec3d>(r, c);
-      pt.at<double>(0) = pos[0];
-      pt.at<double>(1) = pos[1];
-      pt.at<double>(2) = pos[2];
-
-      // Color informations
-      if (!color.empty())
-      {
-        if (color.channels() == 1)
-        {
-          auto mono = color.at<uchar>(r, c);
-          pt.at<double>(3) = static_cast<double>(mono)/255.0;
-          pt.at<double>(4) = static_cast<double>(mono)/255.0;
-          pt.at<double>(5) = static_cast<double>(mono)/255.0;
-        }
-        else if(color.channels() == 3)
-        {
-          auto bgr = color.at<cv::Vec3b>(r, c);
-          pt.at<double>(3) = static_cast<double>(bgr[0])/255.0;
-          pt.at<double>(4) = static_cast<double>(bgr[1])/255.0;
-          pt.at<double>(5) = static_cast<double>(bgr[2])/255.0;
-        }
-        else if(color.channels() == 4)
-        {
-          auto bgra = color.at<cv::Vec4b>(r, c);
-          pt.at<double>(3) = static_cast<double>(bgra[0])/255.0;
-          pt.at<double>(4) = static_cast<double>(bgra[1])/255.0;
-          pt.at<double>(5) = static_cast<double>(bgra[2])/255.0;
-        }
-        else
-          throw(std::invalid_argument("Error: Converting to colored pointcloud failed. Image channel mismatch!"));
-      }
-
-      // Surface normals
-      if (!normals.empty())
-      {
-        cv::Vec3f normal = normals.at<cv::Vec3f>(r, c);
-        pt.at<double>(6) = static_cast<double>(normal[0]);
-        pt.at<double>(7) = static_cast<double>(normal[1]);
-        pt.at<double>(8) = static_cast<double>(normal[2]);
-      }
-
-      points.push_back(pt);
+      cv::hconcat(points, color_reshaped, points);
     }
-  return points;
+    else if (color.channels() == 4)
+    {
+      cv::hconcat(points, color_reshaped.colRange(0, 3), points);
+    }
+    else
+    {
+      throw(std::invalid_argument("Error converting depth map to point cloud: Color depth invalid."));
+    }
+  }
+
+  if (!normals.empty())
+  {
+    cv::Mat normals_reshaped = normals.reshape(1, n);
+    normals_reshaped.convertTo(normals_reshaped, CV_64FC1);
+
+    cv::hconcat(points, normals_reshaped, points);
+  }
+
+  // Masking out undesired elements
+  cv::Mat mask_reshaped = mask.reshape(1, n);
+
+  cv::Mat points_masked;
+  points_masked.reserve(n);
+
+  for (int r = 0; r < mask_reshaped.rows; ++r)
+  {
+    if (mask.at<uchar>(r) == 255)
+      points_masked.push_back(points.row(r));
+  }
+
+  return cv::Mat(points_masked);
 
 }
 

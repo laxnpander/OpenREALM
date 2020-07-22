@@ -24,6 +24,7 @@
 #include <realm_vslam_base/visual_slam_IF.h>
 #include <realm_vslam_base/visual_slam_settings.h>
 #include <realm_core/camera_settings.h>
+#include <realm_core/worker_thread_base.h>
 
 #include <openvslam/system.h>
 #include <openvslam/type.h>
@@ -33,7 +34,7 @@
 namespace realm
 {
 
-class OpenVslamFramePublisher;
+class OpenVslamKeyframeUpdater;
 
 class OpenVslam : public VisualSlamIF
 {
@@ -66,10 +67,29 @@ private:
   std::shared_ptr<openvslam::config> _config;
   std::shared_ptr<openvslam::publish::frame_publisher> _frame_publisher;
   std::shared_ptr<openvslam::publish::map_publisher> _map_publisher;
+  std::unique_ptr<OpenVslamKeyframeUpdater> _keyframe_updater;
 
   cv::Mat getLastDrawnFrame() const;
   cv::Mat invertPose(const cv::Mat &pose) const;
   cv::Mat convertToCv(const openvslam::Mat44_t &mat) const;
+};
+
+class OpenVslamKeyframeUpdater : public WorkerThreadBase
+{
+public:
+  OpenVslamKeyframeUpdater(const std::string &thread_name, int64_t sleep_time, bool verbose);
+
+  void add(const std::weak_ptr<Frame> &frame_realm, openvslam::data::keyframe* frame_vslam);
+
+private:
+
+  /// Container for OpenREALM frames to corresponding OpenVSLAM keyframe
+  std::list<std::pair<std::weak_ptr<Frame>, openvslam::data::keyframe*>> _keyframe_links;
+
+  bool process() override;
+
+  void reset() override;
+
 };
 
 } // namespace realm

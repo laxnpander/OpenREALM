@@ -73,7 +73,7 @@ void realm::stereo::remap(const Frame::Ptr &frame,
   cv::remap(img, img_remapped, map11, map12, cv::INTER_LINEAR);
 }
 
-cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole::Ptr &cam,
+cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole::ConstPtr &cam,
                                          const cv::Mat &depthmap)
 {
   // Chosen formula for reprojection follows the linear projection model:
@@ -132,7 +132,7 @@ cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole::Ptr &cam,
   return img3d;
 }
 
-cv::Mat realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &cam, const cv::Mat &points)
+cv::Mat realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::ConstPtr &cam, const cv::Mat &points)
 {
   /*
    * Depth computation according to [Hartley2004] "Multiple View Geometry in Computer Vision", S.162 for normalized

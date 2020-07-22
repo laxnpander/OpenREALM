@@ -127,6 +127,9 @@ class Densification : public StageBase
     //! Number of frames received for densification
     uint64_t _rcvd_frames;
 
+    //! Rough reference plane of the projection
+    Plane _plane_ref;
+
     //! Current frame in class wide processing
     Frame::Ptr _frame_current;
 

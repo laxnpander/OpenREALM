@@ -100,6 +100,7 @@ class OrthoRectificationSettings : public StageSettings
     OrthoRectificationSettings()
     {
       add("GSD", Parameter_t<double>{0.0, "Ground sampling distance in [m/px]"});
+      add("publish_pointcloud", Parameter_t<int>{0, "Publishing the point cloud requires additional resources for data conversion."});
       add("save_valid", Parameter_t<int>{0, "Save valid incremental map grid elements"});
       add("save_ortho_rgb", Parameter_t<int>{0, "Save incremental map ortho foto as PNG image file"});
       add("save_ortho_gtiff", Parameter_t<int>{0, "Save global map ortho foto as one GeoTIFF image file"});

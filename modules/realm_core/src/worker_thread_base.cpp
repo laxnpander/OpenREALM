@@ -54,6 +54,9 @@ void WorkerThreadBase::join()
 
 void WorkerThreadBase::run()
 {
+  // To have better readability in the log file we set the thread name
+  loguru::set_thread_name(_thread_name.c_str());
+
   LOG_IF_F(INFO, _verbose, "Thread '%s' starting loop...", _thread_name.c_str());
   while (!isFinishRequested())
   {
@@ -86,9 +89,8 @@ void WorkerThreadBase::run()
     {
       LOG_IF_F(INFO,
                _verbose,
-               "Thread '%s' has processed data. Time elapsed: %4.2f [s]",
-               _thread_name.c_str(),
-               static_cast<double>(getCurrentTimeMilliseconds() - t) / 1000);
+               "Timing [Total]: %lu ms",
+               getCurrentTimeMilliseconds() - t);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(_sleep_time));

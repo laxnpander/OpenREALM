@@ -27,6 +27,7 @@ using namespace stages;
 
 OrthoRectification::OrthoRectification(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("ortho_rectification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+      _do_publish_pointcloud((*stage_set)["publish_pointcloud"].toInt() > 0),
       _GSD((*stage_set)["GSD"].toDouble()),
       _settings_save({(*stage_set)["save_valid"].toInt() > 0,
                   (*stage_set)["save_ortho_rgb"].toInt() > 0,
@@ -83,27 +84,27 @@ bool OrthoRectification::process()
 
     t = getCurrentTimeMilliseconds();
     observed_map->changeResolution(_GSD);
-    LOG_F(INFO, "Timing[resizing]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
+    LOG_F(INFO, "Timing [Resizing]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Rectification needs img data, surface map and camera pose -> All contained in frame
     // Output, therefore the new additional data is written into rectified map
     t = getCurrentTimeMilliseconds();
     CvGridMap::Ptr map_rect = ortho::rectify(frame);
-    LOG_F(INFO, "Timing[rectification]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
+    LOG_F(INFO, "Timing [Rectify]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     t = getCurrentTimeMilliseconds();
     observed_map->add(*map_rect, REALM_OVERWRITE_ALL, false);
-    LOG_F(INFO, "Timing[add]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
+    LOG_F(INFO, "Timing [Adding]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Transport results
     t = getCurrentTimeMilliseconds();
     publish(frame);
-    LOG_F(INFO, "Timing[publish]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
+    LOG_F(INFO, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Savings every iteration
     t = getCurrentTimeMilliseconds();
     saveIter(*observed_map, frame->getGnssUtm().zone, frame->getFrameId());
-    LOG_F(INFO, "Timing[save]: %4.4f", (getCurrentTimeMilliseconds()-t)/1000.0f);
+    LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     has_processed = true;
   }
@@ -137,13 +138,15 @@ void OrthoRectification::publish(const Frame::Ptr &frame)
   _transport_frame(frame, "output/frame");
   _transport_img((*frame->getObservedMap())["color_rgb"], "output/rectified");
 
-  /*
-  cv::Mat point_cloud;
-  if (frame->getObservedMap()->exists("elevation_normal"))
-    point_cloud = cvtToPointCloud(*frame->getObservedMap(), "elevation", "color_rgb", "elevation_normal", "valid");
-  else
-    point_cloud = cvtToPointCloud(*frame->getObservedMap(), "elevation", "color_rgb", "", "valid");
-  _transport_pointcloud(point_cloud, "output/pointcloud");*/
+  if (_do_publish_pointcloud)
+  {
+    cv::Mat point_cloud;
+    if (frame->getObservedMap()->exists("elevation_normal"))
+      point_cloud = cvtToPointCloud(*frame->getObservedMap(), "elevation", "color_rgb", "elevation_normal", "valid");
+    else
+      point_cloud = cvtToPointCloud(*frame->getObservedMap(), "elevation", "color_rgb", "", "valid");
+    _transport_pointcloud(point_cloud, "output/pointcloud");
+  }
 }
 
 
@@ -178,6 +181,7 @@ void OrthoRectification::printSettingsToLog()
 {
   LOG_F(INFO, "### Stage process settings ###");
   LOG_F(INFO, "- GSD: %4.2f", _GSD);
+  LOG_F(INFO, "- publish_pointcloud: %i", _do_publish_pointcloud);
 
   LOG_F(INFO, "### Stage save settings ###");
   LOG_F(INFO, "- save_valid: %i", _settings_save.save_valid);

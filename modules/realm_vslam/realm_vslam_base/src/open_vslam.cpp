@@ -29,8 +29,10 @@ using namespace realm;
 
 OpenVslam::OpenVslam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set)
  : _nrof_keyframes(0),
+   _last_keyframe(nullptr),
    _resizing((*vslam_set)["resizing"].toDouble()),
-   _path_vocabulary((*vslam_set)["path_vocabulary"].toString())
+   _path_vocabulary((*vslam_set)["path_vocabulary"].toString()),
+   _keyframe_updater(new OpenVslamKeyframeUpdater("Keyframe Updater", 100, false))
 {
   // ov: OpenVSLAM
   // or: OpenREALM
@@ -62,6 +64,7 @@ OpenVslam::OpenVslam(const VisualSlamSettings::Ptr &vslam_set, const CameraSetti
   _map_publisher = _vslam->get_map_publisher();
 
   _vslam->startup();
+  _keyframe_updater->start();
 }
 
 VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial)
@@ -83,28 +86,34 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
     // prior not yet implemented
   }
 
+  openvslam::tracker_state_t tracker_state = _vslam->get_tracker_state();
+
   // Draw frame of tracked features
   _mutex_last_drawn_frame.lock();
   _last_drawn_frame = _frame_publisher->draw_frame();
   _mutex_last_drawn_frame.unlock();
 
   // In case tracking was successfull and slam not lost
-  if (!T_w2c.empty())
+  if (tracker_state == openvslam::tracker_state_t::Tracking)
   {
     // Get list of keyframes
     std::vector<openvslam::data::keyframe*> keyframes;
     unsigned int current_nrof_keyframes = _map_publisher->get_keyframes(keyframes);
 
-    if (current_nrof_keyframes == 0)
-      return State::LOST;
-
-    // Set last keyframe
+    // Not ideal implementation, but I am not sure that the keyframes are sorted
     _mutex_last_keyframe.lock();
-    _last_keyframe = keyframes.back();
+    if (_last_keyframe == nullptr)
+      _last_keyframe = keyframes.back();
+    else
+    {
+      for (auto kf : keyframes)
+        if (kf->id_ > _last_keyframe->id_)
+          _last_keyframe = kf;
+    }
     _mutex_last_keyframe.unlock();
 
     // Pose definition as 3x4 matrix, calculated as 4x4 with last row (0, 0, 0, 1)
-    // ORB SLAM 2 pose is defined as T_w2c, however the more intuitive way to describe
+    // OpenVSLAM pose is defined as T_w2c, however the more intuitive way to describe
     // it for mapping is T_c2w (camera to world) therefore invert the pose matrix
     cv::Mat T_c2w = invertPose(T_w2c);
 
@@ -113,7 +122,7 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
     frame->setVisualPose(T_c2w);
 
     cv::Mat surface_pts = getTrackedMapPoints();
-    frame->setSurfacePoints(surface_pts);
+    frame->setSurfacePoints(surface_pts, true);
 
     // Check current state of the slam
     if (_nrof_keyframes == 0 && current_nrof_keyframes > 0)
@@ -123,6 +132,12 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
     }
     else if (current_nrof_keyframes != _nrof_keyframes)
     {
+      // We want to keep all keyframes once created
+      _last_keyframe->set_not_to_be_erased();
+
+      // Pass to keyframe updater, which regularly checks if points or pose have changed
+      _keyframe_updater->add(frame, _last_keyframe);
+
       _nrof_keyframes = current_nrof_keyframes;
       return State::KEYFRAME_INSERT;
     }
@@ -131,17 +146,27 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
       return State::FRAME_INSERT;
     }
   }
+
   return State::LOST;
 }
 
 void OpenVslam::close()
 {
   _vslam->shutdown();
+  _keyframe_updater->requestFinish();
+  _keyframe_updater->join();
 }
 
 void OpenVslam::reset()
 {
+  LOG_F(INFO, "Reseting visual SLAM...");
   _vslam->request_reset();
+  _keyframe_updater->requestReset();
+
+  std::lock_guard<std::mutex> lock(_mutex_last_keyframe);
+  _last_keyframe = nullptr;
+  _nrof_keyframes = 0;
+  LOG_F(INFO, "Finished reseting visual SLAM.");
 }
 
 cv::Mat OpenVslam::getTrackedMapPoints() const
@@ -201,4 +226,77 @@ cv::Mat OpenVslam::convertToCv(const openvslam::Mat44_t &mat_eigen) const
 void OpenVslam::printSettingsToLog()
 {
 
+}
+
+OpenVslamKeyframeUpdater::OpenVslamKeyframeUpdater(const std::string &thread_name, int64_t sleep_time, bool verbose)
+  : WorkerThreadBase(thread_name, sleep_time, verbose)
+{
+}
+
+void OpenVslamKeyframeUpdater::add(const std::weak_ptr<Frame> &frame_realm, openvslam::data::keyframe *frame_vslam)
+{
+  // We create a connection between the OpenREALM frames and the OpenVSLAM keyframes, so we can update points and
+  // poses easily
+  _keyframe_links.emplace_back(std::make_pair(frame_realm, frame_vslam));
+}
+
+bool OpenVslamKeyframeUpdater::process()
+{
+  bool has_processed = false;
+
+  for (auto it = _keyframe_links.begin(); it != _keyframe_links.end(); )
+  {
+    std::shared_ptr<Frame> frame_realm = it->first.lock();
+    openvslam::data::keyframe* frame_slam = it->second;
+
+    // The question now is, if the weak pointers in the link queue are still pointing to existing objects
+    // If yes, we have no problem of setting the surface points in that frame.
+    // If no, we have to delete the pair from the dequeue to avoid unnecessary computations in the future
+    if (frame_realm != nullptr && frame_slam != nullptr && !frame_slam->will_be_erased())
+    {
+      // This is to prevent a racing condition, when the frame is already added in the updater, but pose has not
+      // yet been set. The "accurate pose" flag is thread safe.
+      if (!frame_realm->hasAccuratePose())
+        continue;
+
+      // Frame is still in the memory
+      // Therefore update point cloud
+      cv::Mat surface_points = frame_realm->getSurfacePoints();
+      std::vector<openvslam::data::landmark*> landmarks = frame_slam->get_landmarks();
+
+      cv::Mat new_surface_points;
+      new_surface_points.reserve(landmarks.size());
+
+      for (const auto &lm : landmarks)
+      {
+        if (!lm || lm->will_be_erased())
+        {
+          continue;
+        }
+        openvslam::Vec3_t pos = lm->get_pos_in_world();
+        cv::Mat pt = (cv::Mat_<double>(1, 3) << pos[0], pos[1], pos[2]);
+        new_surface_points.push_back(pt);
+      }
+
+      if (surface_points.rows != new_surface_points.rows)
+      {
+        LOG_IF_F(INFO, _verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), surface_points.rows, new_surface_points.rows);
+        frame_realm->setSurfacePoints(new_surface_points, true);
+      }
+
+      has_processed = true;
+    }
+    else
+    {
+      LOG_IF_F(INFO, _verbose, "Frame object out of scope. Deleting reference.");
+      // Frame is not existing anymore, delete from dequeue
+      it = _keyframe_links.erase(it);
+    }
+  }
+  return has_processed;
+}
+
+void OpenVslamKeyframeUpdater::reset()
+{
+  _keyframe_links.clear();
 }

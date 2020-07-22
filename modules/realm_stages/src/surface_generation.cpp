@@ -56,10 +56,14 @@ bool SurfaceGeneration::process()
   bool has_processed = false;
   if (!_buffer.empty())
   {
+    // Prepare timing
+    long t;
+
     Frame::Ptr frame = getNewFrame();
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
     // Identify surface assumption for input frame and compute DSM
+    t = getCurrentTimeMilliseconds();
     DigitalSurfaceModel::Ptr dsm;
     SurfaceAssumption assumption = computeSurfaceAssumption(frame);
     switch(assumption)
@@ -73,23 +77,29 @@ bool SurfaceGeneration::process()
         dsm = createElevationSurface(frame);
         break;
     }
-
     CvGridMap::Ptr surface = dsm->getSurfaceGrid();
+    LOG_IF_F(INFO, _verbose, "Timing [Compute DSM]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Observed map should be empty at this point, but check before set
+    t = getCurrentTimeMilliseconds();
     if (!frame->hasObservedMap())
       frame->setObservedMap(surface);
     else
       frame->getObservedMap()->add(*surface, REALM_OVERWRITE_ALL, true);
     frame->setSurfaceAssumption(assumption);
+    LOG_IF_F(INFO, _verbose, "Timing [Container Add]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     LOG_F(INFO, "Publishing frame for next stage...");
 
     // Publishes every iteration
+    t = getCurrentTimeMilliseconds();
     publish(frame);
+    LOG_IF_F(INFO, _verbose, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Savings every iteration
+    t = getCurrentTimeMilliseconds();
     saveIter(*surface, frame->getFrameId());
+    LOG_IF_F(INFO, _verbose, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     has_processed = true;
   }

@@ -93,6 +93,9 @@ bool Mosaicing::process()
   bool has_processed = false;
   if (!_buffer.empty())
   {
+    // Prepare timing
+    long t;
+
     // Prepare output of incremental map update
     CvGridMap::Ptr map_update;
 
@@ -119,9 +122,15 @@ bool Mosaicing::process()
     else
     {
       LOG_F(INFO, "Adding new map data to global map...");
-      (*_global_map).add(*observed_map, REALM_OVERWRITE_ZERO, true);
 
+      t = getCurrentTimeMilliseconds();
+      (*_global_map).add(*observed_map, REALM_OVERWRITE_ZERO, true);
+      LOG_F(INFO, "Timing [Add New Map]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+      t = getCurrentTimeMilliseconds();
       CvGridMap::Overlap overlap = _global_map->getOverlap(*observed_map);
+      LOG_F(INFO, "Timing [Compute Overlap]: %lu ms", getCurrentTimeMilliseconds()-t);
+
       if (overlap.first == nullptr && overlap.second == nullptr)
       {
         LOG_F(INFO, "No overlap detected. Add without blending...");
@@ -129,8 +138,11 @@ bool Mosaicing::process()
       else
       {
         LOG_F(INFO, "Overlap detected. Add with blending...");
+
+        t = getCurrentTimeMilliseconds();
         CvGridMap overlap_blended = blend(&overlap);
         (*_global_map).add(overlap_blended, REALM_OVERWRITE_ALL, false);
+        LOG_F(INFO, "Timing [Blending]: %lu ms", getCurrentTimeMilliseconds()-t);
 
         cv::Rect2d roi = overlap_blended.roi();
         LOG_F(INFO, "Overlap region: [%4.2f, %4.2f] [%4.2f x %4.2f]", roi.x, roi.y, roi.width, roi.height);
@@ -143,10 +155,16 @@ bool Mosaicing::process()
 
     // Publishings every iteration
     LOG_F(INFO, "Publishing...");
+
+    t = getCurrentTimeMilliseconds();
     publish(frame, _global_map, map_update, frame->getTimestamp());
+    LOG_F(INFO, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
+
 
     // Savings every iteration
+    t = getCurrentTimeMilliseconds();
     saveIter(frame->getFrameId(), map_update);
+    LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     has_processed = true;
   }

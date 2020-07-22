@@ -163,7 +163,6 @@ class PoseEstimation : public StageBase
     void updateKeyframeCb(int id, const cv::Mat& pose, const cv::Mat &points);
     bool changeParam(const std::string& name, const std::string &val);
     double estimatePercOverlap(const Frame::Ptr &frame);
-    cv::Rect2d estimateProjectedRoi(const Frame::Ptr &frame);
     Frame::Ptr getNewFrameTracking();
     Frame::Ptr getNewFramePublish();
     cv::Mat computeInitialPoseGuess(const Frame::Ptr &frame);
@@ -203,6 +202,7 @@ class PoseEstimationIO : public WorkerThreadBase
     void publishFrame(const Frame::Ptr &frame);
     void scheduleFrame(const Frame::Ptr &frame);
     void publishScheduled();
+    void publishAll();
 };
 
 } // namespace stages

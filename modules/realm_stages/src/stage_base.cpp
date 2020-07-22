@@ -52,6 +52,7 @@ void StageBase::initStagePath(const std::string &abs_path)
 
   // Init logging
   loguru::add_file((_stage_path + "/stage.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+
   LOG_F(INFO, "Successfully initialized!");
   LOG_F(INFO, "Stage path set to: %s", _stage_path.c_str());
   printSettingsToLog();
