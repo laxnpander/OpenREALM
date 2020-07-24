@@ -67,6 +67,7 @@ set(HEADER_FILES
         ${root}/include/realm_core/stereo.h
         ${root}/include/realm_core/structs.h
         ${root}/include/realm_core/timer.h
+        ${root}/include/realm_core/tree_node.h
         ${root}/include/realm_core/utm32.h
         ${root}/include/realm_core/wgs84.h
         ${root}/include/realm_core/worker_thread_base.h
@@ -84,8 +85,7 @@ set(SOURCE_FILES
         ${root}/src/camera_settings_factory.cpp
         ${root}/src/cv_grid_map.cpp
         ${root}/src/worker_thread_base.cpp
-        ${root}/src/plane_fitter.cpp
-)
+        ${root}/src/plane_fitter.cpp)
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})
