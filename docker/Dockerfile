@@ -10,7 +10,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
 RUN cd / && mkdir Pangolin && cd Pangolin && git clone https://github.com/stevenlovegrove/Pangolin.git && \
             cd Pangolin && mkdir build && cd build && cmake .. && make -j && make install
 
-RUN mkdir -p /cmake_ws/src && cd /cmake_ws/src && git clone -b cmake_only https://github.com/laxnpander/OpenREALM.git
+RUN mkdir -p /cmake_ws/src && cd /cmake_ws/src && git clone https://github.com/laxnpander/OpenREALM.git
 
 RUN cd cmake_ws/src/OpenREALM && mkdir build && cd build && cmake .. && make
 
