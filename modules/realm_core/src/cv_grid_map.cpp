@@ -353,6 +353,26 @@ void CvGridMap::changeResolution(double resolution)
       cv::resize(layer.data, layer.data, _size, layer.interpolation);
 }
 
+void CvGridMap::changeResolution(const cv::Size2i &size)
+{
+  // Compute the resizing depending on the final size of the matrix data. The +1 must be added here, because the first
+  // sample point is at (resolution/2, resolution/2) and the last at (width - resolution/2, height - resolution/2)
+  double x_factor = static_cast<double>(size.width) / _size.width;
+  double y_factor = static_cast<double>(size.height) / _size.height;
+
+  if (fabs(x_factor-y_factor) > 10e-6)
+    throw(std::invalid_argument("Error changing resolution of CvGridMap: Desired size was not changed uniformly!"));
+
+  _resolution /= x_factor;
+  _roi.width -= _resolution;
+  _roi.height -= _resolution;
+
+  fitGeometryToResolution(_roi, _roi, _size);
+  for (auto &layer : _layers)
+    if (!layer.data.empty() && (layer.data.cols != _size.width || layer.data.rows != _size.height))
+      cv::resize(layer.data, layer.data, _size, layer.interpolation);
+}
+
 cv::Point2i CvGridMap::atIndex(const cv::Point2d &pos) const
 {
   double x_rounded = roundToResolution(pos.x, _resolution);

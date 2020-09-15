@@ -54,10 +54,6 @@ void saveImage(const cv::Mat &img,
 
 void saveImage(const cv::Mat &img,
                const std::string &directory,
-               const std::string &name);
-
-void saveImage(const cv::Mat &img,
-               const std::string &directory,
                const std::string &name,
                uint32_t id);
 
@@ -92,6 +88,17 @@ void saveImageColorMap(const cv::Mat &img,
                        const cv::Mat &mask,
                        const std::string &name,
                        ColormapType flag);
+
+void saveCvGridMapLayer(const CvGridMap &map,
+                        int zone,
+                        char band,
+                        const std::string &layer_name,
+                        const std::string &filename);
+
+void saveCvGridMapMeta(const CvGridMap &map,
+                       int zone,
+                       char band,
+                       const std::string &filename);
 
 } // namespace io
 } // namespace realm

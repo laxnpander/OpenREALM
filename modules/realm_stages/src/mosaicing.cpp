@@ -20,6 +20,8 @@
 
 #include <realm_core/loguru.h>
 
+#include <realm_core/tree_node.h>
+
 #include <realm_stages/mosaicing.h>
 
 using namespace realm;
@@ -63,7 +65,6 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
     _gdal_writer.reset(new io::GDALContinuousWriter("mosaicing_gtiff_writer", 100, true));
     _gdal_writer->start();
   }
-
 }
 
 Mosaicing::~Mosaicing()
@@ -349,7 +350,7 @@ void Mosaicing::saveAll()
 {
   // 2D map output
   if (_settings_save.save_ortho_rgb_one)
-    io::saveImage((*_global_map)["color_rgb"], _stage_path + "/ortho", "ortho");
+    io::saveCvGridMapLayer(*_global_map, _utm_reference->zone, _utm_reference->band, "color_rgb", _stage_path + "/ortho/ortho.png");
   if (_settings_save.save_elevation_one)
     io::saveImageColorMap((*_global_map)["elevation"], (*_global_map)["valid"], _stage_path + "/elevation/color_map", "elevation", io::ColormapType::ELEVATION);
   if (_settings_save.save_elevation_var_one)

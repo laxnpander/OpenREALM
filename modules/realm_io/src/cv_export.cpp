@@ -91,12 +91,6 @@ void saveStereoPair(const Frame::Ptr &frame_left, const Frame::Ptr &frame_right,
   }
 }
 
-void saveImage(const cv::Mat &img, const std::string &directory, const std::string &name)
-{
-  std::string filename = (directory + "/" + name + ".png");
-  saveImage(img, filename);
-}
-
 void saveImage(const cv::Mat &img, const std::string &directory, const std::string &name, uint32_t id)
 {
   std::string filename = io::createFilename(directory + "/" + name + "_", id, ".png");
@@ -194,6 +188,23 @@ void saveImageColorMap(const cv::Mat &img, const cv::Mat &mask, const std::strin
       break;
   }
   cv::imwrite(filename, map_colored);
+}
+
+void saveCvGridMapLayer(const CvGridMap &map, int zone, char band, const std::string &layer_name, const std::string &filename)
+{
+  cv::Mat data = map[layer_name];
+  saveImage(data, filename);
+  saveCvGridMapMeta(map, zone, band, filename.substr(0, filename.size()-3) + "yaml");
+}
+
+void saveCvGridMapMeta(const CvGridMap &map, int zone, char band, const std::string &filename)
+{
+  cv::FileStorage metafile(filename, cv::FileStorage::WRITE);
+  metafile << "zone" << zone;
+  metafile << "band" << band;
+  metafile << "roi" << map.roi();
+  metafile << "resolution" << map.resolution();
+  metafile.release();
 }
 
 } // namespace io

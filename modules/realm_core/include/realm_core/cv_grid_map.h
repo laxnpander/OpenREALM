@@ -140,6 +140,13 @@ class CvGridMap
     void changeResolution(double resolution);
 
     /*!
+     * @brief Function to change resolution of the grid map. It enforces a desired matrix size rather than changing
+     * the resolution to fit some desired size.
+     * @param size Size, that the data matrices should have after resizing. Resulting resize operation must be uniformly in x and y.
+     */
+    void changeResolution(const cv::Size2i &size);
+
+    /*!
      * @brief Iterates through container to find layer by name and returns true if found
      * @param layer_name name of the desired layer
      * @return true if found, false if not existend
