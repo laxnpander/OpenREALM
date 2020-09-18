@@ -329,9 +329,9 @@ void Mosaicing::setGridElement(const GridQuickAccess::Ptr &ref, const GridQuickA
 void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 {
   if (_settings_save.save_valid)
-    io::saveImage((*_global_map)["valid"], _stage_path + "/valid", "valid", id);
+    io::saveImage((*_global_map)["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
   if (_settings_save.save_ortho_rgb_all)
-    io::saveImage((*_global_map)["color_rgb"], _stage_path + "/ortho", "ortho", id);
+    io::saveImage((*_global_map)["color_rgb"], io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
   if (_settings_save.save_elevation_all)
     io::saveImageColorMap((*_global_map)["elevation"], (*_global_map)["valid"], _stage_path + "/elevation/color_map", "elevation", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_elevation_var_all)

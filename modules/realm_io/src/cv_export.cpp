@@ -91,22 +91,9 @@ void saveStereoPair(const Frame::Ptr &frame_left, const Frame::Ptr &frame_right,
   }
 }
 
-void saveImage(const cv::Mat &img, const std::string &directory, const std::string &name, uint32_t id)
-{
-  std::string filename = io::createFilename(directory + "/" + name + "_", id, ".png");
-  saveImage(img, filename);
-}
-
 void saveImage(const cv::Mat &img, const std::string &filename)
 {
   cv::imwrite(filename, img);
-}
-
-void saveImage(const cv::Mat &img, const std::string &filename, uint32_t id)
-{
-  char buffer[1000];
-  sprintf(buffer, filename.c_str(), id);
-  cv::imwrite(std::string(buffer), img);
 }
 
 void saveDepthMap(const cv::Mat &img, const std::string &filename, uint32_t id, float lower_bound, float upper_bound)

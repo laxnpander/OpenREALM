@@ -133,7 +133,7 @@ void SurfaceGeneration::publish(const Frame::Ptr &frame)
 void SurfaceGeneration::saveIter(const CvGridMap &surface, uint32_t id)
 {
   if (_settings_save.save_valid)
-    io::saveImage(surface["valid"], _stage_path + "/valid", "valid", id);
+    io::saveImage(surface["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
   if (_settings_save.save_elevation)
     io::saveImageColorMap(surface["elevation"], surface["valid"], _stage_path + "/elevation", "elevation", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_normals && surface.exists("elevation_normal"))

@@ -359,7 +359,7 @@ void Densification::publish(const Frame::Ptr &frame, const cv::Mat &depthmap)
 void Densification::saveIter(const Frame::Ptr &frame, const cv::Mat &normals, const cv::Mat &mask)
 {
   if (_settings_save.save_imgs)
-    io::saveImage(frame->getResizedImageUndistorted(), _stage_path + "/imgs", "imgs", frame->getFrameId());
+    io::saveImage(frame->getResizedImageUndistorted(), io::createFilename(_stage_path + "/imgs/imgs_", frame->getFrameId(), ".png"));
   if (_settings_save.save_normals && _compute_normals && !normals.empty())
     io::saveImageColorMap(normals, mask, _stage_path + "/normals", "normals", frame->getFrameId(), io::ColormapType::NORMALS);
 }

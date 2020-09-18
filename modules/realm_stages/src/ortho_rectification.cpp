@@ -103,7 +103,7 @@ bool OrthoRectification::process()
 
     // Savings every iteration
     t = getCurrentTimeMilliseconds();
-    saveIter(*observed_map, frame->getGnssUtm().zone, frame->getFrameId());
+    saveIter(*observed_map, frame->getGnssUtm().zone, frame->getGnssUtm().band, frame->getFrameId());
     LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     has_processed = true;
@@ -116,12 +116,12 @@ void OrthoRectification::reset()
   // TODO: Implement
 }
 
-void OrthoRectification::saveIter(const CvGridMap& map, uint8_t zone, uint32_t id)
+void OrthoRectification::saveIter(const CvGridMap& map, uint8_t zone, char band, uint32_t id)
 {
   if (_settings_save.save_valid)
-    io::saveImage(map["valid"], _stage_path + "/valid", "valid", id);
+    io::saveImage(map["valid"], io::createFilename(_stage_path + "/valid_", id, ".png"));
   if (_settings_save.save_ortho_rgb)
-    io::saveImage(map["color_rgb"], _stage_path + "/ortho", "ortho", id);
+    io::saveCvGridMapLayer(map, zone, band, "color_rgb", io::createFilename(_stage_path + "/ortho_", id, ".png"));
   if (_settings_save.save_elevation_angle)
     io::saveImageColorMap(map["elevation_angle"], map["valid"], _stage_path + "/angle", "angle", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff)

@@ -48,15 +48,6 @@ void saveStereoPair(const Frame::Ptr &frame_left,
 void saveImage(const cv::Mat &img,
                const std::string &name);
 
-void saveImage(const cv::Mat &img,
-               const std::string &name,
-               uint32_t id);
-
-void saveImage(const cv::Mat &img,
-               const std::string &directory,
-               const std::string &name,
-               uint32_t id);
-
 void saveDepthMap(const cv::Mat &img,
                   const std::string &filename,
                   uint32_t id,
