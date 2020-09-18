@@ -119,9 +119,9 @@ void OrthoRectification::reset()
 void OrthoRectification::saveIter(const CvGridMap& map, uint8_t zone, char band, uint32_t id)
 {
   if (_settings_save.save_valid)
-    io::saveImage(map["valid"], io::createFilename(_stage_path + "/valid_", id, ".png"));
+    io::saveImage(map["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
   if (_settings_save.save_ortho_rgb)
-    io::saveCvGridMapLayer(map, zone, band, "color_rgb", io::createFilename(_stage_path + "/ortho_", id, ".png"));
+    io::saveCvGridMapLayer(map, zone, band, "color_rgb", io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
   if (_settings_save.save_elevation_angle)
     io::saveImageColorMap(map["elevation_angle"], map["valid"], _stage_path + "/angle", "angle", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff)
