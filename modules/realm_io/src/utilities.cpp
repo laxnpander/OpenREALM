@@ -107,7 +107,7 @@ std::vector<std::string> io::split(const char *str, char c)
   return result;
 }
 
-std::vector<std::string> io::getFileList(const std::string& dir)
+std::vector<std::string> io::getFileList(const std::string& dir, const std::string &suffix)
 {
   std::vector<std::string> filenames;
   if (!dir.empty())
@@ -118,7 +118,10 @@ std::vector<std::string> io::getFileList(const std::string& dir)
     for (boost::filesystem::recursive_directory_iterator it(apk_path); it != end; ++it)
     {
       const boost::filesystem::path cp = (*it);
-      filenames.push_back(cp.string());
+
+      const std::string &filepath = cp.string();
+      if (suffix.empty() || filepath.substr(filepath.size() - suffix.size(), filepath.size()) == suffix)
+        filenames.push_back(cp.string());
     }
   }
   std::sort(filenames.begin(), filenames.end());
