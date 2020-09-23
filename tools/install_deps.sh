@@ -70,11 +70,20 @@ sudo apt-get install -y gfortran
 sudo apt-get install -y libyaml-cpp-dev libgoogle-glog-dev libgflags-dev
 
 if [[ $(lsb_release -rs) == "16.04" ]]; then
-
        echo "Its Ubuntu 16.04. Repairing the Links for libproj"
        sudo ln -s /usr/lib/x86_64-linux-gnu/libvtkCommonCore-6.2.so /usr/lib/libvtkproj4.so
 else
        echo "No problems to repair."
+fi
+
+if [[ $(pkg-config --modversion opencv) == "3.3.1" ]]; then
+        echo "[OK] OpenCV Version is 3.3.1"
+else
+        echo "[Warning] OpenCV Version is outdated. Installing required version 3.3.1"
+        cd ~ && git clone -b 3.3.1 https://github.com/opencv/opencv.git \
+        && cd ~/opencv && mkdir build && cd build \
+        && cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/usr/local .. \
+        && make && sudo make install
 fi
 
 # DBoW2
