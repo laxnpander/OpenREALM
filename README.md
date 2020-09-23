@@ -31,6 +31,18 @@ https://github.com/laxnpander/OpenREALM_ROS1_Bridge
 
 [![Demonstration Video](https://img.youtube.com/vi/9MvPTHP0r0c/0.jpg)](https://www.youtube.com/watch?v=9MvPTHP0r0c)
 
+## Related Publication
+
+A. Kern, M. Bobbe, Y.Khedar and U.Bestmann. OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles. [PDF](https://arxiv.org/pdf/2009.10492.pdf)
+
+```
+@inproceedings{Kern2020,
+  author   =     {Alexander Kern, Markus Bobbe, Yogesh Khedar and Ulf Bestmann},
+  title    =     {OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles},
+  year     =     {2020},
+}
+```
+
 ## Introduction
 
 The proposed framework stands on the shoulders of giants, namely the open source implementation for

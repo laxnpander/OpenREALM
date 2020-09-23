@@ -69,6 +69,20 @@ sudo apt-get install -y gfortran
 # other dependencies
 sudo apt-get install -y libyaml-cpp-dev libgoogle-glog-dev libgflags-dev
 
+# Install Eigen
+cd ~ && mkdir Eigen3 && cd Eigen3
+wget -q https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.bz2
+tar xf eigen-3.3.7.tar.bz2
+rm -rf eigen-3.3.7.tar.bz2
+cd eigen-3.3.7
+mkdir -p build && cd build
+cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    ..
+make -j4
+sudo make install
+
 if [[ $(lsb_release -rs) == "16.04" ]]; then
        echo "Its Ubuntu 16.04. Repairing the Links for libproj"
        sudo ln -s /usr/lib/x86_64-linux-gnu/libvtkCommonCore-6.2.so /usr/lib/libvtkproj4.so
@@ -124,7 +138,8 @@ sudo make install
 
 # OpenVSLAM
 cd ~ && mkdir openvslam && cd openvslam
-mkdir build && cd build
+git clone https://github.com/xdspacelab/openvslam.git
+cd openvslam && mkdir build && cd build
 cmake \
     -DBUILD_WITH_MARCH_NATIVE=ON \
     -DUSE_PANGOLIN_VIEWER=OFF \
