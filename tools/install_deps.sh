@@ -138,7 +138,7 @@ sudo make install
 
 # OpenVSLAM
 cd ~ && mkdir openvslam && cd openvslam
-git clone https://github.com/xdspacelab/openvslam.git
+git clone https://github.com/laxnpander/openvslam.git
 cd openvslam && mkdir build && cd build
 cmake \
     -DBUILD_WITH_MARCH_NATIVE=ON \
