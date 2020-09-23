@@ -37,9 +37,13 @@ A. Kern, M. Bobbe, Y.Khedar and U.Bestmann. OpenREALM: Real-time Mapping for Unm
 
 ```
 @inproceedings{Kern2020,
-  author   =     {Alexander Kern, Markus Bobbe, Yogesh Khedar and Ulf Bestmann},
-  title    =     {OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles},
-  year     =     {2020},
+  author    =     {Alexander Kern, Markus Bobbe, Yogesh Khedar and Ulf Bestmann},
+  title     =     {OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles},
+  year      =     {2020},
+  booktitle =     {2020 International Conference on Unmanned Aircraft Systems (ICUAS)}, 
+  volume    =     {},
+  number    =     {},
+  pages     =     {},
 }
 ```
 

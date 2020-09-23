@@ -20,6 +20,8 @@
 
 #include <realm_io/cv_export.h>
 
+#include <fstream>
+
 namespace realm
 {
 namespace io
