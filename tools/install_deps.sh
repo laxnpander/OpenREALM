@@ -76,14 +76,17 @@ else
        echo "No problems to repair."
 fi
 
-if [[ $(pkg-config --modversion opencv) == "3.3.1" ]]; then
+opencv_version=$(pkg-config --modversion opencv)
+if [[ $opencv_version == "3.3.1" ]]; then
         echo "[OK] OpenCV Version is 3.3.1"
 else
-        echo "[Warning] OpenCV Version is outdated. Installing required version 3.3.1"
-        cd ~ && git clone -b 3.3.1 https://github.com/opencv/opencv.git \
-        && cd ~/opencv && mkdir build && cd build \
-        && cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/usr/local .. \
-        && make && sudo make install
+        echo "[Warning] OpenCV Version $opencv_version detected. It is recommended to build OpenREALM with OpenCV 3.3.1."\
+             "Continue anyway? [y/n]"
+        read user_input
+        if [ $user_input == "n" ]; then
+            echo "Aborting installation..."
+            exit 1
+        fi
 fi
 
 # DBoW2
