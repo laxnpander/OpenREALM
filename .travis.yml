@@ -12,7 +12,7 @@ services:
 
 before_install:
   - docker pull khedar/openrealm-base:latest
-  - docker run -it -d --name build user/build bash
+  - docker run -it -d --name build khedar/openrealm-base:latest bash
 
 script:
   - docker exec build bash ./tools/install_openrealm_lib.sh
