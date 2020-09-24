@@ -7,10 +7,12 @@ jobs:
       dist: bionic
     - os: linux
       dist: xenial
+services:
+  - docker
 
 before_install:
-  - bash ./tools/install_opencv.sh
-  - bash ./tools/install_deps.sh
+  - docker pull khedar/openrealm-base:latest
+  - docker run -it -d --name build user/build bash
 
 script:
-  - bash ./tools/install_openrealm_lib.sh
+  - docker exec build bash ./tools/install_openrealm_lib.sh
