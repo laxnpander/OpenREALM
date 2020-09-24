@@ -16,4 +16,4 @@ before_install:
   - wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_deps.sh
 
 script:
-  - docker exec build bash ./install_openrealm_lib.sh
+  - docker exec build bash /install_openrealm_lib.sh
