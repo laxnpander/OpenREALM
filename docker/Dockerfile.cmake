@@ -19,9 +19,7 @@ RUN cd ~ && rm -rf *
 
 RUN cd / && wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_openrealm_lib.sh
 
-#RUN mkdir -p /cmake_ws/src && cd /cmake_ws/src && git clone https://github.com/laxnpander/OpenREALM.git
-
-#RUN cd cmake_ws/src/OpenREALM && mkdir build && cd build && cmake .. && make
+RUN bash /install_openrealm_lib.sh
 
 CMD ["/bin/bash"]
 
