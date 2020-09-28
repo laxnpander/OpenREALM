@@ -1,0 +1,30 @@
+FROM ubuntu:18.04
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
+            apt-get install -yq --no-install-recommends git \
+            nano ca-certificates cmake g++ gcc \
+            lsb-release gnupg2 curl wget make && rm -rf /var/lib/apt/lists/*
+
+RUN cd / && wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_opencv.sh
+
+RUN cd / && sed -i 's/sudo //g' install_opencv.sh && bash install_opencv.sh && cd ~ && rm -rf *
+
+RUN wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_deps.sh
+
+
+RUN cd / && sed -i 's/sudo //g' install_deps.sh && apt-get update && export DEBIAN_FRONTEND=noninteractive && \  
+	bash install_deps.sh && rm -rf /var/lib/apt/lists/*
+
+RUN cd ~ && rm -rf *
+
+RUN cd / && wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_openrealm_lib.sh
+
+#RUN mkdir -p /cmake_ws/src && cd /cmake_ws/src && git clone https://github.com/laxnpander/OpenREALM.git
+
+#RUN cd cmake_ws/src/OpenREALM && mkdir build && cd build && cmake .. && make
+
+CMD ["/bin/bash"]
+
+
+
+
