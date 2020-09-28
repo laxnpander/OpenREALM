@@ -86,6 +86,9 @@ class PoseEstimation : public StageBase
     // only works as image throttle according to the max overlap defined in the settings
     bool _use_vslam;
 
+    // Flag to set all tracked frames as keyframes, consequently they are published in higher frequency for the next stage
+    bool _set_all_frames_keyframes;
+
     // Flag to disable fallback solution based on lat/lon/alt/heading completely
     bool _use_fallback;
 

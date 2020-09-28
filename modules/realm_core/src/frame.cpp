@@ -205,10 +205,16 @@ SurfaceAssumption Frame::getSurfaceAssumption() const
   return _surface_assumption;
 }
 
-CvGridMap::Ptr Frame::getObservedMap() const
+CvGridMap::Ptr Frame::getSurfaceModel() const
 {
-  assert(_observed_map != nullptr);
-  return _observed_map;
+  std::lock_guard<std::mutex> lock(_mutex_surface_model);
+  return _surface_model;
+}
+
+CvGridMap::Ptr Frame::getOrthophoto() const
+{
+  std::lock_guard<std::mutex> lock(_mutex_orthophoto);
+  return _orthophoto;
 }
 
 UTMPose Frame::getGnssUtm() const
@@ -218,6 +224,7 @@ UTMPose Frame::getGnssUtm() const
 
 camera::Pinhole::ConstPtr Frame::getCamera() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_cam);
   return _camera_model;
 }
 
@@ -296,11 +303,16 @@ void Frame::setSurfacePoints(const cv::Mat &surface_pts, bool in_visual_frame)
   computeSceneDepth(1000);
 }
 
-void Frame::setObservedMap(const CvGridMap::Ptr &observed_map)
+void Frame::setSurfaceModel(const CvGridMap::Ptr &surface_model)
 {
-  assert(!observed_map->empty());
-  std::lock_guard<std::mutex> lock(_mutex_observed_map);
-  _observed_map = observed_map;
+  std::lock_guard<std::mutex> lock(_mutex_surface_model);
+  _surface_model = surface_model;
+}
+
+void Frame::setOrthophoto(const CvGridMap::Ptr &orthophoto)
+{
+  std::lock_guard<std::mutex> lock(_mutex_orthophoto);
+  _orthophoto = orthophoto;
 }
 
 void Frame::setKeyframe(bool flag)
@@ -362,7 +374,7 @@ bool Frame::isDepthComputed() const
 
 bool Frame::hasObservedMap() const
 {
-  return !(_observed_map == nullptr || _observed_map->empty());
+  return !(_surface_model == nullptr || _surface_model->empty());
 }
 
 bool Frame::hasAccuratePose() const

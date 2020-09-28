@@ -76,7 +76,7 @@ void Mosaicing::addFrame(const Frame::Ptr &frame)
   // First update statistics about incoming frame rate
   updateFpsStatisticsIncoming();
 
-  if (frame->getObservedMap()->empty())
+  if (frame->getSurfaceModel()->empty())
   {
     LOG_F(INFO, "Input frame missing observed map. Dropping!");
     return;
@@ -101,7 +101,7 @@ bool Mosaicing::process()
     CvGridMap::Ptr map_update;
 
     Frame::Ptr frame = getNewFrame();
-    CvGridMap::Ptr observed_map = frame->getObservedMap();
+    CvGridMap::Ptr observed_map = frame->getSurfaceModel();
 
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 

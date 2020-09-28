@@ -32,6 +32,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
     : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _is_georef_initialized(false),
       _use_vslam((*stage_set)["use_vslam"].toInt() > 0),
+      _set_all_frames_keyframes((*stage_set)["set_all_frames_keyframes"].toInt() > 0),
       _strategy_fallback(PoseEstimation::FallbackStrategy((*stage_set)["fallback_strategy"].toInt())),
       _use_fallback(false),
       _use_initial_guess((*stage_set)["use_initial_guess"].toInt() > 0),
@@ -223,6 +224,11 @@ void PoseEstimation::track(Frame::Ptr &frame)
   _mutex_vslam.lock();
   VisualSlamIF::State state = _vslam->track(frame, T_c2w_initial);
   _mutex_vslam.unlock();
+
+  if (_set_all_frames_keyframes && (state == VisualSlamIF::State::FRAME_INSERT))
+  {
+    state = VisualSlamIF::State::KEYFRAME_INSERT;
+  }
 
   // Identify SLAM state
   switch (state)

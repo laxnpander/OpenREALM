@@ -26,7 +26,7 @@ using namespace realm;
 CvGridMap::Ptr ortho::rectify(const Frame::Ptr &frame)
 {
   // Check if all relevant layers are in the observed map
-  CvGridMap::Ptr observed_map = frame->getObservedMap();
+  CvGridMap::Ptr observed_map = frame->getSurfaceModel();
 
   if (!observed_map->exists("elevation") || (*observed_map)["elevation"].type() != CV_32F)
     throw(std::invalid_argument("Error: Layer 'elevation' does not exist or type is wrong."));

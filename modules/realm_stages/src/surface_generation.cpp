@@ -83,9 +83,9 @@ bool SurfaceGeneration::process()
     // Observed map should be empty at this point, but check before set
     t = getCurrentTimeMilliseconds();
     if (!frame->hasObservedMap())
-      frame->setObservedMap(surface);
+      frame->setSurfaceModel(surface);
     else
-      frame->getObservedMap()->add(*surface, REALM_OVERWRITE_ALL, true);
+      frame->getSurfaceModel()->add(*surface, REALM_OVERWRITE_ALL, true);
     frame->setSurfaceAssumption(assumption);
     LOG_IF_F(INFO, _verbose, "Timing [Container Add]: %lu ms", getCurrentTimeMilliseconds()-t);
 

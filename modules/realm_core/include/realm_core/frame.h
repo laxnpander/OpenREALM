@@ -168,10 +168,17 @@ class Frame
     SurfaceAssumption  getSurfaceAssumption() const;
 
     /*!
-     * @brief Getter for the observed map, that is a grid in the reference plane
-     * @return Grid map of the observed scene
+     * @brief Getter for the surface model, which is a grid in the reference plane
+     * @return Multi-layered grid map representing the observed surface
      */
-    CvGridMap::Ptr getObservedMap() const;
+    CvGridMap::Ptr getSurfaceModel() const;
+
+    /*!
+     * @brief Getter for the rectified orthophoto, which is a grid map in the reference plane
+     * @return Single-layered grid map representing the rectified color information of the observed scene. Usually the
+     * the resolution is higher than the one of the surface model, so check before you compare the data.
+     */
+    CvGridMap::Ptr getOrthophoto() const;
 
     /*!
      * @brief Getter for the geotag of the image
@@ -255,11 +262,17 @@ class Frame
     void setSurfacePoints(const cv::Mat &surface_pts, bool in_visual_coordinates);
 
     /*!
-     * @brief Setter for the observed map
-     * @param observed_map Observed map is a grid with a defined resolution, that lies in the reference plane (typically
+     * @brief Setter for the digital surface model
+     * @param surface_model Surface model is a grid with a defined resolution, that lies in the reference plane (typically
      *        pt = (0,0,0), n = (0,0,1))
      */
-    void setObservedMap(const CvGridMap::Ptr &observed_map);
+    void setSurfaceModel(const CvGridMap::Ptr &surface_model);
+
+    /*!
+     * @brief Setter for the orthophoto
+     * @param orthophoto Single-layered grid map containing a ["color_rgb"] layer with the rectified image data
+     */
+    void setOrthophoto(const CvGridMap::Ptr &orthophoto);
 
     /*!
      * @brief Call to set this frame as keyframe
@@ -426,9 +439,16 @@ class Frame
     //!       optionally color (x,y,z,r,g,b) or also point normal (x,y,z,r,g,b,nx,ny,nz)
     cv::Mat _surface_points;
 
-    //! Observed map as grid map in the reference plane [pt = (0,0,0), n = (0,0,1)]. It contains the results of the
-    //! reconstruction in the form of an elevation map, normal map, rectified surface color, ...
-    CvGridMap::Ptr _observed_map;
+    //! Digital surface model of the observed scene represented by a 2.5D grid map. Layers contained:
+    //! Essential:
+    //! ["elevation"]: Containing the elevation data per grid cell
+    //! Optional:
+    //! [...]
+    CvGridMap::Ptr _surface_model;
+
+  //! Orthophoto of the observed scene. Layers contained:
+  //! ["color_rgb"]: Containing the rectified RGB data per grid cell
+    CvGridMap::Ptr _orthophoto;
 
     //! Camera model of the frame that performs all the projection work. Currently only pinhole supported
     camera::Pinhole::Ptr _camera_model;
@@ -443,19 +463,22 @@ class Frame
     cv::Mat _motion_c2g;
 
     //! Mutex for img resized
-    std::mutex _mutex_img_resized;
+    mutable std::mutex _mutex_img_resized;
 
     //! Mutex for surface points
-    std::mutex _mutex_surface_pts;
+    mutable std::mutex _mutex_surface_pts;
 
-    //! Mutex for observed map
-    std::mutex _mutex_observed_map;
+    //! Mutex for the digital surface model
+    mutable std::mutex _mutex_surface_model;
+
+    //! Mutex for orthophoto
+    mutable std::mutex _mutex_orthophoto;
 
     //! Mutex for camera model
-    std::mutex _mutex_cam;
+    mutable std::mutex _mutex_cam;
 
     //! Mutex for transformation from world to geographic coordinate frame
-    std::mutex _mutex_T_w2g;
+    mutable std::mutex _mutex_T_w2g;
 
     /*!
      * @brief Private function to compute scene depth using the previously set surface points. Can obviously only be

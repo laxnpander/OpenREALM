@@ -49,7 +49,7 @@ void OrthoRectification::addFrame(const Frame::Ptr &frame)
     LOG_F(INFO, "Input frame has no surface informations. Dropping...");
     return;
   }
-  if (!frame->getObservedMap()->exists("elevation"))
+  if (!frame->getSurfaceModel()->exists("elevation"))
   {
     LOG_F(INFO, "Input frame missing surface elevation layer. Dropping...");
     return;
@@ -72,7 +72,7 @@ bool OrthoRectification::process()
     Frame::Ptr frame = getNewFrame();
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
-    CvGridMap::Ptr observed_map = frame->getObservedMap();
+    CvGridMap::Ptr observed_map = frame->getSurfaceModel();
 
     double resize_quotient = observed_map->resolution()/_GSD;
     LOG_F(INFO, "Resize quotient rq = (elevation.resolution() / GSD) = %4.2f", resize_quotient);
@@ -136,15 +136,15 @@ void OrthoRectification::publish(const Frame::Ptr &frame)
   updateFpsStatisticsOutgoing();
 
   _transport_frame(frame, "output/frame");
-  _transport_img((*frame->getObservedMap())["color_rgb"], "output/rectified");
+  _transport_img((*frame->getSurfaceModel())["color_rgb"], "output/rectified");
 
   if (_do_publish_pointcloud)
   {
     cv::Mat point_cloud;
-    if (frame->getObservedMap()->exists("elevation_normal"))
-      point_cloud = cvtToPointCloud(*frame->getObservedMap(), "elevation", "color_rgb", "elevation_normal", "valid");
+    if (frame->getSurfaceModel()->exists("elevation_normal"))
+      point_cloud = cvtToPointCloud(*frame->getSurfaceModel(), "elevation", "color_rgb", "elevation_normal", "valid");
     else
-      point_cloud = cvtToPointCloud(*frame->getObservedMap(), "elevation", "color_rgb", "", "valid");
+      point_cloud = cvtToPointCloud(*frame->getSurfaceModel(), "elevation", "color_rgb", "", "valid");
     _transport_pointcloud(point_cloud, "output/pointcloud");
   }
 }
