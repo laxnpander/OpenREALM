@@ -82,7 +82,7 @@ bool SurfaceGeneration::process()
 
     // Observed map should be empty at this point, but check before set
     t = getCurrentTimeMilliseconds();
-    if (!frame->hasObservedMap())
+    if (!frame->getSurfaceModel())
       frame->setSurfaceModel(surface);
     else
       frame->getSurfaceModel()->add(*surface, REALM_OVERWRITE_ALL, true);

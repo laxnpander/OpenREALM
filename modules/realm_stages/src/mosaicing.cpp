@@ -76,7 +76,7 @@ void Mosaicing::addFrame(const Frame::Ptr &frame)
   // First update statistics about incoming frame rate
   updateFpsStatisticsIncoming();
 
-  if (frame->getSurfaceModel()->empty())
+  if (!frame->getSurfaceModel() || !frame->getOrthophoto())
   {
     LOG_F(INFO, "Input frame missing observed map. Dropping!");
     return;
@@ -101,21 +101,24 @@ bool Mosaicing::process()
     CvGridMap::Ptr map_update;
 
     Frame::Ptr frame = getNewFrame();
-    CvGridMap::Ptr observed_map = frame->getSurfaceModel();
+    CvGridMap::Ptr surface_model = frame->getSurfaceModel();
+    CvGridMap::Ptr orthophoto = frame->getOrthophoto();
+
+    CvGridMap::Ptr map = std::make_shared<CvGridMap>(orthophoto->roi(), orthophoto->resolution());
+    map->add(*surface_model, REALM_OVERWRITE_ALL, false);
+    map->add(*orthophoto, REALM_OVERWRITE_ALL, false);
 
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
     // Use surface normals only if setting was set to true AND actual data has normals
-    _use_surface_normals = (_use_surface_normals && observed_map->exists("elevation_normal"));
+    _use_surface_normals = (_use_surface_normals && map->exists("elevation_normal"));
 
     if (_utm_reference == nullptr)
       _utm_reference = std::make_shared<UTMPose>(frame->getGnssUtm());
     if (_global_map == nullptr)
     {
       LOG_F(INFO, "Initializing global map...");
-      _global_map = observed_map;
-      (*_global_map).add("elevation_var", cv::Mat(_global_map->size(), CV_32F, std::numeric_limits<float>::quiet_NaN()));
-      (*_global_map).add("elevation_hyp", cv::Mat(_global_map->size(), CV_32F, std::numeric_limits<float>::quiet_NaN()));
+      _global_map = map;
 
       // Incremental update is equal to global map on initialization
       map_update = _global_map;
@@ -125,11 +128,11 @@ bool Mosaicing::process()
       LOG_F(INFO, "Adding new map data to global map...");
 
       t = getCurrentTimeMilliseconds();
-      (*_global_map).add(*observed_map, REALM_OVERWRITE_ZERO, true);
+      (*_global_map).add(*map, REALM_OVERWRITE_ZERO, true);
       LOG_F(INFO, "Timing [Add New Map]: %lu ms", getCurrentTimeMilliseconds()-t);
 
       t = getCurrentTimeMilliseconds();
-      CvGridMap::Overlap overlap = _global_map->getOverlap(*observed_map);
+      CvGridMap::Overlap overlap = _global_map->getOverlap(*map);
       LOG_F(INFO, "Timing [Compute Overlap]: %lu ms", getCurrentTimeMilliseconds()-t);
 
       if (overlap.first == nullptr && overlap.second == nullptr)

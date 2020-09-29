@@ -351,17 +351,10 @@ class Frame
      */
     bool isDepthComputed() const;
 
-    /*!
-     * @brief Getter to check if frame contains observed map data. Reminder: Observed map is the grid map in the reference
-     *        plane, which contains informations like elevation, normal, ...
-     * @return true if yes
-     */
-    bool hasObservedMap() const;
-
-    /*!
-     * @brief Getter to check if frame has an accurate pose, computed by e.g. visual SLAM
-     * @return true if yes
-     */
+  /*!
+   * @brief Getter to check if frame has an accurate pose, computed by e.g. visual SLAM
+   * @return true if yes
+   */
     bool hasAccuratePose() const;
 
   private:
@@ -371,7 +364,7 @@ class Frame
        ###########################*/
 
     //! Mutex to protect flags from access
-    std::mutex _mutex_flags;
+    mutable std::mutex _mutex_flags;
 
     //! Flag to set frame as keyframe
     bool _is_keyframe;
@@ -390,11 +383,6 @@ class Frame
 
     //! Flag for surface assumption. Default: PLANAR
     SurfaceAssumption _surface_assumption;
-
-
-    /**###########################################
-     * ########## Image resizing factor ##########
-       ###########################################*/
 
     //! Resize factor can be set by processing pipelines to grab image and calibration scaled to resized image sizes
     double _img_resize_factor;
@@ -446,8 +434,8 @@ class Frame
     //! [...]
     CvGridMap::Ptr _surface_model;
 
-  //! Orthophoto of the observed scene. Layers contained:
-  //! ["color_rgb"]: Containing the rectified RGB data per grid cell
+    //! Orthophoto of the observed scene. Layers contained:
+    //! ["color_rgb"]: Containing the rectified RGB data per grid cell
     CvGridMap::Ptr _orthophoto;
 
     //! Camera model of the frame that performs all the projection work. Currently only pinhole supported

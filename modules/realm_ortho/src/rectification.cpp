@@ -26,11 +26,11 @@ using namespace realm;
 CvGridMap::Ptr ortho::rectify(const Frame::Ptr &frame)
 {
   // Check if all relevant layers are in the observed map
-  CvGridMap::Ptr observed_map = frame->getSurfaceModel();
+  CvGridMap::Ptr surface_model = frame->getSurfaceModel();
 
-  if (!observed_map->exists("elevation") || (*observed_map)["elevation"].type() != CV_32F)
+  if (!surface_model->exists("elevation") || (*surface_model)["elevation"].type() != CV_32F)
     throw(std::invalid_argument("Error: Layer 'elevation' does not exist or type is wrong."));
-  if (!observed_map->exists("valid") || (*observed_map)["valid"].type() != CV_8UC1)
+  if (!surface_model->exists("valid") || (*surface_model)["valid"].type() != CV_8UC1)
     throw(std::invalid_argument("Error: Layer 'valid' does not exist or type is wrong"));
 
   // Apply rectification using the backprojection from grid
@@ -38,10 +38,10 @@ CvGridMap::Ptr ortho::rectify(const Frame::Ptr &frame)
       backprojectFromGrid(
           frame->getImageUndistorted(),
           *frame->getCamera(),
-          observed_map->get("elevation"),
-          observed_map->get("valid"),
-          observed_map->roi(),
-          observed_map->resolution(),
+          surface_model->get("elevation"),
+          surface_model->get("valid"),
+          surface_model->roi(),
+          surface_model->resolution(),
           frame->getSurfaceAssumption() == SurfaceAssumption::ELEVATION
           );
 

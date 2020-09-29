@@ -40,6 +40,8 @@ Frame::Frame(const std::string &camera_id,
       _is_depth_computed(false),
       _has_accurate_pose(false),
       _surface_assumption(SurfaceAssumption::PLANAR),
+      _surface_model(nullptr),
+      _orthophoto(nullptr),
       _timestamp(timestamp),
       _img(img),
       _utm(utm),
@@ -67,44 +69,61 @@ uint32_t Frame::getFrameId() const
 
 uint32_t Frame::getResizedImageWidth() const
 {
-  assert(_is_img_resizing_set);
-  return (uint32_t)((double) _camera_model->width() * _img_resize_factor);
+  std::lock_guard<std::mutex> lock(_mutex_cam);
+  if (isImageResizeSet())
+    return (uint32_t)((double) _camera_model->width() * _img_resize_factor);
+  else
+    throw(std::runtime_error("Error returning resized image width: Image resize factor not set!"));
 }
 
 uint32_t Frame::getResizedImageHeight() const
 {
-  assert(_is_img_resizing_set);
-  return (uint32_t)((double) _camera_model->height() * _img_resize_factor);
+  std::lock_guard<std::mutex> lock(_mutex_cam);
+  if (isImageResizeSet())
+    return (uint32_t)((double) _camera_model->height() * _img_resize_factor);
+  else
+    throw(std::runtime_error("Error returning resized image height: Image resize factor not set!"));
 }
 
 double Frame::getMinSceneDepth() const
 {
-  assert(_is_depth_computed);
-  return _min_scene_depth;
+  if (isDepthComputed())
+    return _min_scene_depth;
+  else
+    throw(std::runtime_error("Error: Depth was not computed!"));
 }
 
 double Frame::getMaxSceneDepth() const
 {
-  assert(_is_depth_computed);
-  return _max_scene_depth;
+  if (isDepthComputed())
+    return _max_scene_depth;
+  else
+    throw(std::runtime_error("Error: Depth was not computed!"));
 }
 
 double Frame::getMedianSceneDepth() const
 {
-  assert(_is_depth_computed);
-  return _med_scene_depth;
+  if (isDepthComputed())
+    return _med_scene_depth;
+  else
+    throw(std::runtime_error("Error: Depth was not computed!"));
 }
 
 cv::Size Frame::getResizedImageSize() const
 {
-  assert(_is_img_resizing_set);
-  auto width = (uint32_t)((double) _camera_model->width() * _img_resize_factor);
-  auto height = (uint32_t)((double) _camera_model->height() * _img_resize_factor);
-  return cv::Size(width, height);
+  if (isImageResizeSet())
+  {
+    auto width = (uint32_t)((double) _camera_model->width() * _img_resize_factor);
+    auto height = (uint32_t)((double) _camera_model->height() * _img_resize_factor);
+    return cv::Size(width, height);
+  }
+  else
+    throw(std::runtime_error("Error: Image resize factor not set!"));
 }
 
 cv::Mat Frame::getImageUndistorted() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_cam);
   cv::Mat img_undistorted;
   if(_camera_model->hasDistortion())
     img_undistorted = _camera_model->undistort(_img, CV_INTER_LINEAR);
@@ -141,26 +160,33 @@ cv::Mat Frame::getResizedImageUndistorted() const
   // - Check also if resize factor has not changed in the
   // meantime
   // - No deep copy
-  assert(_is_img_resizing_set);
-  camera::Pinhole cam_resized = _camera_model->resize(_img_resize_factor);
-  return cam_resized.undistort(_img_resized, CV_INTER_LINEAR);
+  if (isImageResizeSet())
+  {
+    camera::Pinhole cam_resized = _camera_model->resize(_img_resize_factor);
+    return cam_resized.undistort(_img_resized, CV_INTER_LINEAR);
+  }
+  else
+    throw(std::invalid_argument("Error: Image resize factor not set!"));
 }
 
 cv::Mat Frame::getResizedImageRaw() const
 {
   // deep copy, as it might be painted or modified
-  assert(_is_img_resizing_set);
   return _img_resized.clone();
 }
 
 cv::Mat Frame::getResizedCalibration() const
 {
-  assert(_is_img_resizing_set);
-  return _camera_model->resize(_img_resize_factor).K();
+  std::lock_guard<std::mutex> lock(_mutex_cam);
+  if (isImageResizeSet())
+    return _camera_model->resize(_img_resize_factor).K();
+  else
+    throw(std::runtime_error("Error resizing camera: Image resizing was not set!"));
 }
 
 cv::Mat Frame::getSurfacePoints() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_surface_pts);
   if (_surface_points.empty())
     return cv::Mat();
   else
@@ -202,6 +228,7 @@ cv::Mat Frame::getGeoreference() const
 
 SurfaceAssumption Frame::getSurfaceAssumption() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _surface_assumption;
 }
 
@@ -354,31 +381,31 @@ void Frame::initGeoreference(const cv::Mat &T)
 
 bool Frame::isKeyframe() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _is_keyframe;
 }
 
 bool Frame::isGeoreferenced() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _is_georeferenced;
 }
 
 bool Frame::isImageResizeSet() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _is_img_resizing_set;
 }
 
 bool Frame::isDepthComputed() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _is_depth_computed;
-}
-
-bool Frame::hasObservedMap() const
-{
-  return !(_surface_model == nullptr || _surface_model->empty());
 }
 
 bool Frame::hasAccuratePose() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _has_accurate_pose;
 }
 

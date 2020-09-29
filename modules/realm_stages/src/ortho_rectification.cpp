@@ -44,7 +44,7 @@ void OrthoRectification::addFrame(const Frame::Ptr &frame)
   // First update statistics about incoming frame rate
   updateFpsStatisticsIncoming();
 
-  if (!frame->hasObservedMap())
+  if (!frame->getSurfaceModel())
   {
     LOG_F(INFO, "Input frame has no surface informations. Dropping...");
     return;
@@ -72,28 +72,39 @@ bool OrthoRectification::process()
     Frame::Ptr frame = getNewFrame();
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
-    CvGridMap::Ptr observed_map = frame->getSurfaceModel();
+    // Make deep copy of the surface model, so we can resize it later on
+    CvGridMap::Ptr surface_model = frame->getSurfaceModel();
 
-    double resize_quotient = observed_map->resolution()/_GSD;
+    double resize_quotient = surface_model->resolution() / _GSD;
     LOG_F(INFO, "Resize quotient rq = (elevation.resolution() / GSD) = %4.2f", resize_quotient);
     LOG_IF_F(INFO, resize_quotient < 0.9, "Loss of resolution! Consider downsizing depth map or increase GSD.");
     LOG_IF_F(INFO, resize_quotient > 1.1, "Large resizing of elevation map detected. Keep in mind that ortho resolution is now >> spatial resolution");
 
     // First change resolution of observed map to desired GSD
-    observed_map->setLayerInterpolation("valid", CV_INTER_NN);
+    surface_model->setLayerInterpolation("valid", CV_INTER_NN);
 
     t = getCurrentTimeMilliseconds();
-    observed_map->changeResolution(_GSD);
+    surface_model->changeResolution(_GSD);
     LOG_F(INFO, "Timing [Resizing]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Rectification needs img data, surface map and camera pose -> All contained in frame
     // Output, therefore the new additional data is written into rectified map
     t = getCurrentTimeMilliseconds();
-    CvGridMap::Ptr map_rect = ortho::rectify(frame);
+    CvGridMap::Ptr map_rectified = ortho::rectify(frame);
     LOG_F(INFO, "Timing [Rectify]: %lu ms", getCurrentTimeMilliseconds()-t);
 
+    // The orthophoto is contained in the rectified output. However, there is plenty of other data that is better stored
+    // inside the digital surface model
     t = getCurrentTimeMilliseconds();
-    observed_map->add(*map_rect, REALM_OVERWRITE_ALL, false);
+
+    CvGridMap::Ptr orthophoto = std::make_shared<CvGridMap>(map_rectified->getSubmap({"color_rgb"}));
+    frame->setOrthophoto(orthophoto);
+
+    surface_model->add("elevation_angle", (*map_rectified)["elevation_angle"]);
+    surface_model->add("elevated", (*map_rectified)["elevated"]);
+    surface_model->add("num_observations", (*map_rectified)["num_observations"]);
+    surface_model->add("valid", (*map_rectified)["valid"]);
+
     LOG_F(INFO, "Timing [Adding]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Transport results
@@ -103,7 +114,7 @@ bool OrthoRectification::process()
 
     // Savings every iteration
     t = getCurrentTimeMilliseconds();
-    saveIter(*observed_map, frame->getGnssUtm().zone, frame->getGnssUtm().band, frame->getFrameId());
+    saveIter(*surface_model, *orthophoto, frame->getGnssUtm().zone, frame->getGnssUtm().band, frame->getFrameId());
     LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     has_processed = true;
@@ -116,18 +127,18 @@ void OrthoRectification::reset()
   // TODO: Implement
 }
 
-void OrthoRectification::saveIter(const CvGridMap& map, uint8_t zone, char band, uint32_t id)
+void OrthoRectification::saveIter(const CvGridMap& surface_model, const CvGridMap &orthophoto, uint8_t zone, char band, uint32_t id)
 {
   if (_settings_save.save_valid)
-    io::saveImage(map["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
+    io::saveImage(surface_model["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
   if (_settings_save.save_ortho_rgb)
-    io::saveCvGridMapLayer(map, zone, band, "color_rgb", io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
+    io::saveCvGridMapLayer(orthophoto, zone, band, "color_rgb", io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
   if (_settings_save.save_elevation_angle)
-    io::saveImageColorMap(map["elevation_angle"], map["valid"], _stage_path + "/angle", "angle", id, io::ColormapType::ELEVATION);
+    io::saveImageColorMap(surface_model["elevation_angle"], surface_model["valid"], _stage_path + "/angle", "angle", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff)
-    io::saveGeoTIFF(map.getSubmap({"color_rgb"}), zone, io::createFilename(_stage_path + "/gtiff/gtiff_", id, ".tif"));
+    io::saveGeoTIFF(orthophoto.getSubmap({"color_rgb"}), zone, io::createFilename(_stage_path + "/gtiff/gtiff_", id, ".tif"));
   if (_settings_save.save_elevation)
-    io::saveGeoTIFF(map.getSubmap({"elevation"}), zone, io::createFilename(_stage_path + "/elevation/elevation_", id, ".tif"));
+    io::saveGeoTIFF(surface_model.getSubmap({"elevation"}), zone, io::createFilename(_stage_path + "/elevation/elevation_", id, ".tif"));
 }
 
 void OrthoRectification::publish(const Frame::Ptr &frame)
@@ -136,15 +147,22 @@ void OrthoRectification::publish(const Frame::Ptr &frame)
   updateFpsStatisticsOutgoing();
 
   _transport_frame(frame, "output/frame");
-  _transport_img((*frame->getSurfaceModel())["color_rgb"], "output/rectified");
+  _transport_img((*frame->getOrthophoto())["color_rgb"], "output/rectified");
 
   if (_do_publish_pointcloud)
   {
+    CvGridMap::Ptr surface_model = frame->getSurfaceModel();
+    CvGridMap::Ptr orthophoto = frame->getOrthophoto();
+
+    CvGridMap map(orthophoto->roi(), orthophoto->resolution());
+    map.add(*surface_model, REALM_OVERWRITE_ALL, false);
+    map.add(*orthophoto, REALM_OVERWRITE_ALL, false);
+
     cv::Mat point_cloud;
     if (frame->getSurfaceModel()->exists("elevation_normal"))
-      point_cloud = cvtToPointCloud(*frame->getSurfaceModel(), "elevation", "color_rgb", "elevation_normal", "valid");
+      point_cloud = cvtToPointCloud(map, "elevation", "color_rgb", "elevation_normal", "valid");
     else
-      point_cloud = cvtToPointCloud(*frame->getSurfaceModel(), "elevation", "color_rgb", "", "valid");
+      point_cloud = cvtToPointCloud(map, "elevation", "color_rgb", "", "valid");
     _transport_pointcloud(point_cloud, "output/pointcloud");
   }
 }
