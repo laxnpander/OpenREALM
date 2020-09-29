@@ -59,6 +59,7 @@ if (DENSIFIER_WITH_CUDA)
 endif()
 
 set(HEADER_FILES
+        ${root}/include/realm_densifier_base/depth_consistency_filter.h
         ${root}/include/realm_densifier_base/densifier_dummy.h
         ${root}/include/realm_densifier_base/densifier_factory.h
         ${root}/include/realm_densifier_base/densifier_IF.h
@@ -69,12 +70,13 @@ set(HEADER_FILES
 )
 
 set(SOURCE_FILES
+        ${root}/src/depth_consistency_filter.cpp
         ${root}/src/densifier_factory.cpp
         ${root}/src/densifier_settings_factory.cpp
         ${root}/src/densifier_dummy.cpp
         ${root}/src/sparse_depth.cpp
         ${DENSIFIER_IMPL_SOURCES}
-)
+        src/depth_consistency_filter.cpp)
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})
