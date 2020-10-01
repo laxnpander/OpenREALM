@@ -50,7 +50,8 @@ Frame::Frame(const std::string &camera_id,
       _img_resize_factor(0.0),
       _min_scene_depth(0.0),
       _max_scene_depth(0.0),
-      _med_scene_depth(0.0)
+      _med_scene_depth(0.0),
+      _depthmap(nullptr)
 {
   _camera_model->setPose(getDefaultPose());
 }
@@ -107,6 +108,11 @@ double Frame::getMedianSceneDepth() const
     return _med_scene_depth;
   else
     throw(std::runtime_error("Error: Depth was not computed!"));
+}
+
+Depthmap::Ptr Frame::getDepthmap() const
+{
+  return _depthmap;
 }
 
 cv::Size Frame::getResizedImageSize() const
@@ -191,6 +197,11 @@ cv::Mat Frame::getSurfacePoints() const
     return cv::Mat();
   else
     return _surface_points.clone();
+}
+
+void Frame::setDepthmap(const Depthmap::Ptr &depthmap)
+{
+  _depthmap = depthmap;
 }
 
 cv::Mat Frame::getPose() const

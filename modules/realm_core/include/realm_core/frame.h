@@ -34,6 +34,7 @@
 #include <realm_core/utm32.h>
 #include <realm_core/camera.h>
 #include <realm_core/cv_grid_map.h>
+#include <realm_core/depthmap.h>
 
 namespace realm
 {
@@ -104,6 +105,12 @@ class Frame
      * @return Median depth value of the observed scene
      */
     double getMedianSceneDepth() const;
+
+    /*!
+     * @brief Getter for the depthmap which is usually computed during the densification stage.
+     * @return Depthmap of the observed scene. Not necessarily the same size as the image data.
+     */
+    Depthmap::Ptr getDepthmap() const;
 
     /*!
      * @brief Getter for a default pose, that is always computable if lat, lon, alt and heading was set in _utm
@@ -262,6 +269,12 @@ class Frame
     void setSurfacePoints(const cv::Mat &surface_pts, bool in_visual_coordinates);
 
     /*!
+     * @brief Setter for depthmap. Invalid depth values are set to -1.0.
+     * @param depthmap Depthmap of the observed scene.
+     */
+    void setDepthmap(const Depthmap::Ptr &depthmap);
+
+    /*!
      * @brief Setter for the digital surface model
      * @param surface_model Surface model is a grid with a defined resolution, that lies in the reference plane (typically
      *        pt = (0,0,0), n = (0,0,1))
@@ -400,6 +413,8 @@ class Frame
 
     //! Median scene depth computed from the set surface points. Is computed as soon as "setSurfacePoints" is called
     double _med_scene_depth;
+
+    Depthmap::Ptr _depthmap;
 
     /**###################################################
      * ########## Measured data / apriori infos ##########
