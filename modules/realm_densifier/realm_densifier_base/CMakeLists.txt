@@ -73,8 +73,7 @@ set(SOURCE_FILES
         ${root}/src/densifier_settings_factory.cpp
         ${root}/src/densifier_dummy.cpp
         ${root}/src/sparse_depth.cpp
-        ${DENSIFIER_IMPL_SOURCES}
-        src/depth_consistency_filter.cpp)
+        ${DENSIFIER_IMPL_SOURCES})
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})
