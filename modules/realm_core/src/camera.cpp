@@ -317,6 +317,20 @@ Pinhole Pinhole::resize(double factor) const
   return cam_resized;
 }
 
+Pinhole Pinhole::resize(uint32_t width, uint32_t height)
+{
+  if (width == 0 || height == 0)
+    throw(std::invalid_argument("Error resizing camera: Resizing to zero dimensions not permitted."));
+
+  double factor_x = static_cast<double>(width) / _img_width;
+  double factor_y = static_cast<double>(height) / _img_height;
+
+  if (fabs(factor_x - factor_y) > 10e-2)
+    throw(std::invalid_argument("Error resizing camera: Only multiples of the original image size are supported."));
+
+  return resize(factor_x);
+}
+
 // FUNCTIONALITIES
 
 cv::Mat Pinhole::computeImageBounds2Ddistorted() const

@@ -29,6 +29,7 @@
 
 #include <realm_core/loguru.h>
 #include <realm_core/frame.h>
+#include <realm_core/depthmap.h>
 
 namespace realm
 {
@@ -46,7 +47,7 @@ class DensifierIF
      * using reference image
      * @return disparity ma
      */
-    virtual cv::Mat densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx) = 0;
+    virtual Depthmap::Ptr densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx) = 0;
 
     /*!
      * @brief Getter for nrof frames for SFM

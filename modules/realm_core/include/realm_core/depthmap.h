@@ -25,6 +25,8 @@
 
 #include <opencv2/core.hpp>
 
+#include <realm_core/camera.h>
+
 namespace realm
 {
 
@@ -34,7 +36,9 @@ public:
   using Ptr = std::shared_ptr<Depthmap>;
 
 public:
-  explicit Depthmap(const cv::Mat &data);
+  explicit Depthmap(const cv::Mat &data, const camera::Pinhole &cam);
+
+  camera::Pinhole::ConstPtr getCamera() const;
 
   double getMinDepth() const;
 
@@ -42,7 +46,9 @@ public:
 
   double getMedianDepth() const;
 
-  cv::Mat data() const;
+  void updateDepthParameters();
+
+  cv::Mat& data();
 
 private:
 
@@ -52,7 +58,7 @@ private:
 
   cv::Mat _data;
 
-  void updateDepthParameters();
+  camera::Pinhole::Ptr _cam;
 };
 
 }

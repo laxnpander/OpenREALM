@@ -84,7 +84,7 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   // Identify valid measurements
   std::vector<Frame::Ptr> valid_input;
   for (const auto &f : frames)
-    if (f->getSurfacePoints().rows > 5)
+    if (f->getSparseCloud().rows > 5)
       valid_input.push_back(f);
 
   if (valid_input.empty())

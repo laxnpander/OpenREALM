@@ -22,13 +22,19 @@
 
 using namespace realm;
 
-Depthmap::Depthmap(const cv::Mat &data)
- : _data(data)
+Depthmap::Depthmap(const cv::Mat &data, const camera::Pinhole &cam)
+ : _data(data),
+   _cam(std::make_shared<camera::Pinhole>(cam))
 {
   if (_data.type() != CV_32F)
     throw(std::invalid_argument("Error creating depth map: Matrix type not CV_32F"));
 
   updateDepthParameters();
+}
+
+camera::Pinhole::ConstPtr Depthmap::getCamera() const
+{
+  return _cam;
 }
 
 double Depthmap::getMinDepth() const
@@ -46,7 +52,7 @@ double Depthmap::getMedianDepth() const
   return _med_depth;
 }
 
-cv::Mat Depthmap::data() const
+cv::Mat& Depthmap::data()
 {
   return _data;
 }

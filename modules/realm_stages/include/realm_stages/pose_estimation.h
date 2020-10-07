@@ -201,7 +201,7 @@ class PoseEstimationIO : public WorkerThreadBase
     // online processing
     void reset() override;
     void publishPose(const Frame::Ptr &frame);
-    void publishSurfacePoints(const Frame::Ptr &frame);
+    void publishSparseCloud(const Frame::Ptr &frame);
     void publishFrame(const Frame::Ptr &frame);
     void scheduleFrame(const Frame::Ptr &frame);
     void publishScheduled();

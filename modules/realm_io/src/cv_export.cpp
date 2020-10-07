@@ -98,15 +98,12 @@ void saveImage(const cv::Mat &img, const std::string &filename)
   cv::imwrite(filename, img);
 }
 
-void saveDepthMap(const cv::Mat &img, const std::string &filename, uint32_t id, float lower_bound, float upper_bound)
+void saveDepthMap(const cv::Mat &img, const std::string &filename, uint32_t id)
 {
-  cv::Mat mask;
-  cv::inRange(img, lower_bound, upper_bound, mask);
+  cv::Mat mask = (img > 0.0);
 
   cv::Mat img_normalized;
-  if (img.type() == CV_32FC1)
-    cv::normalize(img, img_normalized, 0, 65535, CV_MINMAX, CV_16UC1, mask);
-  else if (img.type() == CV_64FC1)
+  if (img.type() == CV_32FC1 || img.type() == CV_64FC1)
     cv::normalize(img, img_normalized, 0, 65535, CV_MINMAX, CV_16UC1, mask);
   else
     throw(std::invalid_argument("Error saving depth map: Mat type not supported!"));

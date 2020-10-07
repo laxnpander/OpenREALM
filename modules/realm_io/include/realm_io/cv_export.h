@@ -50,9 +50,7 @@ void saveImage(const cv::Mat &img,
 
 void saveDepthMap(const cv::Mat &img,
                   const std::string &filename,
-                  uint32_t id,
-                  float lower_bound,
-                  float upper_bound);
+                  uint32_t id);
 
 void saveImageColorMap(const cv::Mat &img,
                        float range_min,

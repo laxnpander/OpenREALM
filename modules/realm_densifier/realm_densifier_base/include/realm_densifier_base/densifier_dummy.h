@@ -50,7 +50,7 @@ class Dummy : public DensifierIF
      * @param ref_idx Index of param frames for that the depth map should be computed
      * @return Depth map for reference frames[ref_idx]
      */
-    cv::Mat densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx) override;
+    Depthmap::Ptr densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx) override;
 
     /*!
      * @brief Overriden getter for number of input frames. Dummy densifies zero frames

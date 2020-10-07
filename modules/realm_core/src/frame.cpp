@@ -190,13 +190,13 @@ cv::Mat Frame::getResizedCalibration() const
     throw(std::runtime_error("Error resizing camera: Image resizing was not set!"));
 }
 
-cv::Mat Frame::getSurfacePoints() const
+cv::Mat Frame::getSparseCloud() const
 {
-  std::lock_guard<std::mutex> lock(_mutex_surface_pts);
-  if (_surface_points.empty())
+  std::lock_guard<std::mutex> lock(_mutex_sparse_points);
+  if (_sparse_cloud.empty())
     return cv::Mat();
   else
-    return _surface_points.clone();
+    return _sparse_cloud.clone();
 }
 
 void Frame::setDepthmap(const Depthmap::Ptr &depthmap)
@@ -320,20 +320,20 @@ void Frame::setGeoreference(const cv::Mat &T_w2g)
   _is_georeferenced = true;
 }
 
-void Frame::setSurfacePoints(const cv::Mat &surface_pts, bool in_visual_frame)
+void Frame::setSparseCloud(const cv::Mat &sparse_cloud, bool in_visual_coordinates)
 {
-  if (surface_pts.empty())
+  if (sparse_cloud.empty())
     return;
 
-  _mutex_surface_pts.lock();
-  _surface_points = surface_pts;
-  _mutex_surface_pts.unlock();
+  _mutex_sparse_points.lock();
+  _sparse_cloud = sparse_cloud;
+  _mutex_sparse_points.unlock();
 
   _mutex_flags.lock();
-  if (in_visual_frame && _is_georeferenced)
+  if (in_visual_coordinates && _is_georeferenced)
   {
     _mutex_T_w2g.lock();
-    applyTransformationToSurfacePoints(_transformation_w2g);
+    applyTransformationToSparseCloud(_transformation_w2g);
     _mutex_T_w2g.unlock();
   }
   _mutex_flags.unlock();
@@ -435,9 +435,9 @@ std::string Frame::print()
   cv::Mat pose = getPose();
   if (!pose.empty())
     sprintf(buffer + strlen(buffer), "Pose: Exists [%i x %i]\n", pose.rows, pose.cols);
-  std::lock_guard<std::mutex> lock2(_mutex_surface_pts);
-  if (!_surface_points.empty())
-    sprintf(buffer + strlen(buffer), "Mappoints: %i\n", _surface_points.rows);
+  std::lock_guard<std::mutex> lock2(_mutex_sparse_points);
+  if (!_sparse_cloud.empty())
+    sprintf(buffer + strlen(buffer), "Mappoints: %i\n", _sparse_cloud.rows);
 
   return std::string(buffer);
 }
@@ -452,24 +452,24 @@ void Frame::computeSceneDepth(int max_nrof_points)
    * w=depth=(r31,r32,r33,t_z)*(x,y,z,1)
    */
 
-  if (_surface_points.empty())
+  if (_sparse_cloud.empty())
     return;
 
-  std::lock_guard<std::mutex> lock(_mutex_surface_pts);
+  std::lock_guard<std::mutex> lock(_mutex_sparse_points);
 
   // The user can limit the number of points on which the depth is computed. The increment for the iteration later on
   // is changed accordingly.
   int n = 0;
   int inc = 1;
 
-  if (max_nrof_points == 0 || _surface_points.rows < max_nrof_points)
+  if (max_nrof_points == 0 || _sparse_cloud.rows < max_nrof_points)
   {
-    n = _surface_points.rows;
+    n = _sparse_cloud.rows;
   }
   else
   {
     n = max_nrof_points;
-    inc = _surface_points.rows * (max_nrof_points / _surface_points.rows);
+    inc = _sparse_cloud.rows * (max_nrof_points / _sparse_cloud.rows);
 
     // Just to make sure we don't run into an infinite loop
     if (inc <= 0)
@@ -490,7 +490,7 @@ void Frame::computeSceneDepth(int max_nrof_points)
 
   for (int i = 0; i < n; i += inc)
   {
-    cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
+    cv::Mat pt = _sparse_cloud.row(i).colRange(0, 3).t();
 
     // Depth calculation
     double depth = R_wc2.dot(pt) + z_wc;
@@ -503,17 +503,17 @@ void Frame::computeSceneDepth(int max_nrof_points)
   _is_depth_computed = true;
 }
 
-void Frame::updateGeoreference(const cv::Mat &T, bool do_update_surface_points)
+void Frame::updateGeoreference(const cv::Mat &T, bool do_update_sparse_cloud)
 {
   // Update the visual pose with the new georeference
   cv::Mat M_c2g = applyTransformationToVisualPose(T);
   setGeographicPose(M_c2g);
 
   // In case we want to update the surface points as well, we have to compute the difference of old and new transformation.
-  if (do_update_surface_points && !_transformation_w2g.empty())
+  if (do_update_sparse_cloud && !_transformation_w2g.empty())
   {
     cv::Mat T_diff = computeGeoreferenceDifference(_transformation_w2g, T);
-    applyTransformationToSurfacePoints(T_diff);
+    applyTransformationToSparseCloud(T_diff);
   }
 
   // Pose and / or surface points have changed. So update scene depth accordingly
@@ -527,20 +527,20 @@ cv::Mat Frame::getOrientation() const
   return _orientation.clone();
 }
 
-void Frame::applyTransformationToSurfacePoints(const cv::Mat &T)
+void Frame::applyTransformationToSparseCloud(const cv::Mat &T)
 {
-  if (_surface_points.rows > 0)
+  if (_sparse_cloud.rows > 0)
   {
-    _mutex_surface_pts.lock();
-    for (uint32_t i = 0; i < _surface_points.rows; ++i)
+    _mutex_sparse_points.lock();
+    for (uint32_t i = 0; i < _sparse_cloud.rows; ++i)
     {
-      cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
+      cv::Mat pt = _sparse_cloud.row(i).colRange(0, 3).t();
       pt.push_back(1.0);
       cv::Mat pt_hom = T * pt;
       pt_hom.pop_back();
-      _surface_points.row(i) = pt_hom.t();
+      _sparse_cloud.row(i) = pt_hom.t();
     }
-    _mutex_surface_pts.unlock();
+    _mutex_sparse_points.unlock();
   }
 }
 

@@ -98,6 +98,9 @@ cv::Mat realm::stereo::reprojectDepthMap(const camera::Pinhole::ConstPtr &cam,
   if (fabs(fx) < 10e-6 || fabs(fy) < 10-6 || fabs(cx) < 10e-6 || fabs(cy) < 10e-6)
     throw(std::invalid_argument("Error: Reprojecting depth map failed. Camera model invalid!"));
 
+  if (R_c2w.empty() || t_c2w.empty())
+    throw(std::invalid_argument("Error: Reprojecting depth map failed. Pose matrix is empty!"));
+
   // Array preparation
   double ar_R_c2w[3][3];
   for (uint8_t r = 0; r < 3; ++r)
@@ -151,7 +154,8 @@ cv::Mat realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Cons
 
   // Prepare extrinsics
   cv::Mat T_w2c = cam->Tw2c();
-  cv::Mat Rwc2 = T_w2c.row(2).colRange(0, 3).t();
+  cv::Mat cv_R_w2c = T_w2c.row(2).colRange(0, 3).t();
+  double R_w2c[3] = { cv_R_w2c.at<double>(0), cv_R_w2c.at<double>(1), cv_R_w2c.at<double>(2) };
   double zwc = T_w2c.at<double>(2, 3);
 
   // Prepare projection
@@ -162,15 +166,18 @@ cv::Mat realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Cons
 
   for (int i = 0; i < points.rows; ++i)
   {
-    cv::Mat pt = points.row(i).t();
+    auto pixel = points.ptr<double>(i);
+    double pt_x = pixel[0];
+    double pt_y = pixel[1];
+    double pt_z = pixel[2];
 
     // Depth calculation
-    double depth = Rwc2.dot(pt) + zwc;
+    double depth = R_w2c[0]*pt_x + R_w2c[1]*pt_y + R_w2c[2]*pt_z + zwc;
 
     // Projection to image with x = P * X
-    double w = P[2][0]*pt.at<double>(0) + P[2][1]*pt.at<double>(1) + P[2][2]*pt.at<double>(2) + P[2][3]*1.0;
-    auto u = (int)((P[0][0]*pt.at<double>(0) + P[0][1]*pt.at<double>(1) + P[0][2]*pt.at<double>(2) + P[0][3]*1.0)/w);
-    auto v = (int)((P[1][0]*pt.at<double>(0) + P[1][1]*pt.at<double>(1) + P[1][2]*pt.at<double>(2) + P[1][3]*1.0)/w);
+    double w =        P[2][0]*pt_x + P[2][1]*pt_y + P[2][2]*pt_z + P[2][3]*1.0;
+    auto   u = (int)((P[0][0]*pt_x + P[0][1]*pt_y + P[0][2]*pt_z + P[0][3]*1.0)/w);
+    auto   v = (int)((P[1][0]*pt_x + P[1][1]*pt_y + P[1][2]*pt_z + P[1][3]*1.0)/w);
 
     if (u >= 0 && u < width && v >= 0 && v < height)
     {
@@ -180,7 +187,6 @@ cv::Mat realm::stereo::computeDepthMapFromPointCloud(const camera::Pinhole::Cons
         depth_map.at<float>(v, u) = -1.0f;
     }
   }
-  //depth_map = cam.undistort(depth_map, CV_INTER_NN);
   return depth_map;
 }
 

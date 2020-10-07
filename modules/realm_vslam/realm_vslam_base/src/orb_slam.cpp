@@ -103,7 +103,7 @@ VisualSlamIF::State OrbSlam2::track(Frame::Ptr &frame, const cv::Mat &T_c2w_init
     //std::cout << "Schätz:\n" << T_c2w_initial << std::endl;
 
     cv::Mat surface_pts = getTrackedMapPoints();
-    frame->setSurfacePoints(surface_pts, true);
+    frame->setSparseCloud(surface_pts, true);
 
     // Check if new frame is keyframe by comparing current keyid with last keyid
     int32_t keyid = (int32_t)_slam->GetLastKeyFrameId();

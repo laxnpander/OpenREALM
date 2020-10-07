@@ -22,6 +22,7 @@
 #define PROJECT_DENSIFICATION_STAGE_H
 
 #include <deque>
+#include <map>
 #include <memory>
 #include <chrono>
 
@@ -49,21 +50,7 @@ class Densification : public StageBase
   public:
     using Ptr = std::shared_ptr<Densification>;
     using ConstPtr = std::shared_ptr<const Densification>;
-    using FrameBuffer = std::deque<Frame::Ptr>;
-    using FrameBufferPtr = std::shared_ptr<std::deque<Frame::Ptr>>;
   public:
-    enum class ProcessingMode
-    {
-        IDLE,
-        NO_RECONSTRUCTION,
-        STEREO_RECONSTRUCTION
-    };
-
-    struct ProcessingElement
-    {
-        ProcessingMode mode;
-        std::deque<Frame::Ptr> buffer;
-    };
 
     struct SaveSettings
     {
@@ -103,12 +90,6 @@ class Densification : public StageBase
     bool process() override;
   private:
 
-    //! Flag for fallback solution based on sparse cloud interpolation
-    bool _use_sparse_depth;
-
-    //! Flag for 3d surface reconstruction
-    bool _use_dense_depth;
-
     //! Flag for use of bilateral depth filtering
     bool _use_filter_bilat;
 
@@ -130,23 +111,18 @@ class Densification : public StageBase
     //! Rough reference plane of the projection
     Plane _plane_ref;
 
-    //! Current frame in class wide processing
-    Frame::Ptr _frame_current;
-
     //! Minimum depth of the current observed scene
     float _depth_min_current;
 
     //! Maximum depth of the current observed scene
     float _depth_max_current;
 
-    //! Buffer for frames that are only sparsely densified
-    FrameBuffer _buffer_no_reco;
-    std::mutex _mutex_buffer_no_reco;
-
     //! Buffer for frames that should be 3d reconstructed
-    std::unordered_map<std::string, FrameBufferPtr> _buffer_reco;
-    std::unordered_map<std::string, FrameBufferPtr>::iterator _buffer_selector;
+    std::deque<Frame::Ptr> _buffer_reco;
     std::mutex _mutex_buffer_reco;
+
+    //! Buffer for consistency filter
+    std::deque<std::pair<Frame::Ptr, cv::Mat>> _buffer_consistency;
 
     //! Densifier handle for surface reconstruction. Mostly external frameworks to generate dense depth maps
     DensifierIF::Ptr _densifier;
@@ -179,7 +155,7 @@ class Densification : public StageBase
      * @param normals Current normal map
      * @param mask Currnet mask of all valid values of the depthmap/normal map
      */
-    void saveIter(const Frame::Ptr &frame, const cv::Mat &normals, const cv::Mat &mask);
+    void saveIter(const Frame::Ptr &frame, const cv::Mat &normals);
 
     /*!
      * @brief Function to push the input frame to the reconstruction buffer. Frames from different UAVs will be treated
@@ -189,34 +165,9 @@ class Densification : public StageBase
     void pushToBufferReco(const Frame::Ptr &frame);
 
     /*!
-     * @brief Function to push the input frame to the "no reconstruction" buffer, which is the one for sparse depth
-     *        interpolation.
-     * @param frame Current input frame
-     */
-    void pushToBufferNoReco(const Frame::Ptr &frame);
-
-    /*!
-     * @brief Function to remove the oldest frame from the "no reconstruction" buffer.
-     */
-    void popFromBufferNoReco();
-
-    /*!
      * @brief Function to remove the oldest frame from the "reconstruction" buffer.
      */
-    void popFromBufferReco(const std::string &buffer_name);
-
-    /*!
-     * @brief Getter for the "no reconstruction" frame buffer
-     * @return No reconstruction / sparse depth interpolation frame buffer
-     */
-    FrameBuffer getNewFrameBufferNoReco();
-
-    /*!
-     * @brief Getter for the current "reconstruction" frame buffer. If multiple UAVs are operating, frame buffers for
-     *        each UAV are alternated.
-     * @return 3D reconstruction frame buffer
-     */
-    FrameBuffer getNewFramesBufferReco();
+    void popFromBufferReco();
 
     /*!
      * @brief Function to apply depth map filtering to current input depth map
@@ -224,6 +175,22 @@ class Densification : public StageBase
      * @return Filtered depth map
      */
     cv::Mat applyDepthMapPostProcessing(const cv::Mat &depthmap);
+
+    /*!
+     * @brief Sets all depth values outside the given range to -1.0, so invalid.
+     * @param depthmap Depthmap which should be processed
+     * @param min_depth Minimum depth value that is allowed
+     * @param max_depth Maximum depth value that is allowed
+     * @return Resulting depthmap
+     */
+    Depthmap::Ptr forceInRange(const Depthmap::Ptr &depthmap, double min_depth, double max_depth);
+
+    /*!
+     * @brief
+     * @param buffer_denoise
+     * @return
+     */
+    Frame::Ptr consistencyFilter(std::deque<std::pair<Frame::Ptr, cv::Mat>>* buffer_denoise);
 
     /*!
      * @brief Function to compute a mask for the current depth map for valid elements.
@@ -235,26 +202,12 @@ class Densification : public StageBase
     cv::Mat computeDepthMapMask(const cv::Mat &depth_map, bool use_sparse_mask);
 
     /*!
-     * @brief Function to grab the current / newest frame to process. Is either "no reco" or "reco".
-     * @return Struct of frame and processing mode
-     */
-    ProcessingElement getProcessingElement();
-
-    /*!
-     * @brief Process function to compute sparse depth map interpolation based on inpainting.
-     * @param buffer The buffer of frames for which the depth map should be interpolated.
-     * @param depthmap Output dense depth map
-     * @return True if successful
-     */
-    bool processNoReconstruction(const FrameBuffer &buffer, cv::OutputArray depthmap);
-
-    /*!
      * @brief Process function to compute 3d surface reconstruction from input frame.
      * @param buffer The buffer of frames for which the depth map should be reconstructed.
      * @param depthmap Output dense depth map
      * @return True if successful
      */
-    bool processStereoReconstruction(const FrameBuffer &buffer, cv::OutputArray depthmap);
+    Depthmap::Ptr processStereoReconstruction(const std::deque<Frame::Ptr> &buffer, Frame::Ptr &frame_processed);
 };
 
 } // namespace stages

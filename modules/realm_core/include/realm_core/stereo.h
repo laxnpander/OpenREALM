@@ -25,6 +25,7 @@
 
 #include <realm_core/frame.h>
 #include <realm_core/camera.h>
+#include <realm_core/depthmap.h>
 
 namespace realm
 {

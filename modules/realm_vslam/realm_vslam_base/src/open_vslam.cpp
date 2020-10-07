@@ -122,7 +122,7 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
     frame->setVisualPose(T_c2w);
 
     cv::Mat surface_pts = getTrackedMapPoints();
-    frame->setSurfacePoints(surface_pts, true);
+    frame->setSparseCloud(surface_pts, true);
 
     // Check current state of the slam
     if (_nrof_keyframes == 0 && current_nrof_keyframes > 0)
@@ -261,7 +261,7 @@ bool OpenVslamKeyframeUpdater::process()
 
       // Frame is still in the memory
       // Therefore update point cloud
-      cv::Mat surface_points = frame_realm->getSurfacePoints();
+      cv::Mat surface_points = frame_realm->getSparseCloud();
       std::vector<openvslam::data::landmark*> landmarks = frame_slam->get_landmarks();
 
       cv::Mat new_surface_points;
@@ -281,7 +281,7 @@ bool OpenVslamKeyframeUpdater::process()
       if (surface_points.rows != new_surface_points.rows)
       {
         LOG_IF_F(INFO, _verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), surface_points.rows, new_surface_points.rows);
-        frame_realm->setSurfacePoints(new_surface_points, true);
+        frame_realm->setSparseCloud(new_surface_points, true);
       }
 
       has_processed = true;

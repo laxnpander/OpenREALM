@@ -181,20 +181,18 @@ CvGridMap Mosaicing::blend(CvGridMap::Overlap *overlap)
   CvGridMap ref = *overlap->first;
   CvGridMap src = *overlap->second;
 
-  cv::Mat ref_elevation_angle = ref["elevation_angle"];
-  cv::Mat src_elevation_angle = src["elevation_angle"];
-
-  cv::Mat src_elevated = src["elevated"];
   cv::Mat ref_not_elevated;
   cv::bitwise_not(ref["elevated"], ref_not_elevated);
 
-  cv::Mat mask_angle = (src_elevation_angle > ref_elevation_angle);
+  cv::Mat mask_1 = (src["elevation_angle"] > ref["elevation_angle"]) & src["elevated"];
+  cv::Mat mask_2 = (src["elevation_angle"] > ref["elevation_angle"]) & ref_not_elevated;
+  cv::Mat mask = (mask_1 | mask_2);
 
-  src["color_rgb"].copyTo(ref["color_rgb"], mask_angle);
-  src["elevation"].copyTo(ref["elevation"], mask_angle);
-  src["elevation_angle"].copyTo(ref["elevation_angle"], mask_angle);
-  src["valid"].copyTo(ref["valid"], mask_angle);
-  cv::add(ref["num_observations"], cv::Mat::ones(ref.size().height, ref.size().width, CV_16UC1), ref["num_observations"], mask_angle);
+  src["color_rgb"].copyTo(ref["color_rgb"], mask);
+  src["elevation"].copyTo(ref["elevation"], mask);
+  src["elevation_angle"].copyTo(ref["elevation_angle"], mask);
+  src["valid"].copyTo(ref["valid"], mask);
+  cv::add(ref["num_observations"], cv::Mat::ones(ref.size().height, ref.size().width, CV_16UC1), ref["num_observations"], mask);
 
   return ref;
 

@@ -385,7 +385,7 @@ void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat
       if (!pose.empty())
         frame->setVisualPose(pose);
       if (!points.empty())
-        frame->setSurfacePoints(points, true);
+        frame->setSparseCloud(points, true);
       frame->setKeyframe(true);
     }
 
@@ -587,11 +587,11 @@ void PoseEstimationIO::publishPose(const Frame::Ptr &frame)
   _stage_handle->_transport_pose(frame->getPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose/visual");
 }
 
-void PoseEstimationIO::publishSurfacePoints(const Frame::Ptr &frame)
+void PoseEstimationIO::publishSparseCloud(const Frame::Ptr &frame)
 {
-  cv::Mat surface_pts = frame->getSurfacePoints();
-  if (!surface_pts.empty())
-    _stage_handle->_transport_pointcloud(surface_pts, "output/pointcloud");
+  cv::Mat sparse_cloud = frame->getSparseCloud();
+  if (!sparse_cloud.empty())
+    _stage_handle->_transport_pointcloud(sparse_cloud, "output/pointcloud");
 }
 
 void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
@@ -605,7 +605,7 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
   LOG_IF_F(INFO, frame->isKeyframe(), "Publishing keyframe #%u...", frame->getFrameId());
   LOG_IF_F(INFO, !frame->isKeyframe(), "Publishing frame #%u...", frame->getFrameId());
 
-  publishSurfacePoints(frame);
+  publishSparseCloud(frame);
 
   _stage_handle->_transport_frame(frame, "output/frame");
   _stage_handle->printGeoReferenceInfo(frame);

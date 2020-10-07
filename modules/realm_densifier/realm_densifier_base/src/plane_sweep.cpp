@@ -46,7 +46,7 @@ PlaneSweep::PlaneSweep(const DensifierSettings::Ptr &settings)
   _settings.subpx_interp_mode        = (PSL::PlaneSweepSubPixelInterpMode)  (*settings)["subpx_interp_mode"].toInt();
 }
 
-cv::Mat PlaneSweep::densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx)
+Depthmap::Ptr PlaneSweep::densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx)
 {
   assert(frames.size() == _nrof_frames);
 
@@ -106,13 +106,14 @@ cv::Mat PlaneSweep::densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_id
   }
   catch (const PSL::Exception &e)
   {
-
+    LOG_F(WARNING, "Densification failed due to exception: %s", e.what());
+    return nullptr;
   }
 
   // Get depthmap
   PSL::DepthMap<float, double> depth_map_psl = cps.getBestDepth();
 
-  return convertToCvMat(depth_map_psl);
+  return std::make_shared<Depthmap>(convertToCvMat(depth_map_psl), *frame_ref->getResizedCamera());
 }
 
 uint8_t PlaneSweep::getNrofInputFrames()
