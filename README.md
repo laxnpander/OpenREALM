@@ -33,7 +33,7 @@ https://github.com/laxnpander/OpenREALM_ROS1_Bridge
 
 ## Related Publication
 
-A. Kern, M. Bobbe, Y.Khedar and U.Bestmann. OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles. [PDF](https://arxiv.org/pdf/2009.10492.pdf)
+A. Kern, M. Bobbe, Y.Khedar and U.Bestmann. OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles. [Preprint](https://arxiv.org/pdf/2009.10492.pdf)
 
 ```
 @inproceedings{9213960,
