@@ -36,14 +36,15 @@ https://github.com/laxnpander/OpenREALM_ROS1_Bridge
 A. Kern, M. Bobbe, Y.Khedar and U.Bestmann. OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles. [PDF](https://arxiv.org/pdf/2009.10492.pdf)
 
 ```
-@inproceedings{Kern2020,
-  author    =     {Alexander Kern, Markus Bobbe, Yogesh Khedar and Ulf Bestmann},
+@inproceedings{9213960,
+  author    =     {A. {Kern} and M. {Bobbe} and Y. {Khedar} and U. {Bestmann}},
   title     =     {OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles},
-  year      =     {2020},
   booktitle =     {2020 International Conference on Unmanned Aircraft Systems (ICUAS)}, 
+  year      =     {2020},
   volume    =     {},
   number    =     {},
-  pages     =     {},
+  pages     =     {902-911},
+  doi       =     {10.1109/ICUAS48674.2020.9213960},
 }
 ```
 
