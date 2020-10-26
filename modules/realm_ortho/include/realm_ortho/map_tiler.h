@@ -26,11 +26,10 @@
 #include <map>
 
 #include <realm_ortho/rectification.h>
+#include <realm_ortho/gdal_warper.h>
+#include <realm_ortho/tile_cache.h>
 #include <realm_core/conversions.h>
 #include <realm_core/loguru.h>
-
-#include <gdal_warper.h>
-#include <tile_cache.h>
 
 namespace realm
 {
@@ -42,8 +41,11 @@ namespace realm
 class MapTiler
 {
 public:
+  using Ptr = std::shared_ptr<MapTiler>;
 
-  MapTiler();
+public:
+
+  MapTiler(const std::string &id, const std::string &directory);
   ~MapTiler();
 
   void createTiles(const CvGridMap::Ptr &map, uint8_t zone);
@@ -61,6 +63,8 @@ private:
 
   /// Size of the tiles in [pix], usually this is 256
   int _tile_size;
+
+  std::string _output_directory;
 
   std::map<int, double> _lookup_resolution_from_zoom;
   std::map<int, long>   _lookup_nrof_tiles_from_zoom;

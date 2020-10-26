@@ -18,7 +18,7 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gdal_warper.h>
+#include <realm_ortho/gdal_warper.h>
 
 #include <opencv2/highgui.hpp>
 

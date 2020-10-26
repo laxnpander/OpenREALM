@@ -18,7 +18,7 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <tile.h>
+#include <realm_ortho/tile.h>
 
 using namespace realm;
 

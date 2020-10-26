@@ -18,18 +18,19 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <map_tiler.h>
+#include <realm_ortho/map_tiler.h>
 
 #include <unordered_map>
 
 using namespace realm;
 
-MapTiler::MapTiler()
+MapTiler::MapTiler(const std::string &id, const std::string &directory)
     : _verbosity(1),
       _zoom_level_min(11),
       _zoom_level_max(35),
       _tile_size(256),
-      _tile_cache("rgb", 10, false)
+      _output_directory(directory),
+      _tile_cache(id, 10, false)
 {
   _origin_shift = 2 * M_PI * 6378137 / 2.0;
 
@@ -43,7 +44,7 @@ MapTiler::MapTiler()
 
   _warper.setTargetEPSG(3857);
 
-  _tile_cache.setOutputFolder("/home/alex/CLionProjects/general_testbed/results");
+  _tile_cache.setOutputFolder(_output_directory);
 
   _tile_cache.start();
 }

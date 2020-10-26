@@ -30,8 +30,7 @@
 #include <realm_core/loguru.h>
 #include <realm_core/worker_thread_base.h>
 #include <realm_io/utilities.h>
-
-#include <tile.h>
+#include <realm_ortho/tile.h>
 
 namespace realm
 {
