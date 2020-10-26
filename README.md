@@ -13,9 +13,10 @@ Feel free to fork and contribute. Let's make mapping fast again! :)
 **09/2020: OpenVSLAM as default SLAM**
 
 As of today OpenREALM is relying on OpenVSLAM as default visual SLAM framework. The overall performance differences 
-between OpenVSLAM and ORB SLAM2 are neglectable, however OpenVSLAM is still actively maintained. You can pull the
-current main build without any other modifications. Open new issues in case you encounter any problems, we will do our
-best to fix it as fast as possible.
+between OpenVSLAM and ORB SLAM2 are neglectable, however OpenVSLAM is still maintained. At this point we use a custom
+version of OpenVSLAM though, as we need the tracker state for which there is no getter in the current master build.
+Until [this PR](https://github.com/xdspacelab/openvslam/pull/399) is not merged please use 
+[this](https://github.com/laxnpander/openvslam) or the provided install script in tools/install_deps.sh.
 
 **05/2020: Migration to CMAKE only**
 
