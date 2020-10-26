@@ -54,15 +54,23 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES
         ${root}/include/realm_ortho/delaunay_2d.h
         ${root}/include/realm_ortho/dsm.h
+        ${root}/include/realm_ortho/gdal_warper.h
+        ${root}/include/realm_ortho/map_tiler.h
         ${root}/include/realm_ortho/nanoflann.h
         ${root}/include/realm_ortho/nearest_neighbor.h
         ${root}/include/realm_ortho/rectification.h
+        ${root}/include/realm_ortho/tile.h
+        ${root}/include/realm_ortho/tile_cache.h
 )
 
 set(SOURCE_FILES
         ${root}/src/delaunay_2d.cpp
         ${root}/src/dsm.cpp
+        ${root}/src/gdal_warper.cpp
+        ${root}/src/map_tiler.cpp
         ${root}/src/rectification.cpp
+        ${root}/src/tile.cpp
+        ${root}/src/tile_cache.cpp
 )
 
 # Organize the source and header files into groups
