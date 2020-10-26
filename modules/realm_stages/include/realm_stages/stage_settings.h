@@ -46,6 +46,7 @@ class PoseEstimationSettings : public StageSettings
     PoseEstimationSettings()
     {
       add("use_vslam", Parameter_t<int>{0, "Flag can be set to 'false', then this stage only works as image stream throttle depending on the max overlap."});
+      add("set_all_frames_keyframes", Parameter_t<int>{0, "Flag to set all tracked frames to being keyframes."});
       add("fallback_strategy", Parameter_t<int>{0, "Strategy when to use the projection only fallback: 1 - Always, 2 - once orientation is calibrated, 3 - never"});
       add("use_initial_guess", Parameter_t<int>{0, "Flag can be set to 'false', then the initial guess of the pose is not being considered in the visual SLAM."});
       add("update_georef", Parameter_t<int>{0, "Flag can be set to 'false', then georeference will only be computed at initialization."});
@@ -86,7 +87,7 @@ class SurfaceGenerationSettings : public StageSettings
     SurfaceGenerationSettings()
     {
       add("try_use_elevation", Parameter_t<int>{0, "Flag for trying to use surface points for elevation map generation"});
-      add("knn_radius_factor", Parameter_t<double>{1.0, "Initial search radius for nearest neighbours is GSD * knn_radius_factor"});
+      add("knn_max_iter", Parameter_t<int>{5, "Maximum number of iterations for each cell to find the closest 3D point in the dense cloud"});
       add("mode_surface_normals", Parameter_t<int>{0, "0 - None, 1 - Random neighbours, 2 - Furthest neighbours, 3 - Best-fit"});
       add("save_valid", Parameter_t<int>{0, "Save valid elevation grid element mask"});
       add("save_elevation", Parameter_t<int>{0, "Save elevation map as colored PNG image file"});
@@ -100,6 +101,7 @@ class OrthoRectificationSettings : public StageSettings
     OrthoRectificationSettings()
     {
       add("GSD", Parameter_t<double>{0.0, "Ground sampling distance in [m/px]"});
+      add("publish_pointcloud", Parameter_t<int>{0, "Publishing the point cloud requires additional resources for data conversion."});
       add("save_valid", Parameter_t<int>{0, "Save valid incremental map grid elements"});
       add("save_ortho_rgb", Parameter_t<int>{0, "Save incremental map ortho foto as PNG image file"});
       add("save_ortho_gtiff", Parameter_t<int>{0, "Save global map ortho foto as one GeoTIFF image file"});

@@ -48,24 +48,9 @@ void saveStereoPair(const Frame::Ptr &frame_left,
 void saveImage(const cv::Mat &img,
                const std::string &name);
 
-void saveImage(const cv::Mat &img,
-               const std::string &name,
-               uint32_t id);
-
-void saveImage(const cv::Mat &img,
-               const std::string &directory,
-               const std::string &name);
-
-void saveImage(const cv::Mat &img,
-               const std::string &directory,
-               const std::string &name,
-               uint32_t id);
-
 void saveDepthMap(const cv::Mat &img,
                   const std::string &filename,
-                  uint32_t id,
-                  float lower_bound,
-                  float upper_bound);
+                  uint32_t id);
 
 void saveImageColorMap(const cv::Mat &img,
                        float range_min,
@@ -92,6 +77,17 @@ void saveImageColorMap(const cv::Mat &img,
                        const cv::Mat &mask,
                        const std::string &name,
                        ColormapType flag);
+
+void saveCvGridMapLayer(const CvGridMap &map,
+                        int zone,
+                        char band,
+                        const std::string &layer_name,
+                        const std::string &filename);
+
+void saveCvGridMapMeta(const CvGridMap &map,
+                       int zone,
+                       char band,
+                       const std::string &filename);
 
 } // namespace io
 } // namespace realm

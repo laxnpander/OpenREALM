@@ -71,20 +71,17 @@ class DigitalSurfaceModel
      * @param points Cloud of observed surface points as Mat structured rowise: x, y, z
      * @param knn_radius_factor Factor for initial knn-search is GSD * knn_radius_factor
      */
-    DigitalSurfaceModel(const cv::Rect2d &roi, const cv::Mat &points, SurfaceNormalMode mode, double knn_radius_factor);
+    DigitalSurfaceModel(const cv::Rect2d &roi, const cv::Mat &points, SurfaceNormalMode mode, int knn_max_iter);
 
     CvGridMap::Ptr getSurfaceGrid();
 
   private:
 
-    //! Flag to set DSM as initialized
-    bool _is_initialized;
-
     //! Flag to identify if prior normals should be used
     bool _use_prior_normals;
 
-    //! Radius for nearest neighbour search
-    double _knn_radius_factor;
+    //! Maximum iterations per grid cell to find the next nearest neigbour in the dense clouds.
+    int _knn_max_iter;
 
     //! Assumption of the DSM. Either planar or elevation
     SurfaceAssumption _assumption;

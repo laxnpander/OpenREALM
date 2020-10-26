@@ -98,6 +98,13 @@ uint32_t extractFrameIdFromFilepath(const std::string &filepath);
  */
 std::vector<std::string> split(const char *str, char c = ' ');
 
+/*!
+ * @brief Function grabs the files in a specific directory, sorts them and return their absolute path as a vector
+ * @param dir Directory to grab the filenames
+ * @return Vector of all files with absolute path
+ */
+std::vector<std::string> getFileList(const std::string& dir, const std::string &suffix = "");
+
 /*! TODO: Einbaurichtung implementieren?
  * @brief Function to compute a 3x3 rotation matrix based on heading data. It is assumed, that the camera is pointing
  * downwards and the heading roughly aligns with the camera's yaw axis.

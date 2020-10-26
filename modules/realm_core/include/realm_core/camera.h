@@ -253,6 +253,14 @@ class Pinhole
     Pinhole resize(double factor) const;
 
     /*!
+     * @brief Function for resizing the current pinhole model to other image sizes.
+     * @param width Width of the desired image
+     * @param height Height of the desired image
+     * @return New pinhole model resized to a given set of width and height
+     */
+    Pinhole resize(uint32_t width, uint32_t height);
+
+    /*!
      * @brief Function to undistort an image with this camera model
      * @param img Image to be undistorted
      * @return Undistorted image

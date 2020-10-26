@@ -27,13 +27,11 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
                              const DensifierSettings::Ptr &densifier_set,
                              double rate)
 : StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
-  _use_sparse_depth((*stage_set)["use_sparse_disparity"].toInt() > 0),
   _use_filter_bilat((*stage_set)["use_filter_bilat"].toInt() > 0),
   _use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),
   _depth_min_current(0.0),
   _depth_max_current(0.0),
   _compute_normals((*stage_set)["compute_normals"].toInt() > 0),
-  _buffer_selector(_buffer_reco.end()),
   _rcvd_frames(0),
   _settings_save({(*stage_set)["save_bilat"].toInt() > 0,
                   (*stage_set)["save_dense"].toInt() > 0,
@@ -45,12 +43,10 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
 {
   _densifier = densifier::DensifierFactory::create(densifier_set);
   _n_frames = _densifier->getNrofInputFrames();
-  _use_dense_depth = (_n_frames > 0);
 
-  bool no_densification = !(_use_sparse_depth || _use_dense_depth);
-
-  LOG_IF_F(WARNING, no_densification, "Densification launched, but settings forbid.");
-  LOG_IF_F(WARNING, no_densification, "Try set 'use_sparse_depth' or 'use_dense_depth' in settings. All frames are redirected.");
+  // Creation of reference plane, currently only the one below is supported
+  _plane_ref.pt = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0);
+  _plane_ref.n = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0);
 }
 
 void Densification::addFrame(const Frame::Ptr &frame)
@@ -58,190 +54,223 @@ void Densification::addFrame(const Frame::Ptr &frame)
   // First update statistics about incoming frame rate
   updateFpsStatisticsIncoming();
 
+  // Increment received valid frames
+  _rcvd_frames++;
+
   // Check if frame and settings are fulfilled to process/densify incoming frames
   // if not, redirect to next stage
   if (   !frame->isKeyframe()
       || !frame->hasAccuratePose()
-      || frame->getSurfacePoints().empty()
-      || !(_use_sparse_depth|| _use_dense_depth))
+      || !frame->isDepthComputed())
   {
     LOG_F(INFO, "Frame #%u:", frame->getFrameId());
     LOG_F(INFO, "Keyframe? %s", frame->isKeyframe() ? "Yes" : "No");
     LOG_F(INFO, "Accurate Pose? %s", frame->hasAccuratePose() ? "Yes" : "No");
-    LOG_F(INFO, "Surface? %i Points", frame->getSurfacePoints().rows);
+    LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud().rows);
 
     LOG_F(INFO, "Frame #%u not suited for dense reconstruction. Passing through...", frame->getFrameId());
     _transport_frame(frame, "output/frame");
     return;
   }
 
-  // Check what kind of processing should take place with incoming frame
-  if (_use_dense_depth)
-    pushToBufferReco(frame);
-
-  // Case: Stereo reconstruction should be performed, but not sure if enough frames already
-  if (_use_sparse_depth && _use_dense_depth)
-    if (_rcvd_frames < _n_frames/2)
-      pushToBufferNoReco(frame);
-
-  // Case: Dummy densifier, only sparse cloud pseudo densification
-  if (_use_sparse_depth && !_use_dense_depth)
-    pushToBufferNoReco(frame);
-
-  // Increment received valid frames
-  _rcvd_frames++;
+  pushToBufferReco(frame);
 }
 
 bool Densification::process()
 {
   // NOTE: All depthmap maps are CV_32F except they are explicitly casted
 
-  // First update current processing mode based on buffer elements
-  ProcessingElement element = getProcessingElement();
-
-  if (element.mode == ProcessingMode::IDLE)
-    return false;
-
-  // Processing step
-  cv::Mat depthmap;
-  if (element.mode == ProcessingMode::NO_RECONSTRUCTION)
-    if (!processNoReconstruction(element.buffer, depthmap))
-      return true;
-
-  if (element.mode == ProcessingMode::STEREO_RECONSTRUCTION)
-    if (!processStereoReconstruction(element.buffer, depthmap))
-      return true;
-
-  // Post processing steps
-  cv::Mat depthmap_filtered = applyDepthMapPostProcessing(depthmap);
-
-  cv::Mat normals;
-  if (_compute_normals)
-    normals = stereo::computeNormalsFromDepthMap(depthmap_filtered);
-
-  // Output step
-  LOG_F(INFO, "Scene depthmap force in range %4.2f ... %4.2f", _depth_min_current, _depth_max_current);
-
-  cv::Mat mask = computeDepthMapMask(depthmap_filtered, element.mode == ProcessingMode::NO_RECONSTRUCTION);
-
-  if (_compute_normals)
-    cv::erode(mask, mask, cv::Mat(), cv::Point(-1, -1), 4, cv::BORDER_CONSTANT, 0);
-
-  LOG_F(INFO, "Reprojecting depthmap map into space...");
-  cv::Mat img3d = stereo::reprojectDepthMap(_frame_current->getResizedCamera(), depthmap_filtered);
-  cv::Mat surface_pts = cvtToPointCloud(img3d, _frame_current->getResizedImageUndistorted(), normals, mask);
-
-  _frame_current->setSurfacePoints(surface_pts);
-
-  // Savings
-  saveIter(_frame_current, normals, mask);
-
-  // Republish frame to next stage
-  publish(_frame_current, depthmap_filtered);
-  return true;
-}
-
-bool Densification::processNoReconstruction(const FrameBuffer &buffer, cv::OutputArray depthmap)
-{
-  LOG_F(INFO, "Performing no reconstruction. Interpolation of sparse cloud...");
-
-  _frame_current = buffer.front();
-
-  if (_frame_current->getSurfacePoints().rows < 50 || !_use_sparse_depth)
+  // First check if buffer has enough frames already, else don't do anything
+  if (_buffer_reco.size() < _n_frames)
   {
-    LOG_F(INFO, "Interpolation of sparse cloud failed. Too few sparse points!");
-    popFromBufferNoReco();
     return false;
   }
 
-  _depth_min_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 0.25f;
-  _depth_max_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 1.75f;
+  // Densification step using stereo
+  long t = getCurrentTimeMilliseconds();
+  Frame::Ptr frame_processed;
+  Depthmap::Ptr depthmap = processStereoReconstruction(_buffer_reco, frame_processed);
+  popFromBufferReco();
+  LOG_IF_F(INFO, _verbose, "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds()-t);
 
-  LOG_F(INFO, "Processing frame #%u...", _frame_current->getFrameId());
+  // Compute normals if desired
+  t = getCurrentTimeMilliseconds();
+  cv::Mat normals;
+  if (_compute_normals)
+    normals = stereo::computeNormalsFromDepthMap(depthmap->data());
+  LOG_IF_F(INFO, _verbose, "Timing [Computing Normals]: %lu ms", getCurrentTimeMilliseconds()-t);
 
-  // Resize factor must be set, in case sparse only was chosen (densifier is dummy)
-  if (!_frame_current->isImageResizeSet())
-    _frame_current->setImageResizeFactor(_densifier->getResizeFactor());
+  // Remove outliers
+  double depth_min = frame_processed->getMedianSceneDepth()*0.25;
+  double depth_max = frame_processed->getMedianSceneDepth()*1.75;
+  depthmap = forceInRange(depthmap, depth_min, depth_max);
+  LOG_F(INFO, "Scene depthmap forced in range %4.2f ... %4.2f", depth_min, depth_max);
 
-  // Compute sparse depth map and save if neccessary
-  cv::Mat depthmap_sparse;
-  cv::Mat depthmap_sparse_densified;
+  // Set data in the frame
+  t = getCurrentTimeMilliseconds();
+  frame_processed->setDepthmap(depthmap);
+  LOG_IF_F(INFO, _verbose, "Timing [Setting]: %lu ms", getCurrentTimeMilliseconds()-t);
 
-  densifier::computeDepthMapFromSparseCloud(_frame_current->getSurfacePoints(),
-                                            _frame_current->getResizedCamera(),
-                                            depthmap_sparse_densified,
-                                            depthmap_sparse);
+  // Creating dense cloud
+  cv::Mat img3d = stereo::reprojectDepthMap(depthmap->getCamera(), depthmap->data());
+  cv::Mat dense_cloud = img3d.reshape(1, img3d.rows*img3d.cols);
 
-  if (_settings_save.save_thumb)
-    io::saveImageColorMap(depthmap_sparse, _depth_min_current, _depth_max_current, _stage_path + "/thumb", "thumb", _frame_current->getFrameId(), io::ColormapType::DEPTH);
-  if (_settings_save.save_sparse)
-    io::saveDepthMap(depthmap_sparse_densified, _stage_path + "/sparse/sparse_%06i.tif", _frame_current->getFrameId(), _depth_min_current, _depth_max_current);
+  // Denoising
+  t = getCurrentTimeMilliseconds();
+  _buffer_consistency.emplace_back(std::make_pair(frame_processed, dense_cloud));
+  if (_buffer_consistency.size() >= 4)
+  {
+    frame_processed = consistencyFilter(&_buffer_consistency);
+    _buffer_consistency.pop_front();
+  }
+  else
+  {
+    LOG_IF_F(INFO, _verbose, "Consistency filter is activated. Waiting for more frames for denoising...");
+    return true;
+  }
+  LOG_IF_F(INFO, _verbose, "Timing [Denoising]: %lu ms", getCurrentTimeMilliseconds()-t);
 
-  depthmap.assign(depthmap_sparse_densified);
-  popFromBufferNoReco();
+  // Last check if frame still has valid depthmap
+  if (!frame_processed->getDepthmap())
+  {
+    //_transport_frame(frame_processed, "output/frame");
+    return true;
+  }
+
+  // Post processing
+  depthmap->data() = applyDepthMapPostProcessing(depthmap->data());
+
+  // Savings
+  t = getCurrentTimeMilliseconds();
+  saveIter(frame_processed, normals);
+  LOG_IF_F(INFO, _verbose, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+  // Republish frame to next stage
+  t = getCurrentTimeMilliseconds();
+  publish(frame_processed, depthmap->data());
+  LOG_IF_F(INFO, _verbose, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
+
   return true;
 }
 
-bool Densification::processStereoReconstruction(const FrameBuffer &buffer, cv::OutputArray depthmap)
+Frame::Ptr Densification::consistencyFilter(std::deque<std::pair<Frame::Ptr, cv::Mat>>* buffer_denoise)
+{
+  Frame::Ptr frame = (*buffer_denoise)[buffer_denoise->size()/2].first;
+
+  Depthmap::Ptr depthmap_ii = frame->getDepthmap();
+
+  cv::Mat depthmap_ii_data = depthmap_ii->data();
+  int rows = depthmap_ii_data.rows;
+  int cols = depthmap_ii_data.cols;
+
+  cv::Mat votes = cv::Mat::zeros(rows, cols, CV_8UC1);
+
+  float th_depth = 0.1;
+
+  for (const auto &f : *buffer_denoise)
+  {
+    if (f.first == frame)
+      continue;
+
+    cv::Mat dense_cloud = f.second;
+    cv::Mat depthmap_ij_data = stereo::computeDepthMapFromPointCloud(depthmap_ii->getCamera(), dense_cloud);
+
+    for (int r = 0; r < rows; ++r)
+      for (int c =0; c < cols; ++c)
+      {
+        float d_ii = depthmap_ii_data.at<float>(r, c);
+        float d_ij = depthmap_ij_data.at<float>(r, c);
+
+        if (d_ii <= 0 || d_ij <= 0)
+          continue;
+
+        if (fabsf(d_ij-d_ii)/d_ii < th_depth)
+          votes.at<uchar>(r, c) = votes.at<uchar>(r, c) + 1;
+      }
+  }
+
+  cv::Mat mask = (votes < 2);
+  depthmap_ii_data.setTo(-1.0, mask);
+
+  double perc_coverage = 100 - (static_cast<double>(cv::countNonZero(mask)) / (mask.rows*mask.cols) * 100.0);
+
+  if (perc_coverage < 30.0)
+  {
+    LOG_IF_F(WARNING, _verbose, "Depthmap coverage too low (%3.1f%%). Assuming plane surface.");
+    frame->setDepthmap(nullptr);
+
+    for (auto it = buffer_denoise->begin(); it != buffer_denoise->end(); ) {
+      if (it->first->getFrameId() == frame->getFrameId())
+      {
+        it = buffer_denoise->erase(it);
+        break;
+      }
+      else
+        ++it;
+    }
+  }
+  else
+  {
+    LOG_IF_F(INFO, _verbose, "Depthmap coverage left after denoising: %3.1f%%", perc_coverage);
+  }
+
+  return frame;
+}
+
+Depthmap::Ptr Densification::processStereoReconstruction(const std::deque<Frame::Ptr> &buffer, Frame::Ptr &frame_processed)
 {
   LOG_F(INFO, "Performing stereo reconstruction...");
 
   // Reference frame is the one in the middle (if more than two)
   int ref_idx = (int)buffer.size()/2;
-  _frame_current = buffer[ref_idx];
-  _depth_min_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 0.25f;
-  _depth_max_current = static_cast<float>(_frame_current->getMedianSceneDepth()) * 1.75f;
-
-  // In case the newest frame has a different georeference than the rest, use the most recent one
-  cv::Mat georef_newest = buffer.back()->getGeoreference();
-  for (auto &f : buffer)
-  {
-    f->updateGeoreference(georef_newest);
-  }
+  frame_processed = buffer[ref_idx];
 
   // Compute baseline information for all frames
+  std::vector<double> baselines;
+  baselines.reserve(buffer.size());
+
   std::string stringbuffer;
   for (auto &f : buffer)
   {
-    if (f == _frame_current)
+    if (f == frame_processed)
       continue;
-    double baseline = stereo::computeBaselineFromPose(_frame_current->getPose(), f->getPose());
-    stringbuffer += std::to_string(baseline) + "m ";
+
+    baselines.push_back(stereo::computeBaselineFromPose(frame_processed->getPose(), f->getPose()));
+    stringbuffer += std::to_string(baselines.back()) + "m ";
   }
   LOG_F(INFO, "Baselines to reference frame: %s", stringbuffer.c_str());
 
-  LOG_F(INFO, "Reconstructing frame #%u...", _frame_current->getFrameId());
-  cv::Mat depthmap_dense = _densifier->densify(buffer, (uint8_t)ref_idx);
+  LOG_F(INFO, "Reconstructing frame #%u...", frame_processed->getFrameId());
+  Depthmap::Ptr depthmap = _densifier->densify(buffer, (uint8_t)ref_idx);
 
-  LOG_IF_F(INFO, !depthmap_dense.empty(), "Successfully reconstructed frame!");
-  if (depthmap_dense.empty())
-  {
-    LOG_F(INFO, "Reconstruction failed!");
-    pushToBufferNoReco(_frame_current);
-    popFromBufferReco(_frame_current->getCameraId());
-    return false;
-  }
+  LOG_IF_F(INFO, depthmap != nullptr, "Successfully reconstructed frame!");
+  LOG_IF_F(WARNING, depthmap == nullptr, "Reconstruction failed!");
 
-  // Saving raw
-  if (_settings_save.save_dense)
-    io::saveDepthMap(depthmap_dense, _stage_path + "/dense/dense_%06i.tif", _frame_current->getFrameId(), _depth_min_current, _depth_max_current);
+  return depthmap;
+}
 
-  depthmap.assign(depthmap_dense);
-  popFromBufferReco(_frame_current->getCameraId());
-  return true;
+Depthmap::Ptr Densification::forceInRange(const Depthmap::Ptr &depthmap, double min_depth, double max_depth)
+{
+  cv::Mat mask;
+  cv::Mat data = depthmap->data();
+
+  cv::inRange(data, min_depth, max_depth, mask);
+
+  cv::bitwise_not(mask, mask);
+  data.setTo(-1.0f, mask);
+
+  return depthmap;
 }
 
 cv::Mat Densification::applyDepthMapPostProcessing(const cv::Mat &depthmap)
 {
-  assert(!depthmap.empty());
-
   cv::Mat depthmap_filtered;
   if (_use_filter_bilat)
       cv::bilateralFilter(depthmap, depthmap_filtered, 5, 25, 25);
 
-  if (_settings_save.save_bilat)
+  /*if (_settings_save.save_bilat)
     io::saveImageColorMap(depthmap_filtered, _depth_min_current, _depth_max_current, _stage_path + "/bilat", "bilat",
-                          _frame_current->getFrameId(), io::ColormapType::DEPTH);
+                          _frame_current->getFrameId(), io::ColormapType::DEPTH);*/
 
   return depthmap_filtered;
 }
@@ -250,63 +279,14 @@ cv::Mat Densification::computeDepthMapMask(const cv::Mat &depth_map, bool use_sp
 {
   cv::Mat mask1, mask2, mask3;
 
-  if (use_sparse_mask)
-    densifier::computeSparseMask(_frame_current->getSurfacePoints(), _frame_current->getResizedCamera(), mask1);
+  /*if (use_sparse_mask)
+    densifier::computeSparseMask(_frame_current->getSparseCloud(), _frame_current->getResizedCamera(), mask1);
   else
     mask1 = cv::Mat::ones(depth_map.rows, depth_map.cols, CV_8UC1)*255;
 
   cv::inRange(depth_map, _depth_min_current, _depth_max_current, mask2);
-  cv::bitwise_and(mask1, mask2, mask3);
+  cv::bitwise_and(mask1, mask2, mask3);*/
   return mask3;
-}
-
-Densification::ProcessingElement Densification::getProcessingElement()
-{
-  FrameBuffer buffer_no_reco = getNewFrameBufferNoReco();
-  FrameBuffer buffer_reco = getNewFramesBufferReco();
-
-  Frame::Ptr frame_no_reco = nullptr;
-  if (!buffer_no_reco.empty())
-    frame_no_reco = buffer_no_reco.front();
-
-  Frame::Ptr frame_reco = nullptr;
-  if (_n_frames > 0 && buffer_reco.size() == _n_frames)
-    frame_reco = buffer_reco[_n_frames/2];
-
-  // Determine which frame has priority
-  // - if none of them exists -> idle
-  // - if one of them exists -> use the one
-  // - if both of them exist -> use the older one
-  Densification::ProcessingElement procc_element;
-  if (frame_no_reco == nullptr && frame_reco == nullptr)
-  {
-    procc_element.mode = ProcessingMode::IDLE;
-  }
-  else if (frame_reco == nullptr)
-  {
-    procc_element.buffer = buffer_no_reco;
-    procc_element.mode = ProcessingMode::NO_RECONSTRUCTION;
-  }
-  else if (frame_no_reco == nullptr)
-  {
-    procc_element.buffer = buffer_reco;
-    procc_element.mode = ProcessingMode::STEREO_RECONSTRUCTION;
-  }
-  else
-  {
-    if (frame_no_reco->getTimestamp() < frame_reco->getTimestamp())
-    {
-      procc_element.buffer = buffer_no_reco;
-      procc_element.mode = ProcessingMode::NO_RECONSTRUCTION;
-    }
-    else
-    {
-      procc_element.buffer = buffer_reco;
-      procc_element.mode = ProcessingMode::STEREO_RECONSTRUCTION;
-    }
-  }
-
-  return procc_element;
 }
 
 void Densification::publish(const Frame::Ptr &frame, const cv::Mat &depthmap)
@@ -318,99 +298,46 @@ void Densification::publish(const Frame::Ptr &frame, const cv::Mat &depthmap)
   _transport_pose(frame->getPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose");
   _transport_img(frame->getResizedImageUndistorted(), "output/img_rectified");
   _transport_depth_map(depthmap, "output/depth");
-  _transport_pointcloud(frame->getSurfacePoints(), "output/pointcloud");
+  _transport_pointcloud(frame->getSparseCloud(), "output/pointcloud");
 
   cv::Mat depthmap_display;
   cv::normalize(depthmap, depthmap_display, 0, 65535, CV_MINMAX, CV_16UC1, (depthmap > 0));
   _transport_img(depthmap_display, "output/depth_display");
 }
 
-void Densification::saveIter(const Frame::Ptr &frame, const cv::Mat &normals, const cv::Mat &mask)
+void Densification::saveIter(const Frame::Ptr &frame, const cv::Mat &normals)
 {
+  cv::Mat depthmap_data = frame->getDepthmap()->data();
+
   if (_settings_save.save_imgs)
-    io::saveImage(frame->getResizedImageUndistorted(), _stage_path + "/imgs", "imgs", frame->getFrameId());
+    io::saveImage(frame->getResizedImageUndistorted(), io::createFilename(_stage_path + "/imgs/imgs_", frame->getFrameId(), ".png"));
   if (_settings_save.save_normals && _compute_normals && !normals.empty())
-    io::saveImageColorMap(normals, mask, _stage_path + "/normals", "normals", frame->getFrameId(), io::ColormapType::NORMALS);
+    io::saveImageColorMap(normals, (depthmap_data > 0), _stage_path + "/normals", "normals", frame->getFrameId(), io::ColormapType::NORMALS);
+  if (_settings_save.save_sparse)
+  {
+    cv::Mat depthmap_sparse = stereo::computeDepthMapFromPointCloud(frame->getResizedCamera(), frame->getSparseCloud().colRange(0, 3));
+    io::saveDepthMap(depthmap_sparse,_stage_path + "/sparse/sparse_%06i.tif", frame->getFrameId());
+  }
+  if (_settings_save.save_dense)
+    io::saveDepthMap(depthmap_data, _stage_path + "/dense/dense_%06i.tif", frame->getFrameId());
 }
 
 void Densification::pushToBufferReco(const Frame::Ptr &frame)
 {
   std::unique_lock<std::mutex> lock(_mutex_buffer_reco);
 
-  auto buffer = _buffer_reco.find(frame->getCameraId());
-  if (buffer != _buffer_reco.end())
-  {
-    buffer->second->push_back(frame);
+  _buffer_reco.push_back(frame);
 
-    // Limit incoming frames
-    if (buffer->second->size() > _queue_size)
-      buffer->second->pop_front();
-  }
-  else
+  if (_buffer_reco.size() > _queue_size)
   {
-    std::deque<Frame::Ptr> buffer_new{frame};
-    _buffer_reco.insert({frame->getCameraId(), std::make_shared<FrameBuffer>(buffer_new)});
+    _buffer_reco.pop_front();
   }
 }
 
-void Densification::pushToBufferNoReco(const Frame::Ptr &frame)
-{
-  std::unique_lock<std::mutex> lock(_mutex_buffer_no_reco);
-  _buffer_no_reco.push_back(frame);
-
-  // Limit incoming frames
-  if (_buffer_no_reco.size() > _queue_size)
-    _buffer_no_reco.pop_front();
-}
-
-void Densification::popFromBufferNoReco()
-{
-  std::unique_lock<std::mutex> lock(_mutex_buffer_no_reco);
-  _buffer_no_reco.pop_front();
-}
-
-void Densification::popFromBufferReco(const std::string &buffer_name)
+void Densification::popFromBufferReco()
 {
   std::unique_lock<std::mutex> lock(_mutex_buffer_reco);
-  _buffer_reco[buffer_name]->pop_front();
-}
-
-Densification::FrameBuffer Densification::getNewFrameBufferNoReco()
-{
-  std::unique_lock<std::mutex> lock(_mutex_buffer_no_reco);
-  return _buffer_no_reco;
-}
-
-Densification::FrameBuffer Densification::getNewFramesBufferReco()
-{
-  std::unique_lock<std::mutex> lock(_mutex_buffer_reco);
-
-  FrameBuffer frames;
-
-  // Buffer reco has elements
-  if (!_buffer_reco.empty())
-  {
-    auto selector_copy = _buffer_selector;
-    do
-    {
-      if (_buffer_selector == _buffer_reco.end())
-        _buffer_selector = _buffer_reco.begin();
-      if ((*_buffer_selector->second).size() >= _n_frames)
-        break;
-      _buffer_selector++;
-    }
-    while(selector_copy != _buffer_selector);
-
-    if (_buffer_selector != _buffer_reco.end())
-      if ((*_buffer_selector->second).size() >= _n_frames)
-      {
-        for (uint8_t i = 0; i < _n_frames; ++i)
-          frames.push_back((*_buffer_selector->second)[i]);
-        _buffer_selector++;
-      }
-  }
-
-  return frames;
+  _buffer_reco.pop_front();
 }
 
 void Densification::reset()
@@ -446,7 +373,6 @@ void Densification::initStageCallback()
 void Densification::printSettingsToLog()
 {
   LOG_F(INFO, "### Stage process settings ###");
-  LOG_F(INFO, "- use_sparse_depth: %i", _use_sparse_depth);
   LOG_F(INFO, "- use_filter_bilat: %i", _use_filter_bilat);
   LOG_F(INFO, "- use_filter_guided: %i", _use_filter_guided);
   LOG_F(INFO, "- compute_normals: %i", _compute_normals);

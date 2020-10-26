@@ -86,6 +86,9 @@ class PoseEstimation : public StageBase
     // only works as image throttle according to the max overlap defined in the settings
     bool _use_vslam;
 
+    // Flag to set all tracked frames as keyframes, consequently they are published in higher frequency for the next stage
+    bool _set_all_frames_keyframes;
+
     // Flag to disable fallback solution based on lat/lon/alt/heading completely
     bool _use_fallback;
 
@@ -163,7 +166,6 @@ class PoseEstimation : public StageBase
     void updateKeyframeCb(int id, const cv::Mat& pose, const cv::Mat &points);
     bool changeParam(const std::string& name, const std::string &val);
     double estimatePercOverlap(const Frame::Ptr &frame);
-    cv::Rect2d estimateProjectedRoi(const Frame::Ptr &frame);
     Frame::Ptr getNewFrameTracking();
     Frame::Ptr getNewFramePublish();
     cv::Mat computeInitialPoseGuess(const Frame::Ptr &frame);
@@ -199,10 +201,11 @@ class PoseEstimationIO : public WorkerThreadBase
     // online processing
     void reset() override;
     void publishPose(const Frame::Ptr &frame);
-    void publishSurfacePoints(const Frame::Ptr &frame);
+    void publishSparseCloud(const Frame::Ptr &frame);
     void publishFrame(const Frame::Ptr &frame);
     void scheduleFrame(const Frame::Ptr &frame);
     void publishScheduled();
+    void publishAll();
 };
 
 } // namespace stages

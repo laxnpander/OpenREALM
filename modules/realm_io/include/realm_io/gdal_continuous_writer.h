@@ -39,7 +39,6 @@ public:
   GDALContinuousWriter(const std::string &thread_name, int64_t sleep_time, bool verbose);
 
   bool requestSaveGeoTIFF(const CvGridMap::Ptr &map,
-                          const std::string &color_layer_name,
                           const uint8_t &zone,
                           const std::string &filename,
                           bool do_build_overview = false,
@@ -50,7 +49,6 @@ private:
   struct QueueElement
   {
     CvGridMap::Ptr map;
-    std::string color_layer;
     uint8_t zone;
     std::string filename;
     bool do_build_overview;

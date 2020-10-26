@@ -22,8 +22,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include <opencv2/imgproc.hpp>
-
 #include <realm_core/loguru.h>
 #include <realm_core/cv_grid_map.h>
 
@@ -61,8 +59,13 @@ CvGridMap CvGridMap::cloneSubmap(const std::vector<std::string> &layer_names)
   return copy;
 }
 
-void CvGridMap::add(const Layer &layer)
+void CvGridMap::add(const Layer &layer, bool is_data_empty)
 {
+  if (!is_data_empty && (layer.data.size().width != _size.width || layer.data.size().height != _size.height))
+  {
+    throw(std::invalid_argument("Error: Adding Layer failed. Size of data does not match grid map size."));
+  }
+
   // Add data if layer already exists, push to container if not
   if (!exists(layer.name))
     _layers.push_back(layer);
@@ -70,11 +73,6 @@ void CvGridMap::add(const Layer &layer)
   {
     _layers[findContainerIdx(layer.name)] = layer;
   }
-}
-
-void CvGridMap::add(const std::string &layer_name, const cv::Mat &layer_data)
-{
-  add(Layer{layer_name, layer_data, CV_INTER_LINEAR});
 }
 
 void CvGridMap::add(const std::string &layer_name, const cv::Mat &layer_data, int interpolation)
@@ -120,7 +118,7 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
   {
     // Add of submap to this, if not existing
     if (!exists(submap_layer.name))
-      add(submap_layer.name, cv::Mat());
+      add(Layer{submap_layer.name, cv::Mat()}, true);
 
     // Now layers will exist, get it
     uint32_t idx_layer = findContainerIdx(submap_layer.name);
@@ -349,6 +347,26 @@ void CvGridMap::extendToInclude(const cv::Rect2d &roi)
 void CvGridMap::changeResolution(double resolution)
 {
   _resolution = resolution;
+  fitGeometryToResolution(_roi, _roi, _size);
+  for (auto &layer : _layers)
+    if (!layer.data.empty() && (layer.data.cols != _size.width || layer.data.rows != _size.height))
+      cv::resize(layer.data, layer.data, _size, layer.interpolation);
+}
+
+void CvGridMap::changeResolution(const cv::Size2i &size)
+{
+  // Compute the resizing depending on the final size of the matrix data. The +1 must be added here, because the first
+  // sample point is at (resolution/2, resolution/2) and the last at (width - resolution/2, height - resolution/2)
+  double x_factor = static_cast<double>(size.width) / _size.width;
+  double y_factor = static_cast<double>(size.height) / _size.height;
+
+  if (fabs(x_factor-y_factor) > 10e-6)
+    throw(std::invalid_argument("Error changing resolution of CvGridMap: Desired size was not changed uniformly!"));
+
+  _resolution /= x_factor;
+  _roi.width -= _resolution;
+  _roi.height -= _resolution;
+
   fitGeometryToResolution(_roi, _roi, _size);
   for (auto &layer : _layers)
     if (!layer.data.empty() && (layer.data.cols != _size.width || layer.data.rows != _size.height))

@@ -25,6 +25,7 @@
 
 #include <realm_core/frame.h>
 #include <realm_core/camera.h>
+#include <realm_core/depthmap.h>
 
 namespace realm
 {
@@ -50,7 +51,7 @@ void remap(const Frame::Ptr &frame,
  * @param depthmap Depth map computed with a stereo reconstruction framework of choice, normalised to min/max depth
  * @return 3-channel double precision matrix (CV_64FC3) with world point coordinates at each element
  */
-cv::Mat reprojectDepthMap(const camera::Pinhole::Ptr &cam, const cv::Mat &depthmap);
+cv::Mat reprojectDepthMap(const camera::Pinhole::ConstPtr &cam, const cv::Mat &depthmap);
 
 /*!
  * @brief Function for computation of depth and depth map from pointcloud and camera model
@@ -58,7 +59,7 @@ cv::Mat reprojectDepthMap(const camera::Pinhole::Ptr &cam, const cv::Mat &depthm
  * @param points Point cloud structured es mat rowise x, y, z coordinates
  * @return depth map
  */
-cv::Mat computeDepthMapFromPointCloud(const camera::Pinhole::Ptr &cam, const cv::Mat &points);
+cv::Mat computeDepthMapFromPointCloud(const camera::Pinhole::ConstPtr &cam, const cv::Mat &points);
 
 /*!
  * @brief Function for computation of normals from an input depth map

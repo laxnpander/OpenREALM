@@ -28,9 +28,9 @@ densifier::Dummy::Dummy(const DensifierSettings::Ptr &settings)
 
 }
 
-cv::Mat densifier::Dummy::densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx)
+Depthmap::Ptr densifier::Dummy::densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx)
 {
-
+  return nullptr;
 }
 
 uint8_t densifier::Dummy::getNrofInputFrames()

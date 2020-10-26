@@ -59,6 +59,8 @@ class OrthoRectification : public StageBase
     bool process() override;
   private:
 
+    bool _do_publish_pointcloud;
+
     double _GSD;
     SaveSettings _settings_save;
 
@@ -69,7 +71,7 @@ class OrthoRectification : public StageBase
     void initStageCallback() override;
     void printSettingsToLog() override;
 
-    void saveIter(const CvGridMap& map, uint8_t zone, uint32_t id);
+    void saveIter(const CvGridMap& surface_model, const CvGridMap& orthophoto, uint8_t zone, char band, uint32_t id);
     void publish(const Frame::Ptr &frame);
     Frame::Ptr getNewFrame();
 };

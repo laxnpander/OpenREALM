@@ -27,6 +27,7 @@
 #include <realm_stages/stage_base.h>
 #include <realm_stages/stage_settings.h>
 #include <realm_core/frame.h>
+#include <realm_core/stereo.h>
 #include <realm_io/cv_export.h>
 #include <realm_ortho/dsm.h>
 
@@ -54,7 +55,8 @@ class SurfaceGeneration : public StageBase
 
     std::mutex _mutex_params;
     bool _try_use_elevation;
-    double _knn_radius_factor;
+
+    int _knn_max_iter;
 
     bool _is_projection_plane_offset_computed;
     double _projection_plane_offset;

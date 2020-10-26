@@ -25,8 +25,7 @@
 using namespace realm;
 
 DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi, double elevation)
-: _is_initialized(false),
-  _use_prior_normals(false),
+: _use_prior_normals(false),
   _assumption(SurfaceAssumption::PLANAR),
   _surface_normal_mode(SurfaceNormalMode::NONE)
 {
@@ -38,16 +37,14 @@ DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi, double elevation
   _surface->setGeometry(roi, 1.0);
   _surface->add("elevation", cv::Mat::ones(_surface->size(), CV_32FC1)*elevation);
   _surface->add("valid", cv::Mat::ones(_surface->size(), CV_8UC1)*255);
-  _is_initialized = true;
 }
 
 DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi,
                                          const cv::Mat& points,
                                          SurfaceNormalMode mode,
-                                         double knn_radius_factor)
-    : _is_initialized(false),
-      _use_prior_normals(false),
-      _knn_radius_factor(knn_radius_factor),
+                                         int knn_max_iter)
+    : _use_prior_normals(false),
+      _knn_max_iter(knn_max_iter),
       _assumption(SurfaceAssumption::ELEVATION),
       _surface_normal_mode(mode)
 {
@@ -83,11 +80,8 @@ DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi,
   double GSD_estimated = computePointCloudGSD(_point_cloud);
 
   // 3) Create grid map based on point cloud resolution and surface info
-  _surface = std::make_shared<CvGridMap>();
-  _surface->setGeometry(roi, GSD_estimated);
+  _surface = std::make_shared<CvGridMap>(roi, GSD_estimated);
   computeElevation(points_filtered);
-
-  _is_initialized = true;
 }
 
 cv::Mat DigitalSurfaceModel::filterPointCloud(const cv::Mat &points)
@@ -203,44 +197,45 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
       std::vector<double> query_pt{pt.x, pt.y, 0.0};
 
       // Prepare kd-search for nearest neighbors
-      double lambda = 1.0;
+      double resolution = _surface->resolution();
       std::vector<std::pair<int, double>> indices_dists;
-      nanoflann::RadiusResultSet<double, int> result_set(lambda * _knn_radius_factor * _surface->resolution(), indices_dists);
 
       // Process neighbor search, if no neighbors are found, extend search distance
-      do
+      for (int i = 0; i < _knn_max_iter; ++i)
       {
+        nanoflann::RadiusResultSet<double, int> result_set(static_cast<double>(i) * resolution, indices_dists);
         _kd_tree->findNeighbors(result_set, &query_pt[0], nanoflann::SearchParams());
-        lambda *= 1.5;
-      } while (result_set.size() == 0u && (lambda * 1.0 < 3.0*1.0));
 
-      // Process only if neighbours were found
-      if (result_set.size() >= 3u)
-      {
-        std::vector<double> distances;
-        std::vector<double> heights;
-        std::vector<PlaneFitter::Point> points;
-        std::vector<PlaneFitter::Normal> normals_prior;
-        for (const auto &s : result_set.m_indices_dists)
+        // Process only if neighbours were found
+        if (result_set.size() >= 3u)
         {
-          distances.push_back(s.second);
-          heights.push_back(point_cloud.at<double>(s.first, 2));
-          points.emplace_back(PlaneFitter::Point{point_cloud.at<double>(s.first, 0),
-                                                 point_cloud.at<double>(s.first, 1),
-                                                 point_cloud.at<double>(s.first, 2)});
-          if (point_cloud.cols >= 9)
-            normals_prior.emplace_back(PlaneFitter::Normal{point_cloud.at<double>(s.first, 6),
-                                                           point_cloud.at<double>(s.first, 7),
-                                                           point_cloud.at<double>(s.first, 8)});
+          std::vector<double> distances;
+          std::vector<double> heights;
+          std::vector<PlaneFitter::Point> points;
+          std::vector<PlaneFitter::Normal> normals_prior;
+          for (const auto &s : result_set.m_indices_dists)
+          {
+            distances.push_back(s.second);
+            heights.push_back(point_cloud.at<double>(s.first, 2));
+            points.emplace_back(PlaneFitter::Point{point_cloud.at<double>(s.first, 0),
+                                                   point_cloud.at<double>(s.first, 1),
+                                                   point_cloud.at<double>(s.first, 2)});
+            if (point_cloud.cols >= 9)
+              normals_prior.emplace_back(PlaneFitter::Normal{point_cloud.at<double>(s.first, 6),
+                                                             point_cloud.at<double>(s.first, 7),
+                                                             point_cloud.at<double>(s.first, 8)});
+          }
+
+          elevation.at<float>(r, c) = interpolateHeight(heights, distances);
+          valid.at<uchar>(r, c) = 255;
+
+          if ((_surface_normal_mode == SurfaceNormalMode::NONE) && _use_prior_normals)
+            elevation_normal.at<cv::Vec3f>(r, c) = interpolateNormal(normals_prior, distances);
+          else if (_surface_normal_mode != SurfaceNormalMode::NONE)
+            elevation_normal.at<cv::Vec3f>(r, c) = computeSurfaceNormal(points, distances);
+
+          break;
         }
-
-        elevation.at<float>(r, c) = interpolateHeight(heights, distances);
-        valid.at<uchar>(r, c) = 255;
-
-        if ((_surface_normal_mode == SurfaceNormalMode::NONE) && _use_prior_normals)
-          elevation_normal.at<cv::Vec3f>(r, c) = interpolateNormal(normals_prior, distances);
-        else if (_surface_normal_mode != SurfaceNormalMode::NONE)
-          elevation_normal.at<cv::Vec3f>(r, c) = computeSurfaceNormal(points, distances);
       }
     }
 

@@ -29,7 +29,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT QUIET)
+find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
     find_package(OpenCV 3 REQUIRED)
 endif()
@@ -58,6 +58,7 @@ set(HEADER_FILES
         ${root}/include/realm_core/camera_settings_factory.h
         ${root}/include/realm_core/conversions.h
         ${root}/include/realm_core/cv_grid_map.h
+        ${root}/include/realm_core/depthmap.h
         ${root}/include/realm_core/enums.h
         ${root}/include/realm_core/frame.h
         ${root}/include/realm_core/inpaint.h
@@ -67,6 +68,7 @@ set(HEADER_FILES
         ${root}/include/realm_core/stereo.h
         ${root}/include/realm_core/structs.h
         ${root}/include/realm_core/timer.h
+        ${root}/include/realm_core/tree_node.h
         ${root}/include/realm_core/utm32.h
         ${root}/include/realm_core/wgs84.h
         ${root}/include/realm_core/worker_thread_base.h
@@ -79,13 +81,13 @@ set(SOURCE_FILES
         ${root}/src/inpaint.cpp
         ${root}/src/conversions.cpp
         ${root}/src/camera.cpp
+        ${root}/src/depthmap.cpp
         ${root}/src/frame.cpp
         ${root}/src/settings_base.cpp
         ${root}/src/camera_settings_factory.cpp
         ${root}/src/cv_grid_map.cpp
         ${root}/src/worker_thread_base.cpp
-        ${root}/src/plane_fitter.cpp
-)
+        ${root}/src/plane_fitter.cpp include/realm_core/depthmap.h src/depthmap.cpp)
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})

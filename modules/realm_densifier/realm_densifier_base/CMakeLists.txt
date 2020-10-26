@@ -37,7 +37,7 @@ else()
 endif()
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT QUIET)
+find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
     find_package(OpenCV 3 REQUIRED)
 endif()
@@ -73,8 +73,7 @@ set(SOURCE_FILES
         ${root}/src/densifier_settings_factory.cpp
         ${root}/src/densifier_dummy.cpp
         ${root}/src/sparse_depth.cpp
-        ${DENSIFIER_IMPL_SOURCES}
-)
+        ${DENSIFIER_IMPL_SOURCES})
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})

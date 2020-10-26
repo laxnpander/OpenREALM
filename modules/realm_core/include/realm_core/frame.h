@@ -34,6 +34,7 @@
 #include <realm_core/utm32.h>
 #include <realm_core/camera.h>
 #include <realm_core/cv_grid_map.h>
+#include <realm_core/depthmap.h>
 
 namespace realm
 {
@@ -106,6 +107,12 @@ class Frame
     double getMedianSceneDepth() const;
 
     /*!
+     * @brief Getter for the depthmap which is usually computed during the densification stage.
+     * @return Depthmap of the observed scene. Not necessarily the same size as the image data.
+     */
+    Depthmap::Ptr getDepthmap() const;
+
+    /*!
      * @brief Getter for a default pose, that is always computable if lat, lon, alt and heading was set in _utm
      * @return 3x4 matrix of the camera pose based on lat, lon, alt, heading
      */
@@ -127,7 +134,7 @@ class Frame
      * @brief Getter for the surface point cloud
      * @return Surface point cloud with row(i) = (x, y, z)
      */
-    cv::Mat getSurfacePoints() const;
+    cv::Mat getSparseCloud() const;
 
     /*!
      * @brief Getter for frame pose. Is always up to date, therefore either the default, visual or georeferenced pose
@@ -168,10 +175,17 @@ class Frame
     SurfaceAssumption  getSurfaceAssumption() const;
 
     /*!
-     * @brief Getter for the observed map, that is a grid in the reference plane
-     * @return Grid map of the observed scene
+     * @brief Getter for the surface model, which is a grid in the reference plane
+     * @return Multi-layered grid map representing the observed surface
      */
-    CvGridMap::Ptr getObservedMap() const;
+    CvGridMap::Ptr getSurfaceModel() const;
+
+    /*!
+     * @brief Getter for the rectified orthophoto, which is a grid map in the reference plane
+     * @return Single-layered grid map representing the rectified color information of the observed scene. Usually the
+     * the resolution is higher than the one of the surface model, so check before you compare the data.
+     */
+    CvGridMap::Ptr getOrthophoto() const;
 
     /*!
      * @brief Getter for the geotag of the image
@@ -244,22 +258,34 @@ class Frame
     void setVisualPose(const cv::Mat &pose);
 
     /*!
-     * @brief Setter for surface points, e.g. the sparse or dense cloud observed by the frame. Either computed by the
-     *        visual SLAM or an additional densification approach (e.g. stereo reconstruction)
-     * @param surface_pts 3D point cloud observed by this frame. Besides camera pose this is the most important parameter
+     * @brief Setter for surface points, e.g. the sparse cloud observed by the frame. Usually it is computed by the
+     *        visual SLAM.
+     * @param sparse_cloud 3D point cloud observed by this frame. Besides camera pose this is the most important parameter
      *        to be computed. It can contain either
      *        1) row(i) = (x, y, z)
      *        2) row(i) = (x, y, z, r, g, b)
      *        3) row(i) = (x, y, z, r, g, b, nx, ny, nz)
      */
-    void setSurfacePoints(const cv::Mat &surface_pts);
+    void setSparseCloud(const cv::Mat &sparse_cloud, bool in_visual_coordinates);
 
     /*!
-     * @brief Setter for the observed map
-     * @param observed_map Observed map is a grid with a defined resolution, that lies in the reference plane (typically
+     * @brief Setter for depthmap. Invalid depth values are set to -1.0.
+     * @param depthmap Depthmap of the observed scene.
+     */
+    void setDepthmap(const Depthmap::Ptr &depthmap);
+
+    /*!
+     * @brief Setter for the digital surface model
+     * @param surface_model Surface model is a grid with a defined resolution, that lies in the reference plane (typically
      *        pt = (0,0,0), n = (0,0,1))
      */
-    void setObservedMap(const CvGridMap::Ptr &observed_map);
+    void setSurfaceModel(const CvGridMap::Ptr &surface_model);
+
+    /*!
+     * @brief Setter for the orthophoto
+     * @param orthophoto Single-layered grid map containing a ["color_rgb"] layer with the rectified image data
+     */
+    void setOrthophoto(const CvGridMap::Ptr &orthophoto);
 
     /*!
      * @brief Call to set this frame as keyframe
@@ -295,9 +321,9 @@ class Frame
     std::string print();
 
     /*!
-     * @brief Function to apply a transformation to the current existing informations. Typically this is used to transform
-     *        pose and surface points of the frame from the local, visual to a global, georeferenced coordinate system.
-     *        Remember to use only 'updateGeoreference(...)' after that, as it does not transform the surface points.
+     * @brief Function to apply a transformation to the current existing frame data. Typically this is used to transform
+     *        pose and sparse point cloud of the frame from the local, visual to a global, georeferenced coordinate system.
+     *        Remember to use only 'updateGeoreference(...)' after that, as it does not transform the sparse cloud.
      * @param T 4x4 homogenous transformation matrix
      */
     void initGeoreference(const cv::Mat &T);
@@ -305,14 +331,14 @@ class Frame
     /*!
      * @brief Updates the transformation from the world to the geographic frame (T_w2g) and updates the georeferenced
      * poses accordingly. It can also be used as a setter for the georeference. If you also want to apply the georeference
-     * to the observed surface points, use the function 'initGeoreference(...)'. But make sure the surface points are
+     * to the observed sparse cloud, use the function 'initGeoreference(...)'. But make sure the sparse cloud are
      * in the camera coordinate system!
      * @param T 4x4 homogenous transformation matrix from the world to the geographic frame
-     * @param do_update_surface_points By setting this flag to false, you can use this function basically as a setter
-     * for the georeference. Be cautious when to set it true! If the surface points are already in a geographic frame
+     * @param do_update_sparse_cloud By setting this flag to false, you can use this function basically as a setter
+     * for the georeference. Be cautious when to set it true! If the sparse cloud are already in a geographic frame
      * and no prior georeference was set, calling this update will basically double apply the georeference to the points.
      */
-    void updateGeoreference(const cv::Mat &T, bool do_update_surface_points = false);
+    void updateGeoreference(const cv::Mat &T, bool do_update_sparse_cloud = false);
 
     /*!
      * @brief Getter to check if this frame is marked as keyframe
@@ -338,17 +364,10 @@ class Frame
      */
     bool isDepthComputed() const;
 
-    /*!
-     * @brief Getter to check if frame contains observed map data. Reminder: Observed map is the grid map in the reference
-     *        plane, which contains informations like elevation, normal, ...
-     * @return true if yes
-     */
-    bool hasObservedMap() const;
-
-    /*!
-     * @brief Getter to check if frame has an accurate pose, computed by e.g. visual SLAM
-     * @return true if yes
-     */
+  /*!
+   * @brief Getter to check if frame has an accurate pose, computed by e.g. visual SLAM
+   * @return true if yes
+   */
     bool hasAccuratePose() const;
 
   private:
@@ -358,7 +377,7 @@ class Frame
        ###########################*/
 
     //! Mutex to protect flags from access
-    std::mutex _mutex_flags;
+    mutable std::mutex _mutex_flags;
 
     //! Flag to set frame as keyframe
     bool _is_keyframe;
@@ -378,11 +397,6 @@ class Frame
     //! Flag for surface assumption. Default: PLANAR
     SurfaceAssumption _surface_assumption;
 
-
-    /**###########################################
-     * ########## Image resizing factor ##########
-       ###########################################*/
-
     //! Resize factor can be set by processing pipelines to grab image and calibration scaled to resized image sizes
     double _img_resize_factor;
 
@@ -391,14 +405,16 @@ class Frame
      * ########## Observed scene depth ##########
        ##########################################*/
 
-    //! Minimum scene depth computed from the set surface points. Is computed as soon as "setSurfacePoints" is called
+    //! Minimum scene depth computed from the set surface points. Is computed as soon as at least a sparse cloud was set
     double _min_scene_depth;
 
-    //! Maximum scene depth computed from the set surface points. Is computed as soon as "setSurfacePoints" is called
+    //! Maximum scene depth computed from the set surface points. Is computed as soon as at least a sparse cloud was set
     double _max_scene_depth;
 
-    //! Median scene depth computed from the set surface points. Is computed as soon as "setSurfacePoints" is called
+    //! Median scene depth computed from the set surface points. Is computed as soon as at least a sparse cloud was set
     double _med_scene_depth;
+
+    Depthmap::Ptr _depthmap;
 
     /**###################################################
      * ########## Measured data / apriori infos ##########
@@ -421,14 +437,21 @@ class Frame
     //! Resized image, resize factor defined through image resize factor, only grabbable if factor was set
     cv::Mat _img_resized;
 
-    //! Reconstructed 3D surface points structured as cv::Mat
+    //! Reconstructed 3D sparse cloud structured as cv::Mat
     //! Note: Point cloud can be either dense or sparse, and it can contain only positional informations (x,y,z),
     //!       optionally color (x,y,z,r,g,b) or also point normal (x,y,z,r,g,b,nx,ny,nz)
-    cv::Mat _surface_points;
+    cv::Mat _sparse_cloud;
 
-    //! Observed map as grid map in the reference plane [pt = (0,0,0), n = (0,0,1)]. It contains the results of the
-    //! reconstruction in the form of an elevation map, normal map, rectified surface color, ...
-    CvGridMap::Ptr _observed_map;
+    //! Digital surface model of the observed scene represented by a 2.5D grid map. Layers contained:
+    //! Essential:
+    //! ["elevation"]: Containing the elevation data per grid cell
+    //! Optional:
+    //! [...]
+    CvGridMap::Ptr _surface_model;
+
+    //! Orthophoto of the observed scene. Layers contained:
+    //! ["color_rgb"]: Containing the rectified RGB data per grid cell
+    CvGridMap::Ptr _orthophoto;
 
     //! Camera model of the frame that performs all the projection work. Currently only pinhole supported
     camera::Pinhole::Ptr _camera_model;
@@ -443,26 +466,32 @@ class Frame
     cv::Mat _motion_c2g;
 
     //! Mutex for img resized
-    std::mutex _mutex_img_resized;
+    mutable std::mutex _mutex_img_resized;
 
-    //! Mutex for surface points
-    std::mutex _mutex_surface_pts;
+    //! Mutex for sparse cloud
+    mutable std::mutex _mutex_sparse_points;
 
-    //! Mutex for observed map
-    std::mutex _mutex_observed_map;
+    //! Mutex for the digital surface model
+    mutable std::mutex _mutex_surface_model;
+
+    //! Mutex for orthophoto
+    mutable std::mutex _mutex_orthophoto;
 
     //! Mutex for camera model
-    std::mutex _mutex_cam;
+    mutable std::mutex _mutex_cam;
 
     //! Mutex for transformation from world to geographic coordinate frame
-    std::mutex _mutex_T_w2g;
+    mutable std::mutex _mutex_T_w2g;
 
     /*!
-     * @brief Private function to compute scene depth using the previously set surface points. Can obviously only be
-     *        computed if surface points were generated by e.g. visual SLAM or stereo reconstruction. Be careful to
+     * @brief Private function to compute scene depth using the previously set sparse cloud. Can obviously only be
+     *        computed if sparse cloud was generated by e.g. visual SLAM or stereo reconstruction. Be careful to
      *        call it. Make sure member "_surface_points" is really set
+     *        @param max_nrof_points The maximum number of points on which the scene depth is computed. When set to 0,
+     *        all points are used. Note that in case of a dense cloud of 100 000 the computation can be time consuming.
+     *        The selected points are sampled across the whole vector to (hopefully) achieve uniformity.
      */
-    void computeSceneDepth();
+    void computeSceneDepth(int max_nrof_points);
 
     /*!
      * @brief Setter for transformation from visual world to geographic coordinate frame.
@@ -477,10 +506,10 @@ class Frame
     void setGeographicPose(const cv::Mat &pose);
 
     /*!
-    * @brief: Uses the provided 4x4 matrix to transform the surface points into a new coordinate system
+    * @brief: Uses the provided 4x4 matrix to transform the sparse cloud into a new coordinate system
     * @param T 4x4 transformation matrix
     */
-    void applyTransformationToSurfacePoints(const cv::Mat &T);
+    void applyTransformationToSparseCloud(const cv::Mat &T);
 
     /*!
      * @brief: Uses the provided 4x4 matrix to transform the visual pose into a new coordinate system

@@ -156,7 +156,7 @@ class WorkerThreadBase
      * @brief Calculates current time since unix epoch in seconds with milliseconds accuracy
      * @return Seconds since unix epoch with milliseconds accuracy
      */
-    long getCurrentTimeMilliseconds();
+    static long getCurrentTimeMilliseconds();
 
     /*!
      * @brief Simple getter for the derived stage to see if client has requested a stop.

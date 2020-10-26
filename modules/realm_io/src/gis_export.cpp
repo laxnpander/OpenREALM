@@ -27,7 +27,6 @@
 using namespace realm;
 
 void io::saveGeoTIFF(const CvGridMap &map,
-                     const std::string &color_layer_name,
                      const uint8_t &zone,
                      const std::string &filename,
                      bool do_build_overview,
@@ -36,7 +35,11 @@ void io::saveGeoTIFF(const CvGridMap &map,
 {
   long t = Timer::getCurrentTimeMilliseconds();
 
-  cv::Mat img = map[color_layer_name];
+  std::vector<std::string> layer_names = map.getAllLayerNames();
+  if (layer_names.size() > 1)
+    throw(std::invalid_argument("Error: Exporting Gtiff from CvGridMap is currently supported for single layer objects only."));
+
+  cv::Mat img = map[map.getAllLayerNames()[0]];
 
   cv::Mat img_converted;
   if (img_converted.channels() == 3)
@@ -46,7 +49,7 @@ void io::saveGeoTIFF(const CvGridMap &map,
   else
     img_converted = img;
 
-  GDALDatasetMeta* meta = io::computeGDALDatasetMeta(map, color_layer_name, zone);
+  GDALDatasetMeta* meta = io::computeGDALDatasetMeta(map, zone);
 
   if (!do_split_save || img_converted.channels() == 1)
   {
@@ -77,7 +80,7 @@ void io::saveGeoTIFF(const CvGridMap &map,
           filename_split.insert(filename_split.size()-4, "_a");
           break;
         default:
-          throw(std::invalid_argument("Error: Exporting GeoTIFF split is only supported up to 3 channels."));
+          throw(std::invalid_argument("Error: Exporting GeoTIFF split is only supported up to 4 channels."));
       }
 
       io::saveGeoTIFFtoFile(img_converted, *meta, filename_split, do_build_overview, gdal_profile);
@@ -123,7 +126,7 @@ void io::saveGeoTIFFtoFile(const cv::Mat &data,
   options = getExportOptionsGeoTIFF(gdal_profile);
 
   // Check if multi channel image, therefore RGB/BGR
-  if (data.channels() >= 3)
+  if (data.channels() == 3 || data.channels() == 4)
     options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
 
   dataset_tif = GDALCreateCopy(driver, filename.c_str(), dataset_mem, 0, options, NULL, NULL);
@@ -132,14 +135,14 @@ void io::saveGeoTIFFtoFile(const cv::Mat &data,
   GDALClose(dataset_tif);
 }
 
-io::GDALDatasetMeta* io::computeGDALDatasetMeta(const CvGridMap &map, const std::string &layer_name, uint8_t zone)
+io::GDALDatasetMeta* io::computeGDALDatasetMeta(const CvGridMap &map, uint8_t zone)
 {
   auto meta = new GDALDatasetMeta();
 
   cv::Rect2d roi = map.roi();
   double GSD = map.resolution();
 
-  cv::Mat img = map[layer_name];
+  cv::Mat img = map[map.getAllLayerNames()[0]];
 
   if (img.type() == CV_8UC1 || img.type() == CV_8UC3 || img.type() == CV_8UC4)
     meta->datatype = GDT_Byte;
@@ -224,7 +227,7 @@ char** io::getExportOptionsGeoTIFF(GDALProfile gdal_profile)
 
 void io::setGDALBandNan(GDALRasterBand *band, const cv::Mat &data)
 {
-  if (data.type() == CV_8U)
+  if (data.type() == CV_8UC1 || data.type() == CV_8UC2 || data.type() == CV_8UC3 || data.type() == CV_8UC4)
     band->SetNoDataValue(0);
   else if (data.type() == CV_16UC1)
     band->SetNoDataValue(0);

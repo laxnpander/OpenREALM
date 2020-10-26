@@ -84,13 +84,13 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   // Identify valid measurements
   std::vector<Frame::Ptr> valid_input;
   for (const auto &f : frames)
-    if (f->getSurfacePoints().rows > 5)
+    if (f->getSparseCloud().rows > 5)
       valid_input.push_back(f);
 
   if (valid_input.empty())
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
-    LOG_F(INFO, "Valid frames: %lu", frames.size());
+    LOG_F(INFO, "Valid frames: %lu. Sparse cloud empty!", valid_input.size());
     setIdle();
     return;
   }

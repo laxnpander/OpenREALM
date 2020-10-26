@@ -25,6 +25,7 @@
 #include <memory>
 
 #include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 
 namespace realm
 {
@@ -87,16 +88,10 @@ class CvGridMap
     /*!
      * @brief Adds a layer with name and data to the appropriate container
      * @param layer layer consisting of a name and data
+     * @param is_data_empty Flag to allow adding empty matrices and later set the content
      * Currently float, double, CV8UC as data mat is supported
      */
-    void add(const Layer &layer);
-
-    /*!
-     * @brief Adds a layer with name and data to the appropriate container with linear interpolation flag as default
-     * @param layer_name name of the layer, e.g. "elevation"
-     * @param layer_data data of the layer: float, double, CV8UC as data mat is supported
-     */
-    void add(const std::string &layer_name, const cv::Mat &layer_data);
+    void add(const Layer &layer, bool is_data_empty = false);
 
     /*!
      * @brief Adds a layer with name and data to the appropriate container with specified interpolation for that layer
@@ -105,7 +100,7 @@ class CvGridMap
      * @param interpolation interpolation flag for opencv, e.g. CV_INTER_LINEAR
      * @return
      */
-    void add(const std::string &layer_name, const cv::Mat &layer_data, int interpolation);
+    void add(const std::string &layer_name, const cv::Mat &layer_data, int interpolation = CV_INTER_LINEAR);
 
     /*!
      * @brief Adds a submap to the existing grid map
@@ -143,6 +138,13 @@ class CvGridMap
      * @param resolution New resolution to be achieved
      */
     void changeResolution(double resolution);
+
+    /*!
+     * @brief Function to change resolution of the grid map. It enforces a desired matrix size rather than changing
+     * the resolution to fit some desired size.
+     * @param size Size, that the data matrices should have after resizing. Resulting resize operation must be uniformly in x and y.
+     */
+    void changeResolution(const cv::Size2i &size);
 
     /*!
      * @brief Iterates through container to find layer by name and returns true if found

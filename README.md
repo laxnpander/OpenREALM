@@ -10,6 +10,14 @@ Feel free to fork and contribute. Let's make mapping fast again! :)
 
 ## Changelog
 
+**09/2020: OpenVSLAM as default SLAM**
+
+As of today OpenREALM is relying on OpenVSLAM as default visual SLAM framework. The overall performance differences 
+between OpenVSLAM and ORB SLAM2 are neglectable, however OpenVSLAM is still maintained. At this point we use a custom
+version of OpenVSLAM though, as we need the tracker state for which there is no getter in the current master build.
+Until [this PR](https://github.com/xdspacelab/openvslam/pull/399) is not merged please use 
+[this](https://github.com/laxnpander/openvslam) or the provided install script in tools/install_deps.sh.
+
 **05/2020: Migration to CMAKE only**
 
 Please note, that from now on this repository will contain OpenREALM as CMake only project. We decided to take this step
@@ -24,14 +32,31 @@ https://github.com/laxnpander/OpenREALM_ROS1_Bridge
 
 [![Demonstration Video](https://img.youtube.com/vi/9MvPTHP0r0c/0.jpg)](https://www.youtube.com/watch?v=9MvPTHP0r0c)
 
+## Related Publication
+
+If you use OpenREALM for your research, please cite:
+
+A. Kern, M. Bobbe, Y.Khedar and U.Bestmann. OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles. [Preprint](https://arxiv.org/pdf/2009.10492.pdf)
+
+```
+@inproceedings{9213960,
+  author    =     {A. {Kern} and M. {Bobbe} and Y. {Khedar} and U. {Bestmann}},
+  title     =     {OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles},
+  booktitle =     {2020 International Conference on Unmanned Aircraft Systems (ICUAS)}, 
+  year      =     {2020},
+  volume    =     {},
+  number    =     {},
+  pages     =     {902-911},
+  doi       =     {10.1109/ICUAS48674.2020.9213960},
+}
+```
+
+A more detailed outline can be found in my [master thesis](https://drive.google.com/file/d/1Xpsdc02y9oKwY50ZrjYIxh_weNuoM-Ww/view?usp=sharing).
+
 ## Introduction
 
 The proposed framework stands on the shoulders of giants, namely the open source implementation for
 visual SLAM and stereo reconstruction. Please read the references below. 
-
-For a detailed description of the underlying ideas refer to my thesis:
-
-https://drive.google.com/open?id=1zXxuCVN4wzlC-ZAZBz5qI4wLkv1b6CbH
 
 **Beforehand**
 

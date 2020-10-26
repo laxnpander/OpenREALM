@@ -28,6 +28,8 @@ VisualSlamSettings::Ptr VisualSlamSettingsFactory::load(const std::string &filep
   std::string method = VisualSlamSettings::sneakParameterFromFile<std::string>("type", filepath);
   if (method == "ORB_SLAM2")
     return loadOrbSlam2(filepath, directory);
+  if (method == "OPEN_VSLAM")
+    return loadOpenVslam(filepath, directory);
   if (method == "SVO")
     return loadDefault<SvoSettings>(filepath, directory);
   if (method == "SVO2")
@@ -40,6 +42,16 @@ VisualSlamSettings::Ptr VisualSlamSettingsFactory::load(const std::string &filep
 VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOrbSlam2(const std::string &filepath, const std::string &directory)
 {
   auto settings = std::make_shared<OrbSlamSettings>();
+  settings->loadFromFile(filepath);
+
+  // Check and correct paths
+  settings->set("path_vocabulary", directory + "/orb_slam2/ORBvoc.bin");
+  return std::move(settings);
+}
+
+VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOpenVslam(const std::string &filepath, const std::string &directory)
+{
+  auto settings = std::make_shared<OpenVslamSettings>();
   settings->loadFromFile(filepath);
 
   // Check and correct paths

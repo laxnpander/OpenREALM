@@ -107,6 +107,27 @@ std::vector<std::string> io::split(const char *str, char c)
   return result;
 }
 
+std::vector<std::string> io::getFileList(const std::string& dir, const std::string &suffix)
+{
+  std::vector<std::string> filenames;
+  if (!dir.empty())
+  {
+    boost::filesystem::path apk_path(dir);
+    boost::filesystem::recursive_directory_iterator end;
+
+    for (boost::filesystem::recursive_directory_iterator it(apk_path); it != end; ++it)
+    {
+      const boost::filesystem::path cp = (*it);
+
+      const std::string &filepath = cp.string();
+      if (suffix.empty() || filepath.substr(filepath.size() - suffix.size(), filepath.size()) == suffix)
+        filenames.push_back(cp.string());
+    }
+  }
+  std::sort(filenames.begin(), filenames.end());
+  return filenames;
+}
+
 cv::Mat io::computeOrientationFromHeading(double heading)
 {
   // Rotation to the world in camera frame

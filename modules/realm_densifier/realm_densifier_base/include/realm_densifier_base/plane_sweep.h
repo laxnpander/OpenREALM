@@ -78,7 +78,7 @@ class PlaneSweep : public DensifierIF
      * @param ref_idx Idx of reference frame inside the "@param frames vector".
      * @return Densified depth map of the observed scene for reference frame frames[ref_idx]
      */
-    cv::Mat densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx) override;
+    Depthmap::Ptr densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx) override;
 
     /*!
      * @brief Getter for number of input frames for densification

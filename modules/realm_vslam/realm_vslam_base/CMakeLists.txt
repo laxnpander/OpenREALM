@@ -28,10 +28,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 ################################################################################
 
 
-SET(VSLAM_IMPL_TYPE "ORB_SLAM2")
+SET(VSLAM_IMPL_TYPE "OPEN_VSLAM")
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.2 EXACT QUIET)
+find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
 	find_package(OpenCV 3 REQUIRED)
 endif()
@@ -49,16 +49,23 @@ endif()
 # Sources
 ################################################################################
 
-
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(VSLAM_IMPL_TYPE STREQUAL "ORB_SLAM2")
-	add_definitions(-DUSE_ORB_SLAM2)
+if(${VSLAM_IMPL_TYPE} STREQUAL "ORB_SLAM2")
 	set(VSLAM_IMPL_LIB orb_slam_2)
 	set(VSLAM_IMPL_LIB_HEADERS ${orb_slam_2_INCLUDE_DIR})
 	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/orb_slam.h)
 	set(VSLAM_IF_SOURCES ${root}/src/orb_slam.cpp)
+	set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM2=ON")
 	message(STATUS "Selected ORB SLAM 2 for visual pose estimation")
+
+elseif(${VSLAM_IMPL_TYPE} STREQUAL "OPEN_VSLAM")
+	set(VSLAM_IMPL_LIB openvslam)
+	set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
+	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
+	set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
+	set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM" "-DUSE_DBOW2")
+	message(STATUS "Selected OpenVSLAM for visual pose estimation")
 
 	#ELSEIF(VSLAM_TYPE STREQUAL "SVO")
 	#	add_definitions(-DUSE_SVO)
@@ -82,7 +89,6 @@ set(HEADER_FILES
 		${root}/include/realm_vslam_base/dummy_referencer.h
 		${root}/include/realm_vslam_base/geometric_referencer.h
 		${root}/include/realm_vslam_base/geospatial_referencer_IF.h
-		${root}/include/realm_vslam_base/orb_slam.h
 		${root}/include/realm_vslam_base/visual_slam_factory.h
 		${root}/include/realm_vslam_base/visual_slam_IF.h
 		${root}/include/realm_vslam_base/visual_slam_settings.h
@@ -123,8 +129,6 @@ include_directories(
 		${CMAKE_BINARY_DIR}
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 		${OpenCV_INCLUDE_DIRS}
-
-		${Eigen3_INCLUDE_DIR}
 		${VSLAM_IMPL_LIB_HEADERS}
 		${realm_core_INCLUDE_DIR}
 		${realm_io_INCLUDE_DIR}
@@ -138,6 +142,11 @@ add_library(${LIBRARY_NAME} SHARED
 		${RESOURCES_RCC}
 )
 
+target_include_directories(${LIBRARY_NAME} PUBLIC
+		/usr/include/eigen3	#fix for Eigen/Core not found
+		/usr/local/include/openvslam/3rd/json/include #fix for missing target include of openvslam
+)
+
 target_link_libraries(${LIBRARY_NAME}
 		PUBLIC
 			realm_core
@@ -147,6 +156,8 @@ target_link_libraries(${LIBRARY_NAME}
 			${OpenCV_LIBRARIES}
 )
 
+target_compile_definitions(${LIBRARY_NAME} PUBLIC ${VSLAM_IF_COMPILE_FLAG})
+
 target_include_directories(${LIBRARY_NAME} PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> # for headers when building
 		$<INSTALL_INTERFACE:${OpenREALM_INC_INSTALL_DIR}> # for client in install mode
@@ -154,6 +165,7 @@ target_include_directories(${LIBRARY_NAME} PUBLIC
 
 add_definitions(
 		-Wno-deprecated-declarations
+		${EIGEN3_DEFINITIONS}
 )
 
 

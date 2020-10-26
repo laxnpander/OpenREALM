@@ -18,34 +18,49 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROJECT_VISUAL_SLAM_FACTORY_H
-#define PROJECT_VISUAL_SLAM_FACTORY_H
+#ifndef OPENREALM_DEPTHMAP_H
+#define OPENREALM_DEPTHMAP_H
+
+#include <memory>
+
+#include <opencv2/core.hpp>
 
 #include <realm_core/camera.h>
-#include <realm_core/camera_settings.h>
-#include <realm_vslam_base/visual_slam_IF.h>
-#include <realm_vslam_base/visual_slam_settings.h>
-#ifdef USE_ORB_SLAM2
-  #include <realm_vslam_base/orb_slam.h>
-#elif USE_OPEN_VSLAM
-  #include <realm_vslam_base/open_vslam.h>
-#elif USE_SVO
-  #include <realm_vslam_base/svo.h>
-#elif USE_SVO2
-  #include <realm_vslam_base/svo2.h>
-#elif USE_DSO
-  #include <realm_vslam_base/dso.h>
-#endif
 
 namespace realm
 {
 
-class VisualSlamFactory
+class Depthmap
 {
-  public:
-    static VisualSlamIF::Ptr create(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set);
+public:
+  using Ptr = std::shared_ptr<Depthmap>;
+
+public:
+  explicit Depthmap(const cv::Mat &data, const camera::Pinhole &cam);
+
+  camera::Pinhole::ConstPtr getCamera() const;
+
+  double getMinDepth() const;
+
+  double getMaxDepth() const;
+
+  double getMedianDepth() const;
+
+  void updateDepthParameters();
+
+  cv::Mat& data();
+
+private:
+
+  double _min_depth;
+  double _med_depth;
+  double _max_depth;
+
+  cv::Mat _data;
+
+  camera::Pinhole::Ptr _cam;
 };
 
 }
 
-#endif //PROJECT_VISUAL_SLAM_FACTORY_H
+#endif //OPENREALM_DEPTHMAP_H

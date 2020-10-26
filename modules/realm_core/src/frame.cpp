@@ -40,6 +40,8 @@ Frame::Frame(const std::string &camera_id,
       _is_depth_computed(false),
       _has_accurate_pose(false),
       _surface_assumption(SurfaceAssumption::PLANAR),
+      _surface_model(nullptr),
+      _orthophoto(nullptr),
       _timestamp(timestamp),
       _img(img),
       _utm(utm),
@@ -48,7 +50,8 @@ Frame::Frame(const std::string &camera_id,
       _img_resize_factor(0.0),
       _min_scene_depth(0.0),
       _max_scene_depth(0.0),
-      _med_scene_depth(0.0)
+      _med_scene_depth(0.0),
+      _depthmap(nullptr)
 {
   _camera_model->setPose(getDefaultPose());
 }
@@ -67,44 +70,66 @@ uint32_t Frame::getFrameId() const
 
 uint32_t Frame::getResizedImageWidth() const
 {
-  assert(_is_img_resizing_set);
-  return (uint32_t)((double) _camera_model->width() * _img_resize_factor);
+  std::lock_guard<std::mutex> lock(_mutex_cam);
+  if (isImageResizeSet())
+    return (uint32_t)((double) _camera_model->width() * _img_resize_factor);
+  else
+    throw(std::runtime_error("Error returning resized image width: Image resize factor not set!"));
 }
 
 uint32_t Frame::getResizedImageHeight() const
 {
-  assert(_is_img_resizing_set);
-  return (uint32_t)((double) _camera_model->height() * _img_resize_factor);
+  std::lock_guard<std::mutex> lock(_mutex_cam);
+  if (isImageResizeSet())
+    return (uint32_t)((double) _camera_model->height() * _img_resize_factor);
+  else
+    throw(std::runtime_error("Error returning resized image height: Image resize factor not set!"));
 }
 
 double Frame::getMinSceneDepth() const
 {
-  assert(_is_depth_computed);
-  return _min_scene_depth;
+  if (isDepthComputed())
+    return _min_scene_depth;
+  else
+    throw(std::runtime_error("Error: Depth was not computed!"));
 }
 
 double Frame::getMaxSceneDepth() const
 {
-  assert(_is_depth_computed);
-  return _max_scene_depth;
+  if (isDepthComputed())
+    return _max_scene_depth;
+  else
+    throw(std::runtime_error("Error: Depth was not computed!"));
 }
 
 double Frame::getMedianSceneDepth() const
 {
-  assert(_is_depth_computed);
-  return _med_scene_depth;
+  if (isDepthComputed())
+    return _med_scene_depth;
+  else
+    throw(std::runtime_error("Error: Depth was not computed!"));
+}
+
+Depthmap::Ptr Frame::getDepthmap() const
+{
+  return _depthmap;
 }
 
 cv::Size Frame::getResizedImageSize() const
 {
-  assert(_is_img_resizing_set);
-  auto width = (uint32_t)((double) _camera_model->width() * _img_resize_factor);
-  auto height = (uint32_t)((double) _camera_model->height() * _img_resize_factor);
-  return cv::Size(width, height);
+  if (isImageResizeSet())
+  {
+    auto width = (uint32_t)((double) _camera_model->width() * _img_resize_factor);
+    auto height = (uint32_t)((double) _camera_model->height() * _img_resize_factor);
+    return cv::Size(width, height);
+  }
+  else
+    throw(std::runtime_error("Error: Image resize factor not set!"));
 }
 
 cv::Mat Frame::getImageUndistorted() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_cam);
   cv::Mat img_undistorted;
   if(_camera_model->hasDistortion())
     img_undistorted = _camera_model->undistort(_img, CV_INTER_LINEAR);
@@ -141,30 +166,42 @@ cv::Mat Frame::getResizedImageUndistorted() const
   // - Check also if resize factor has not changed in the
   // meantime
   // - No deep copy
-  assert(_is_img_resizing_set);
-  camera::Pinhole cam_resized = _camera_model->resize(_img_resize_factor);
-  return cam_resized.undistort(_img_resized, CV_INTER_LINEAR);
+  if (isImageResizeSet())
+  {
+    camera::Pinhole cam_resized = _camera_model->resize(_img_resize_factor);
+    return cam_resized.undistort(_img_resized, CV_INTER_LINEAR);
+  }
+  else
+    throw(std::invalid_argument("Error: Image resize factor not set!"));
 }
 
 cv::Mat Frame::getResizedImageRaw() const
 {
   // deep copy, as it might be painted or modified
-  assert(_is_img_resizing_set);
   return _img_resized.clone();
 }
 
 cv::Mat Frame::getResizedCalibration() const
 {
-  assert(_is_img_resizing_set);
-  return _camera_model->resize(_img_resize_factor).K();
+  std::lock_guard<std::mutex> lock(_mutex_cam);
+  if (isImageResizeSet())
+    return _camera_model->resize(_img_resize_factor).K();
+  else
+    throw(std::runtime_error("Error resizing camera: Image resizing was not set!"));
 }
 
-cv::Mat Frame::getSurfacePoints() const
+cv::Mat Frame::getSparseCloud() const
 {
-  if (_surface_points.empty())
+  std::lock_guard<std::mutex> lock(_mutex_sparse_points);
+  if (_sparse_cloud.empty())
     return cv::Mat();
   else
-    return _surface_points.clone();
+    return _sparse_cloud.clone();
+}
+
+void Frame::setDepthmap(const Depthmap::Ptr &depthmap)
+{
+  _depthmap = depthmap;
 }
 
 cv::Mat Frame::getPose() const
@@ -202,13 +239,20 @@ cv::Mat Frame::getGeoreference() const
 
 SurfaceAssumption Frame::getSurfaceAssumption() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _surface_assumption;
 }
 
-CvGridMap::Ptr Frame::getObservedMap() const
+CvGridMap::Ptr Frame::getSurfaceModel() const
 {
-  assert(_observed_map != nullptr);
-  return _observed_map;
+  std::lock_guard<std::mutex> lock(_mutex_surface_model);
+  return _surface_model;
+}
+
+CvGridMap::Ptr Frame::getOrthophoto() const
+{
+  std::lock_guard<std::mutex> lock(_mutex_orthophoto);
+  return _orthophoto;
 }
 
 UTMPose Frame::getGnssUtm() const
@@ -218,6 +262,7 @@ UTMPose Frame::getGnssUtm() const
 
 camera::Pinhole::ConstPtr Frame::getCamera() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_cam);
   return _camera_model;
 }
 
@@ -275,23 +320,37 @@ void Frame::setGeoreference(const cv::Mat &T_w2g)
   _is_georeferenced = true;
 }
 
-void Frame::setSurfacePoints(const cv::Mat &surface_pts)
+void Frame::setSparseCloud(const cv::Mat &sparse_cloud, bool in_visual_coordinates)
 {
-  if (surface_pts.empty())
+  if (sparse_cloud.empty())
     return;
 
-  _mutex_surface_pts.lock();
-  _surface_points = surface_pts;
-  _mutex_surface_pts.unlock();
+  _mutex_sparse_points.lock();
+  _sparse_cloud = sparse_cloud;
+  _mutex_sparse_points.unlock();
 
-  computeSceneDepth();
+  _mutex_flags.lock();
+  if (in_visual_coordinates && _is_georeferenced)
+  {
+    _mutex_T_w2g.lock();
+    applyTransformationToSparseCloud(_transformation_w2g);
+    _mutex_T_w2g.unlock();
+  }
+  _mutex_flags.unlock();
+
+  computeSceneDepth(1000);
 }
 
-void Frame::setObservedMap(const CvGridMap::Ptr &observed_map)
+void Frame::setSurfaceModel(const CvGridMap::Ptr &surface_model)
 {
-  assert(!observed_map->empty());
-  std::lock_guard<std::mutex> lock(_mutex_observed_map);
-  _observed_map = observed_map;
+  std::lock_guard<std::mutex> lock(_mutex_surface_model);
+  _surface_model = surface_model;
+}
+
+void Frame::setOrthophoto(const CvGridMap::Ptr &orthophoto)
+{
+  std::lock_guard<std::mutex> lock(_mutex_orthophoto);
+  _orthophoto = orthophoto;
 }
 
 void Frame::setKeyframe(bool flag)
@@ -333,31 +392,31 @@ void Frame::initGeoreference(const cv::Mat &T)
 
 bool Frame::isKeyframe() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _is_keyframe;
 }
 
 bool Frame::isGeoreferenced() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _is_georeferenced;
 }
 
 bool Frame::isImageResizeSet() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _is_img_resizing_set;
 }
 
 bool Frame::isDepthComputed() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _is_depth_computed;
-}
-
-bool Frame::hasObservedMap() const
-{
-  return !(_observed_map == nullptr || _observed_map->empty());
 }
 
 bool Frame::hasAccuratePose() const
 {
+  std::lock_guard<std::mutex> lock(_mutex_flags);
   return _has_accurate_pose;
 }
 
@@ -376,14 +435,14 @@ std::string Frame::print()
   cv::Mat pose = getPose();
   if (!pose.empty())
     sprintf(buffer + strlen(buffer), "Pose: Exists [%i x %i]\n", pose.rows, pose.cols);
-  std::lock_guard<std::mutex> lock2(_mutex_surface_pts);
-  if (!_surface_points.empty())
-    sprintf(buffer + strlen(buffer), "Mappoints: %i\n", _surface_points.rows);
+  std::lock_guard<std::mutex> lock2(_mutex_sparse_points);
+  if (!_sparse_cloud.empty())
+    sprintf(buffer + strlen(buffer), "Mappoints: %i\n", _sparse_cloud.rows);
 
   return std::string(buffer);
 }
 
-void Frame::computeSceneDepth()
+void Frame::computeSceneDepth(int max_nrof_points)
 {
   /*
    * Depth computation according to [Hartley2004] "Multiple View Geometry in Computer Vision", S.162:
@@ -393,11 +452,30 @@ void Frame::computeSceneDepth()
    * w=depth=(r31,r32,r33,t_z)*(x,y,z,1)
    */
 
-  if (_surface_points.empty())
+  if (_sparse_cloud.empty())
     return;
 
-  std::lock_guard<std::mutex> lock(_mutex_surface_pts);
-  int n = _surface_points.rows;
+  std::lock_guard<std::mutex> lock(_mutex_sparse_points);
+
+  // The user can limit the number of points on which the depth is computed. The increment for the iteration later on
+  // is changed accordingly.
+  int n = 0;
+  int inc = 1;
+
+  if (max_nrof_points == 0 || _sparse_cloud.rows < max_nrof_points)
+  {
+    n = _sparse_cloud.rows;
+  }
+  else
+  {
+    n = max_nrof_points;
+    inc = _sparse_cloud.rows * (max_nrof_points / _sparse_cloud.rows);
+
+    // Just to make sure we don't run into an infinite loop
+    if (inc <= 0)
+      inc = 1;
+  }
+
   std::vector<double> depths;
   depths.reserve(n);
 
@@ -410,9 +488,9 @@ void Frame::computeSceneDepth()
   cv::Mat R_wc2 = T_w2c.row(2).colRange(0, 3).t();
   double z_wc = T_w2c.at<double>(2, 3);
 
-  for (int i = 0; i < n; ++i)
+  for (int i = 0; i < n; i += inc)
   {
-    cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
+    cv::Mat pt = _sparse_cloud.row(i).colRange(0, 3).t();
 
     // Depth calculation
     double depth = R_wc2.dot(pt) + z_wc;
@@ -425,21 +503,21 @@ void Frame::computeSceneDepth()
   _is_depth_computed = true;
 }
 
-void Frame::updateGeoreference(const cv::Mat &T, bool do_update_surface_points)
+void Frame::updateGeoreference(const cv::Mat &T, bool do_update_sparse_cloud)
 {
   // Update the visual pose with the new georeference
   cv::Mat M_c2g = applyTransformationToVisualPose(T);
   setGeographicPose(M_c2g);
 
   // In case we want to update the surface points as well, we have to compute the difference of old and new transformation.
-  if (do_update_surface_points && !_transformation_w2g.empty())
+  if (do_update_sparse_cloud && !_transformation_w2g.empty())
   {
     cv::Mat T_diff = computeGeoreferenceDifference(_transformation_w2g, T);
-    applyTransformationToSurfacePoints(T_diff);
+    applyTransformationToSparseCloud(T_diff);
   }
 
   // Pose and / or surface points have changed. So update scene depth accordingly
-  computeSceneDepth();
+  computeSceneDepth(1000);
 
   setGeoreference(T);
 }
@@ -449,20 +527,20 @@ cv::Mat Frame::getOrientation() const
   return _orientation.clone();
 }
 
-void Frame::applyTransformationToSurfacePoints(const cv::Mat &T)
+void Frame::applyTransformationToSparseCloud(const cv::Mat &T)
 {
-  if (_surface_points.rows > 0)
+  if (_sparse_cloud.rows > 0)
   {
-    _mutex_surface_pts.lock();
-    for (uint32_t i = 0; i < _surface_points.rows; ++i)
+    _mutex_sparse_points.lock();
+    for (uint32_t i = 0; i < _sparse_cloud.rows; ++i)
     {
-      cv::Mat pt = _surface_points.row(i).colRange(0, 3).t();
+      cv::Mat pt = _sparse_cloud.row(i).colRange(0, 3).t();
       pt.push_back(1.0);
       cv::Mat pt_hom = T * pt;
       pt_hom.pop_back();
-      _surface_points.row(i) = pt_hom.t();
+      _sparse_cloud.row(i) = pt_hom.t();
     }
-    _mutex_surface_pts.unlock();
+    _mutex_sparse_points.unlock();
   }
 }
 

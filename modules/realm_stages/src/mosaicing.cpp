@@ -20,6 +20,8 @@
 
 #include <realm_core/loguru.h>
 
+#include <realm_core/tree_node.h>
+
 #include <realm_stages/mosaicing.h>
 
 using namespace realm;
@@ -63,7 +65,6 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
     _gdal_writer.reset(new io::GDALContinuousWriter("mosaicing_gtiff_writer", 100, true));
     _gdal_writer->start();
   }
-
 }
 
 Mosaicing::~Mosaicing()
@@ -75,7 +76,7 @@ void Mosaicing::addFrame(const Frame::Ptr &frame)
   // First update statistics about incoming frame rate
   updateFpsStatisticsIncoming();
 
-  if (frame->getObservedMap()->empty())
+  if (!frame->getSurfaceModel() || !frame->getOrthophoto())
   {
     LOG_F(INFO, "Input frame missing observed map. Dropping!");
     return;
@@ -93,25 +94,31 @@ bool Mosaicing::process()
   bool has_processed = false;
   if (!_buffer.empty())
   {
+    // Prepare timing
+    long t;
+
     // Prepare output of incremental map update
     CvGridMap::Ptr map_update;
 
     Frame::Ptr frame = getNewFrame();
-    CvGridMap::Ptr observed_map = frame->getObservedMap();
+    CvGridMap::Ptr surface_model = frame->getSurfaceModel();
+    CvGridMap::Ptr orthophoto = frame->getOrthophoto();
+
+    CvGridMap::Ptr map = std::make_shared<CvGridMap>(orthophoto->roi(), orthophoto->resolution());
+    map->add(*surface_model, REALM_OVERWRITE_ALL, false);
+    map->add(*orthophoto, REALM_OVERWRITE_ALL, false);
 
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
     // Use surface normals only if setting was set to true AND actual data has normals
-    _use_surface_normals = (_use_surface_normals && observed_map->exists("elevation_normal"));
+    _use_surface_normals = (_use_surface_normals && map->exists("elevation_normal"));
 
     if (_utm_reference == nullptr)
       _utm_reference = std::make_shared<UTMPose>(frame->getGnssUtm());
     if (_global_map == nullptr)
     {
       LOG_F(INFO, "Initializing global map...");
-      _global_map = observed_map;
-      (*_global_map).add("elevation_var", cv::Mat(_global_map->size(), CV_32F, std::numeric_limits<float>::quiet_NaN()));
-      (*_global_map).add("elevation_hyp", cv::Mat(_global_map->size(), CV_32F, std::numeric_limits<float>::quiet_NaN()));
+      _global_map = map;
 
       // Incremental update is equal to global map on initialization
       map_update = _global_map;
@@ -119,9 +126,15 @@ bool Mosaicing::process()
     else
     {
       LOG_F(INFO, "Adding new map data to global map...");
-      (*_global_map).add(*observed_map, REALM_OVERWRITE_ZERO, true);
 
-      CvGridMap::Overlap overlap = _global_map->getOverlap(*observed_map);
+      t = getCurrentTimeMilliseconds();
+      (*_global_map).add(*map, REALM_OVERWRITE_ZERO, true);
+      LOG_F(INFO, "Timing [Add New Map]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+      t = getCurrentTimeMilliseconds();
+      CvGridMap::Overlap overlap = _global_map->getOverlap(*map);
+      LOG_F(INFO, "Timing [Compute Overlap]: %lu ms", getCurrentTimeMilliseconds()-t);
+
       if (overlap.first == nullptr && overlap.second == nullptr)
       {
         LOG_F(INFO, "No overlap detected. Add without blending...");
@@ -129,8 +142,11 @@ bool Mosaicing::process()
       else
       {
         LOG_F(INFO, "Overlap detected. Add with blending...");
+
+        t = getCurrentTimeMilliseconds();
         CvGridMap overlap_blended = blend(&overlap);
         (*_global_map).add(overlap_blended, REALM_OVERWRITE_ALL, false);
+        LOG_F(INFO, "Timing [Blending]: %lu ms", getCurrentTimeMilliseconds()-t);
 
         cv::Rect2d roi = overlap_blended.roi();
         LOG_F(INFO, "Overlap region: [%4.2f, %4.2f] [%4.2f x %4.2f]", roi.x, roi.y, roi.width, roi.height);
@@ -143,10 +159,16 @@ bool Mosaicing::process()
 
     // Publishings every iteration
     LOG_F(INFO, "Publishing...");
+
+    t = getCurrentTimeMilliseconds();
     publish(frame, _global_map, map_update, frame->getTimestamp());
+    LOG_F(INFO, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
+
 
     // Savings every iteration
+    t = getCurrentTimeMilliseconds();
     saveIter(frame->getFrameId(), map_update);
+    LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     has_processed = true;
   }
@@ -157,50 +179,65 @@ CvGridMap Mosaicing::blend(CvGridMap::Overlap *overlap)
 {
   // Overlap between global mosaic (ref) and new data (inp)
   CvGridMap ref = *overlap->first;
-  CvGridMap inp = *overlap->second;
+  CvGridMap src = *overlap->second;
 
-  // Data layers to grab from reference
-  std::vector<std::string> ref_layers;
-  // Data layers to grab from input map
-  std::vector<std::string> inp_layers;
+  cv::Mat ref_not_elevated;
+  cv::bitwise_not(ref["elevated"], ref_not_elevated);
 
-  // Surface normal computation is optional, therefore use only if set
-  if (_use_surface_normals)
-  {
-    ref_layers = {"elevation", "elevation_normal", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
-    inp_layers = {"elevation", "elevation_normal", "elevation_angle", "elevated", "color_rgb", "valid"};
-  }
-  else
-  {
-    ref_layers = {"elevation", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
-    inp_layers = {"elevation", "elevation_angle", "elevated", "color_rgb", "valid"};
-  }
+  cv::Mat mask_1 = (src["elevation_angle"] > ref["elevation_angle"]) & src["elevated"];
+  cv::Mat mask_2 = (src["elevation_angle"] > ref["elevation_angle"]) & ref_not_elevated;
+  cv::Mat mask = (mask_1 | mask_2);
 
-  GridQuickAccess::Ptr ref_grid_element = std::make_shared<GridQuickAccess>(ref_layers, ref);
-  GridQuickAccess::Ptr inp_grid_element = std::make_shared<GridQuickAccess>(inp_layers, inp);
-
-  cv::Size size = ref.size();
-  for (int r = 0; r < size.height; ++r)
-    for (int c = 0; c < size.width; ++c)
-    {
-      // Move the quick access element to current position
-      ref_grid_element->move(r, c);
-      inp_grid_element->move(r, c);
-
-      // Check cases for input
-      if (*inp_grid_element->valid == 0)
-        continue;
-      if (*ref_grid_element->elevated && !*inp_grid_element->elevated)
-        continue;
-
-      if (*ref_grid_element->nobs == 0 || (*inp_grid_element->elevated && !*ref_grid_element->elevated))
-        setGridElement(ref_grid_element, inp_grid_element);
-      else
-        updateGridElement(ref_grid_element, inp_grid_element);
-
-    }
+  src["color_rgb"].copyTo(ref["color_rgb"], mask);
+  src["elevation"].copyTo(ref["elevation"], mask);
+  src["elevation_angle"].copyTo(ref["elevation_angle"], mask);
+  src["valid"].copyTo(ref["valid"], mask);
+  cv::add(ref["num_observations"], cv::Mat::ones(ref.size().height, ref.size().width, CV_16UC1), ref["num_observations"], mask);
 
   return ref;
+
+//  // Data layers to grab from reference
+//  std::vector<std::string> ref_layers;
+//  // Data layers to grab from input map
+//  std::vector<std::string> inp_layers;
+//
+//  // Surface normal computation is optional, therefore use only if set
+//  if (_use_surface_normals)
+//  {
+//    ref_layers = {"elevation", "elevation_normal", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
+//    inp_layers = {"elevation", "elevation_normal", "elevation_angle", "elevated", "color_rgb", "valid"};
+//  }
+//  else
+//  {
+//    ref_layers = {"elevation", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
+//    inp_layers = {"elevation", "elevation_angle", "elevated", "color_rgb", "valid"};
+//  }
+//
+//  GridQuickAccess::Ptr ref_grid_element = std::make_shared<GridQuickAccess>(ref_layers, ref);
+//  GridQuickAccess::Ptr inp_grid_element = std::make_shared<GridQuickAccess>(inp_layers, inp);
+//
+//  cv::Size size = ref.size();
+//  for (int r = 0; r < size.height; ++r)
+//    for (int c = 0; c < size.width; ++c)
+//    {
+//      // Move the quick access element to current position
+//      ref_grid_element->move(r, c);
+//      inp_grid_element->move(r, c);
+//
+//      // Check cases for input
+//      if (*inp_grid_element->valid == 0)
+//        continue;
+//      if (*ref_grid_element->elevated && !*inp_grid_element->elevated)
+//        continue;
+//
+//      if (*ref_grid_element->nobs == 0 || (*inp_grid_element->elevated && !*ref_grid_element->elevated))
+//        setGridElement(ref_grid_element, inp_grid_element);
+//      else
+//        updateGridElement(ref_grid_element, inp_grid_element);
+//
+//    }
+//
+//  return ref;
 }
 
 void Mosaicing::updateGridElement(const GridQuickAccess::Ptr &ref, const GridQuickAccess::Ptr &inp)
@@ -293,9 +330,9 @@ void Mosaicing::setGridElement(const GridQuickAccess::Ptr &ref, const GridQuickA
 void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 {
   if (_settings_save.save_valid)
-    io::saveImage((*_global_map)["valid"], _stage_path + "/valid", "valid", id);
+    io::saveImage((*_global_map)["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
   if (_settings_save.save_ortho_rgb_all)
-    io::saveImage((*_global_map)["color_rgb"], _stage_path + "/ortho", "ortho", id);
+    io::saveImage((*_global_map)["color_rgb"], io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
   if (_settings_save.save_elevation_all)
     io::saveImageColorMap((*_global_map)["elevation"], (*_global_map)["valid"], _stage_path + "/elevation/color_map", "elevation", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_elevation_var_all)
@@ -305,7 +342,7 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
   if (_settings_save.save_num_obs_all)
     io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff_all && _gdal_writer != nullptr)
-    _gdal_writer->requestSaveGeoTIFF(_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho/ortho_iter.tif", true, _settings_save.split_gtiff_channels);
+    _gdal_writer->requestSaveGeoTIFF(std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb"})), _utm_reference->zone, _stage_path + "/ortho/ortho_iter.tif", true, _settings_save.split_gtiff_channels);
 
     //io::saveGeoTIFF(*map_update, "color_rgb", _utm_reference->zone, io::createFilename(_stage_path + "/ortho/ortho_", id, ".tif"));
 }
@@ -314,7 +351,7 @@ void Mosaicing::saveAll()
 {
   // 2D map output
   if (_settings_save.save_ortho_rgb_one)
-    io::saveImage((*_global_map)["color_rgb"], _stage_path + "/ortho", "ortho");
+    io::saveCvGridMapLayer(*_global_map, _utm_reference->zone, _utm_reference->band, "color_rgb", _stage_path + "/ortho/ortho.png");
   if (_settings_save.save_elevation_one)
     io::saveImageColorMap((*_global_map)["elevation"], (*_global_map)["valid"], _stage_path + "/elevation/color_map", "elevation", io::ColormapType::ELEVATION);
   if (_settings_save.save_elevation_var_one)
@@ -324,11 +361,11 @@ void Mosaicing::saveAll()
   if (_settings_save.save_num_obs_one)
     io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
   if (_settings_save.save_num_obs_one)
-    io::saveGeoTIFF(*_global_map, "num_observations", _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
+    io::saveGeoTIFF(_global_map->getSubmap({"num_observations"}), _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
   if (_settings_save.save_ortho_gtiff_one)
-    io::saveGeoTIFF(*_global_map, "color_rgb", _utm_reference->zone, _stage_path + "/ortho/ortho.tif", true, _settings_save.split_gtiff_channels);
+    io::saveGeoTIFF(_global_map->getSubmap({"color_rgb"}), _utm_reference->zone, _stage_path + "/ortho/ortho.tif", true, _settings_save.split_gtiff_channels);
   if (_settings_save.save_elevation_one)
-    io::saveGeoTIFF(*_global_map, "elevation", _utm_reference->zone, _stage_path + "/elevation/gtiff/elevation.tif");
+    io::saveGeoTIFF(_global_map->getSubmap({"elevation"}), _utm_reference->zone, _stage_path + "/elevation/gtiff/elevation.tif");
 
   // 3D Point cloud output
   if (_settings_save.save_dense_ply)
