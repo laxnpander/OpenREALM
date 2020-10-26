@@ -34,6 +34,8 @@ https://github.com/laxnpander/OpenREALM_ROS1_Bridge
 
 ## Related Publication
 
+If you use OpenREALM for your research, please cite:
+
 A. Kern, M. Bobbe, Y.Khedar and U.Bestmann. OpenREALM: Real-time Mapping for Unmanned Aerial Vehicles. [Preprint](https://arxiv.org/pdf/2009.10492.pdf)
 
 ```
@@ -49,14 +51,12 @@ A. Kern, M. Bobbe, Y.Khedar and U.Bestmann. OpenREALM: Real-time Mapping for Unm
 }
 ```
 
+A more detailed outline can be found in my [master thesis](https://drive.google.com/file/d/1Xpsdc02y9oKwY50ZrjYIxh_weNuoM-Ww/view?usp=sharing).
+
 ## Introduction
 
 The proposed framework stands on the shoulders of giants, namely the open source implementation for
 visual SLAM and stereo reconstruction. Please read the references below. 
-
-For a detailed description of the underlying ideas refer to my thesis:
-
-https://drive.google.com/open?id=1zXxuCVN4wzlC-ZAZBz5qI4wLkv1b6CbH
 
 **Beforehand**
 
