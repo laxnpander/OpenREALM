@@ -18,12 +18,14 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdio>
 #include <realm_ortho/tile_cache.h>
 
 using namespace realm;
 
 TileCache::TileCache(const std::string &id, double sleep_time, bool verbose)
  : WorkerThreadBase("tile_cache_" + id, sleep_time, verbose),
+   _has_init_directories(false),
    _do_update(false)
 {
 
@@ -37,7 +39,7 @@ TileCache::~TileCache()
 
 void TileCache::setOutputFolder(const std::string &dir)
 {
-  std::unique_lock<std::mutex> lock(_mutex_settings);
+  std::lock_guard<std::mutex> lock(_mutex_settings);
   _dir_toplevel = dir;
 }
 
@@ -61,9 +63,9 @@ bool TileCache::process()
         {
           for (auto &cached_elements : cached_elements_column.second)
           {
-            std::unique_lock<std::mutex> lock(cached_elements.second->mutex);
-
+            std::lock_guard<std::mutex> lock(cached_elements.second->mutex);
             cached_elements.second->tile->lock();
+
             if (!cached_elements.second->was_written)
               write(cached_elements.second);
 
@@ -94,7 +96,24 @@ void TileCache::reset()
 
 void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const cv::Rect2i &roi_idx)
 {
-  std::unique_lock<std::mutex> lock(_mutex_cache);
+  std::lock_guard<std::mutex> lock(_mutex_cache);
+
+  // Assuming all tiles are based on the same data, therefore have the same number of layers and layer names
+  std::vector<std::string> layer_names = tiles[0]->data()->getAllLayerNames();
+
+  std::vector<LayerMetaData> layer_meta;
+  for (const auto &layer_name : layer_names)
+  {
+    // Saving the name and the type of the layer into the meta data
+    CvGridMap::Layer layer = tiles[0]->data()->getLayer(layer_name);
+    layer_meta.emplace_back(LayerMetaData{layer_name, layer.data.type(), layer.interpolation});
+  }
+
+  if (!_has_init_directories)
+  {
+    createDirectories(_dir_toplevel + "/", layer_names, "");
+    _has_init_directories = true;
+  }
 
   auto it_zoom = _cache.find(zoom_level);
 
@@ -107,12 +126,13 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
     {
       // Here we find a tile grid for a specific zoom level and add the new tiles to it.
       // Important: Tiles that already exist will be overwritten!
+      t->lock();
       auto it_tile_x = it_zoom->second.find(t->x());
       if (it_tile_x == it_zoom->second.end())
       {
-        // Zoom level exists, but tile column is new
-        io::createDir(_dir_toplevel + "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
-        it_zoom->second[t->x()][t->y()].reset(new CacheElement{timestamp, t, false});
+        // Zoom level exists, but tile column is
+        createDirectories(_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
+        it_zoom->second[t->x()][t->y()].reset(new CacheElement{timestamp, layer_meta, t, false});
       }
       else
       {
@@ -120,38 +140,42 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
         if (it_tile_xy == it_tile_x->second.end())
         {
           // Zoom level and column was found, but tile did not yet exist
-          it_tile_x->second[t->y()].reset(new CacheElement{timestamp, t, false});
+          it_tile_x->second[t->y()].reset(new CacheElement{timestamp, layer_meta, t, false});
         }
         else
         {
           // Existing tile was found inside zoom level and column
-          it_tile_xy->second.reset(new CacheElement{timestamp, t, false});
+          it_tile_xy->second->mutex.lock(); // note: mutex goes out of scope after this operation, no unlock needed.
+          it_tile_xy->second.reset(new CacheElement{timestamp, layer_meta, t, false});
         }
       }
+      t->unlock();
     }
   }
   // Cache for this zoom level does not yet exist
   else
   {
-    io::createDir(_dir_toplevel + "/" + std::to_string(zoom_level));
+    createDirectories(_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level));
 
     CacheElementGrid tile_grid;
     for (const auto &t : tiles)
     {
       // By assigning a new grid of tiles to the zoom level we overwrite all existing data. But in this case there was
       // no prior data found for the specific zoom level.
+      t->lock();
       auto it_tile_x = it_zoom->second.find(t->x());
       if (it_tile_x == it_zoom->second.end())
-        io::createDir(_dir_toplevel + "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
+        createDirectories(_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
 
-      tile_grid[t->x()][t->y()].reset(new CacheElement{timestamp, t, false});
+      tile_grid[t->x()][t->y()].reset(new CacheElement{timestamp, layer_meta, t, false});
+      t->unlock();
     }
     _cache[zoom_level] = tile_grid;
   }
 
   updatePrediction(zoom_level, roi_idx);
 
-  std::unique_lock<std::mutex> lock1(_mutex_do_update);
+  std::lock_guard<std::mutex> lock1(_mutex_do_update);
   _do_update = true;
 }
 
@@ -175,8 +199,10 @@ Tile::Ptr TileCache::get(int tx, int ty, int zoom_level)
     return nullptr;
   }
 
-  std::unique_lock<std::mutex> lock(it_tile_xy->second->mutex);
+  std::lock_guard<std::mutex> lock(it_tile_xy->second->mutex);
 
+  // Warning: We lock the tile now and return it to the calling thread locked. Therefore the responsibility to unlock
+  // it is on the calling thread!
   it_tile_xy->second->tile->lock();
   if (!isCached(it_tile_xy->second))
   {
@@ -192,12 +218,12 @@ void TileCache::flushAll()
     for (auto &cache_column : zoom_levels.second)
       for (auto &cache_element : cache_column.second)
       {
-        std::unique_lock<std::mutex> lock(cache_element.second->mutex);
+        std::lock_guard<std::mutex> lock(cache_element.second->mutex);
         cache_element.second->tile->lock();
         if (!cache_element.second->was_written)
           write(cache_element.second);
 
-        cache_element.second->tile->data().release();
+        cache_element.second->tile->data() = nullptr;
         cache_element.second->tile->unlock();
       }
 }
@@ -208,7 +234,7 @@ void TileCache::loadAll()
     for (auto &cache_column : zoom_levels.second)
       for (auto &cache_element : cache_column.second)
       {
-        std::unique_lock<std::mutex> lock(cache_element.second->mutex);
+        std::lock_guard<std::mutex> lock(cache_element.second->mutex);
         cache_element.second->tile->lock();
         if (!isCached(cache_element.second))
           load(cache_element.second);
@@ -218,35 +244,149 @@ void TileCache::loadAll()
 
 void TileCache::load(const CacheElement::Ptr &element) const
 {
-  std::string filename = _dir_toplevel + "/"
-                         + std::to_string(element->tile->zoom_level()) + "/"
-                         + std::to_string(element->tile->x()) + "/"
-                         + std::to_string(element->tile->y()) + ".png";
+  for (const auto &meta : element->layer_meta)
+  {
+    std::string filename = _dir_toplevel + "/"
+                           + meta.name  + "/"
+                           + std::to_string(element->tile->zoom_level()) + "/"
+                           + std::to_string(element->tile->x()) + "/"
+                           + std::to_string(element->tile->y());
 
-  if (io::fileExists(filename))
-  {
-    element->tile->data() = cv::imread(filename, cv::IMREAD_UNCHANGED);
-    LOG_IF_F(INFO, _verbose, "Read tile from disk: %s", filename.c_str());
-  }
-  else
-  {
-    LOG_IF_F(WARNING, _verbose, "Failed reading tile from disk: %s", filename.c_str());
-    throw(std::invalid_argument("Error loading tile."));
+    std::string suffix;
+
+    int type = meta.type & CV_MAT_DEPTH_MASK;
+
+    switch(type)
+    {
+      case CV_8U:
+        suffix = ".png";
+        break;
+      case CV_16U:
+        suffix = ".png";
+        break;
+      case CV_32F:
+        suffix = ".bin";
+        break;
+      case CV_64F:
+        suffix = ".bin";
+        break;
+      default:
+        throw(std::invalid_argument("Error reading tile: data type unknown!"));
+    }
+
+    if (io::fileExists(filename + suffix))
+    {
+      cv::Mat data;
+      if (suffix == ".png")
+        data = readPNG(filename + suffix);
+      else if (suffix == ".bin")
+        data = readBinary(filename + suffix);
+
+      element->tile->data()->add(meta.name, data);
+
+      LOG_IF_F(INFO, _verbose, "Read tile from disk: %s", filename.c_str());
+    }
+    else
+    {
+      LOG_IF_F(WARNING, _verbose, "Failed reading tile from disk: %s", filename.c_str());
+      throw(std::invalid_argument("Error loading tile."));
+    }
   }
 }
 
 void TileCache::write(const CacheElement::Ptr &element) const
 {
-  std::string filename = _dir_toplevel + "/"
-                         + std::to_string(element->tile->zoom_level()) + "/"
-                         + std::to_string(element->tile->x()) + "/"
-                         + std::to_string(element->tile->y()) + ".png";
+  for (const auto &meta : element->layer_meta)
+  {
+    cv::Mat data = element->tile->data()->get(meta.name);
 
-  cv::imwrite(filename, element->tile->data());
+    std::string filename = _dir_toplevel + "/"
+                           + meta.name  + "/"
+                           + std::to_string(element->tile->zoom_level()) + "/"
+                           + std::to_string(element->tile->x()) + "/"
+                           + std::to_string(element->tile->y());
 
-  element->was_written = true;
+    int type = data.type() & CV_MAT_DEPTH_MASK;
 
-  LOG_IF_F(INFO, _verbose, "Wrote tile to disk: %s", filename.c_str());
+    switch(type)
+    {
+      case CV_8U:
+        writePNG(data, filename);
+        break;
+      case CV_16U:
+        writePNG(data, filename);
+        break;
+      case CV_32F:
+        writeBinary(data, filename);
+        break;
+      case CV_64F:
+        writeBinary(data, filename);
+        break;
+      default:
+        throw(std::invalid_argument("Error writing tile: data type unknown!"));
+    }
+
+    element->was_written = true;
+  }
+}
+
+void TileCache::writePNG(const cv::Mat &data, const std::string &filepath) const
+{
+  cv::imwrite(filepath + ".png", data);
+  LOG_IF_F(INFO, _verbose, "Wrote tile to disk: %s", (filepath + ".png").c_str());
+}
+
+void TileCache::writeBinary(const cv::Mat &data, const std::string &filepath) const
+{
+  int elem_size_in_bytes = (int)data.elemSize();
+  int elem_type          = (int)data.type();
+
+  FILE* file = fopen((filepath + ".bin").c_str(), "wb");
+
+  int size[4] = {data.cols, data.rows, elem_size_in_bytes, elem_type};
+  fwrite(size, 4, sizeof(int), file);
+
+  // Operating rowise, so even non-continuous matrices are properly written to binary
+  for (int r = 0; r < data.rows; ++r)
+    fwrite(data.ptr<void>(r), data.cols, elem_size_in_bytes, file);
+
+  fclose(file);
+
+  LOG_IF_F(INFO, _verbose, "Wrote tile to disk: %s", (filepath + ".bin").c_str());
+}
+
+cv::Mat TileCache::readPNG(const std::string &filepath) const
+{
+  return cv::imread(filepath, cv::IMREAD_UNCHANGED);
+}
+
+cv::Mat TileCache::readBinary(const std::string &filepath) const
+{
+  FILE* file = fopen(filepath.c_str(), "rb");
+
+  int header[4];
+
+  size_t elements_read;
+  elements_read = fread(header, sizeof(int), 4, file);
+
+  if (elements_read != 4)
+    throw(std::runtime_error("Error reading binary: Elements read do not match matrix dimension!"));
+
+  int cols               = header[0];
+  int rows               = header[1];
+  int elem_size_in_bytes = header[2];
+  int elem_type          = header[3];
+
+  cv::Mat data = cv::Mat::ones(rows, cols, elem_type);
+
+  elements_read = fread(data.data, elem_size_in_bytes, (size_t)(cols * rows), file);
+
+  if (elements_read != (size_t)(cols * rows))
+    throw(std::runtime_error("Error reading binary: Elements read do not match matrix dimension!"));
+
+  fclose(file);
+
+  return data;
 }
 
 void TileCache::flush(const CacheElement::Ptr &element) const
@@ -254,29 +394,32 @@ void TileCache::flush(const CacheElement::Ptr &element) const
   if (!element->was_written)
     write(element);
 
-  element->tile->data().release();
+  for (const auto &meta : element->layer_meta)
+  {
+    element->tile->data()->remove(meta.name);
+  }
 
   LOG_IF_F(INFO, _verbose, "Flushed tile (%i, %i, %i) [zoom, x, y]", element->tile->zoom_level(), element->tile->x(), element->tile->y());
 }
 
 bool TileCache::isCached(const CacheElement::Ptr &element) const
 {
-  return !element->tile->data().empty();
+  return !(element->tile->data()->empty());
 }
 
 size_t TileCache::estimateByteSize(const Tile::Ptr &tile) const
 {
   tile->lock();
-  size_t bytes = tile->data().total() * tile->data().elemSize();
+  //size_t bytes = tile->data().total() * tile->data().elemSize();
   tile->unlock();
 
-  return bytes;
+  //return bytes;
 }
 
 void TileCache::updatePrediction(int zoom_level, const cv::Rect2i &roi_current)
 {
-  std::unique_lock<std::mutex> lock(_mutex_roi_prev_request);
-  std::unique_lock<std::mutex> lock1(_mutex_roi_prediction);
+  std::lock_guard<std::mutex> lock(_mutex_roi_prev_request);
+  std::lock_guard<std::mutex> lock1(_mutex_roi_prediction);
 
   auto it_roi_prev_request = _roi_prev_request.find(zoom_level);
   if (it_roi_prev_request == _roi_prev_request.end())
@@ -297,4 +440,12 @@ void TileCache::updatePrediction(int zoom_level, const cv::Rect2i &roi_current)
   }
 
   it_roi_prev_request->second = roi_current;
+}
+
+void TileCache::createDirectories(const std::string &toplevel, const std::vector<std::string> &layer_names, const std::string &tile_tree)
+{
+  for (const auto &layer_name : layer_names)
+  {
+    io::createDir(toplevel + layer_name + tile_tree);
+  }
 }

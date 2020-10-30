@@ -33,8 +33,7 @@ SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double 
   _projection_plane_offset(0.0),
   _mode_surface_normals(static_cast<DigitalSurfaceModel::SurfaceNormalMode>((*settings)["mode_surface_normals"].toInt())),
   _plane_reference(Plane{(cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0), (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0)}),
-  _settings_save({(*settings)["save_valid"].toInt() > 0,
-                  (*settings)["save_elevation"].toInt() > 0,
+  _settings_save({(*settings)["save_elevation"].toInt() > 0,
                   (*settings)["save_normals"].toInt() > 0})
 {
 }
@@ -132,12 +131,13 @@ void SurfaceGeneration::publish(const Frame::Ptr &frame)
 
 void SurfaceGeneration::saveIter(const CvGridMap &surface, uint32_t id)
 {
-  if (_settings_save.save_valid)
-    io::saveImage(surface["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
+  // Invalid points are marked with NaN
+  cv::Mat valid = (surface["elevation"] == surface["elevation"]);
+
   if (_settings_save.save_elevation)
-    io::saveImageColorMap(surface["elevation"], surface["valid"], _stage_path + "/elevation", "elevation", id, io::ColormapType::ELEVATION);
+    io::saveImageColorMap(surface["elevation"], valid, _stage_path + "/elevation", "elevation", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_normals && surface.exists("elevation_normal"))
-    io::saveImageColorMap(surface["elevation_normal"], surface["valid"], _stage_path + "/normals", "normal", id, io::ColormapType::NORMALS);
+    io::saveImageColorMap(surface["elevation_normal"], valid, _stage_path + "/normals", "normal", id, io::ColormapType::NORMALS);
 }
 
 void SurfaceGeneration::initStageCallback()
@@ -151,8 +151,6 @@ void SurfaceGeneration::initStageCallback()
     io::createDir(_stage_path + "/elevation");
   if (!io::dirExists(_stage_path + "/normals"))
     io::createDir(_stage_path + "/normals");
-  if (!io::dirExists(_stage_path + "/valid"))
-    io::createDir(_stage_path + "/valid");
 }
 
 void SurfaceGeneration::printSettingsToLog()
@@ -162,7 +160,6 @@ void SurfaceGeneration::printSettingsToLog()
   LOG_F(INFO, "- mode_surface_normals: %i", static_cast<int>(_mode_surface_normals));
 
   LOG_F(INFO, "### Stage save settings ###");
-  LOG_F(INFO, "- save_valid: %i", _settings_save.save_valid);
   LOG_F(INFO, "- save_elevation: %i", _settings_save.save_elevation);
   LOG_F(INFO, "- save_normals: %i", _settings_save.save_normals);
 

@@ -22,10 +22,10 @@
 
 using namespace realm;
 
-Tile::Tile(int zoom_level, int tx, int ty, const cv::Mat &img)
+Tile::Tile(int zoom_level, int tx, int ty, const CvGridMap &map)
  : _zoom_level(zoom_level),
    _index(tx, ty),
-   _img(img)
+   _data(std::make_shared<CvGridMap>(map))
 {
 }
 
@@ -54,7 +54,7 @@ int Tile::y() const
   return _index.y;
 }
 
-cv::Mat& Tile::data()
+CvGridMap::Ptr& Tile::data()
 {
-  return _img;
+  return _data;
 }

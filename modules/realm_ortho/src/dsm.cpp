@@ -36,7 +36,6 @@ DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi, double elevation
   _surface = std::make_shared<CvGridMap>();
   _surface->setGeometry(roi, 1.0);
   _surface->add("elevation", cv::Mat::ones(_surface->size(), CV_32FC1)*elevation);
-  _surface->add("valid", cv::Mat::ones(_surface->size(), CV_8UC1)*255);
 }
 
 DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi,
@@ -185,7 +184,6 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
 
   // Essential layers / must have
   cv::Mat elevation = cv::Mat(size, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
-  cv::Mat valid = cv::Mat::zeros(size, CV_8UC1);
 
   // Optional computation according to flag
   cv::Mat elevation_normal(size, CV_32FC3, cv::Scalar(0.0, 0.0, 0.0));
@@ -227,7 +225,6 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
           }
 
           elevation.at<float>(r, c) = interpolateHeight(heights, distances);
-          valid.at<uchar>(r, c) = 255;
 
           if ((_surface_normal_mode == SurfaceNormalMode::NONE) && _use_prior_normals)
             elevation_normal.at<cv::Vec3f>(r, c) = interpolateNormal(normals_prior, distances);
@@ -240,7 +237,6 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
     }
 
   _surface->add("elevation", elevation);
-  _surface->add("valid", valid);
 
   // If exact normal computation was chosen, remove high frequent noise from data
   if (_surface_normal_mode == SurfaceNormalMode::RANDOM_NEIGHBOURS

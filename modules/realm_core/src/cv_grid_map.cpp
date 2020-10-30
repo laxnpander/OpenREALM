@@ -156,9 +156,23 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
   }
 }
 
+void CvGridMap::remove(const std::string &layer_name)
+{
+  auto it = _layers.begin();
+  while(it != _layers.end())
+  {
+    if (it->name == layer_name)
+    {
+      _layers.erase(it);
+      break;
+    }
+    it++;
+  }
+}
+
 bool CvGridMap::empty() const
 {
-  return _size.width == 0 || _size.height == 0;
+  return (_layers.size() == 0);
 }
 
 bool CvGridMap::exists(const std::string &layer_name) const
@@ -233,6 +247,22 @@ CvGridMap CvGridMap::getSubmap(const std::vector<std::string> &layer_names, cons
     return overlap.first->getSubmap(layer_names);
   else
     throw(std::out_of_range("Error extracting submap: No overlap!"));
+}
+
+CvGridMap CvGridMap::getSubmap(const std::vector<std::string> &layer_names, const cv::Rect2i &roi) const
+{
+  CvGridMap submap;
+
+  cv::Point2d pt = atPosition2d(roi.y, roi.x);
+  submap.setGeometry(cv::Rect2d(pt.x, pt.y, (roi.width-1) * _resolution, (roi.height-1) * _resolution), _resolution);
+
+  for (const auto &layer_name : layer_names)
+  {
+    Layer layer = getLayer(layer_name);
+    submap.add(layer_name, layer.data(roi), layer.interpolation);
+  }
+
+  return submap;
 }
 
 CvGridMap::Overlap CvGridMap::getOverlap(const CvGridMap &other_map) const

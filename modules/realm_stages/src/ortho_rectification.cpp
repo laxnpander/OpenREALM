@@ -29,8 +29,7 @@ OrthoRectification::OrthoRectification(const StageSettings::Ptr &stage_set, doub
     : StageBase("ortho_rectification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _do_publish_pointcloud((*stage_set)["publish_pointcloud"].toInt() > 0),
       _GSD((*stage_set)["GSD"].toDouble()),
-      _settings_save({(*stage_set)["save_valid"].toInt() > 0,
-                  (*stage_set)["save_ortho_rgb"].toInt() > 0,
+      _settings_save({(*stage_set)["save_ortho_rgb"].toInt() > 0,
                   (*stage_set)["save_ortho_gtiff"].toInt() > 0,
                   (*stage_set)["save_elevation"].toInt() > 0,
                   (*stage_set)["save_elevation_angle"].toInt() > 0})
@@ -81,8 +80,6 @@ bool OrthoRectification::process()
     LOG_IF_F(INFO, resize_quotient > 1.1, "Large resizing of elevation map detected. Keep in mind that ortho resolution is now >> spatial resolution");
 
     // First change resolution of observed map to desired GSD
-    surface_model->setLayerInterpolation("valid", CV_INTER_NN);
-
     t = getCurrentTimeMilliseconds();
     surface_model->changeResolution(_GSD);
     LOG_F(INFO, "Timing [Resizing]: %lu ms", getCurrentTimeMilliseconds()-t);
@@ -103,7 +100,6 @@ bool OrthoRectification::process()
     surface_model->add("elevation_angle", (*map_rectified)["elevation_angle"]);
     surface_model->add("elevated", (*map_rectified)["elevated"]);
     surface_model->add("num_observations", (*map_rectified)["num_observations"]);
-    surface_model->add("valid", (*map_rectified)["valid"]);
 
     LOG_F(INFO, "Timing [Adding]: %lu ms", getCurrentTimeMilliseconds()-t);
 
@@ -129,12 +125,13 @@ void OrthoRectification::reset()
 
 void OrthoRectification::saveIter(const CvGridMap& surface_model, const CvGridMap &orthophoto, uint8_t zone, char band, uint32_t id)
 {
-  if (_settings_save.save_valid)
-    io::saveImage(surface_model["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
+  // check for NaN
+  cv::Mat valid = (surface_model["elevation"] == surface_model["elevation"]);
+
   if (_settings_save.save_ortho_rgb)
     io::saveCvGridMapLayer(orthophoto, zone, band, "color_rgb", io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
   if (_settings_save.save_elevation_angle)
-    io::saveImageColorMap(surface_model["elevation_angle"], surface_model["valid"], _stage_path + "/angle", "angle", id, io::ColormapType::ELEVATION);
+    io::saveImageColorMap(surface_model["elevation_angle"], valid, _stage_path + "/angle", "angle", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff)
     io::saveGeoTIFF(orthophoto.getSubmap({"color_rgb"}), zone, io::createFilename(_stage_path + "/gtiff/gtiff_", id, ".tif"));
   if (_settings_save.save_elevation)
@@ -158,12 +155,15 @@ void OrthoRectification::publish(const Frame::Ptr &frame)
     map.add(*surface_model, REALM_OVERWRITE_ALL, false);
     map.add(*orthophoto, REALM_OVERWRITE_ALL, false);
 
-    cv::Mat point_cloud;
+    // Check for NaN
+    cv::Mat valid = ((*surface_model)["elevation"] == (*surface_model)["elevation"]);
+
+    /*cv::Mat point_cloud;
     if (frame->getSurfaceModel()->exists("elevation_normal"))
       point_cloud = cvtToPointCloud(map, "elevation", "color_rgb", "elevation_normal", "valid");
     else
       point_cloud = cvtToPointCloud(map, "elevation", "color_rgb", "", "valid");
-    _transport_pointcloud(point_cloud, "output/pointcloud");
+    _transport_pointcloud(point_cloud, "output/pointcloud");*/
   }
 }
 
@@ -183,8 +183,6 @@ void OrthoRectification::initStageCallback()
     io::createDir(_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(_stage_path + "/valid"))
-    io::createDir(_stage_path + "/valid");
   if (!io::dirExists(_stage_path + "/elevation"))
     io::createDir(_stage_path + "/elevation");
   if (!io::dirExists(_stage_path + "/angle"))
@@ -202,7 +200,6 @@ void OrthoRectification::printSettingsToLog()
   LOG_F(INFO, "- publish_pointcloud: %i", _do_publish_pointcloud);
 
   LOG_F(INFO, "### Stage save settings ###");
-  LOG_F(INFO, "- save_valid: %i", _settings_save.save_valid);
   LOG_F(INFO, "- save_ortho_rgb: %i", _settings_save.save_ortho_rgb);
   LOG_F(INFO, "- save_ortho_gtiff: %i", _settings_save.save_ortho_gtiff);
   LOG_F(INFO, "- save_elevation: %i", _settings_save.save_elevation);

@@ -144,16 +144,23 @@ io::GDALDatasetMeta* io::computeGDALDatasetMeta(const CvGridMap &map, uint8_t zo
 
   cv::Mat img = map[map.getAllLayerNames()[0]];
 
-  if (img.type() == CV_8UC1 || img.type() == CV_8UC3 || img.type() == CV_8UC4)
-    meta->datatype = GDT_Byte;
-  else if (img.type() == CV_16UC1)
-    meta->datatype = GDT_Int16;
-  else if (img.type() == CV_32F)
-    meta->datatype = GDT_Float32;
-  else if (img.type() == CV_64F)
-    meta->datatype = GDT_Float64;
-  else
-    throw(std::invalid_argument("Error saving GTiff: Image format not recognized!"));
+  switch(img.type() & CV_MAT_DEPTH_MASK)
+  {
+    case CV_8U:
+      meta->datatype = GDT_Byte;
+      break;
+    case CV_16U:
+      meta->datatype = GDT_Int16;
+      break;
+    case CV_32F:
+      meta->datatype = GDT_Float32;
+      break;
+    case CV_64F:
+      meta->datatype = GDT_Float64;
+      break;
+    default:
+      throw(std::invalid_argument("Error saving GTiff: Image format not recognized!"));
+  }
 
   // Creating geo informations for GDAL and OGR
   meta->zone = zone;

@@ -108,18 +108,51 @@ CvGridMap::Ptr gis::GdalWarper::warpMap(const CvGridMap &map, uint8_t zone)
   //
   //=======================================//
 
+  double no_data_value;
+
+  switch(data.type() & CV_MAT_DEPTH_MASK)
+  {
+    case CV_32F:
+      no_data_value = std::numeric_limits<float>::quiet_NaN();
+      break;
+    case CV_64F:
+      no_data_value = std::numeric_limits<double>::quiet_NaN();
+      break;
+    default:
+      no_data_value = 0.0;
+  }
+
+  GDALResampleAlg resample_alg;
+  switch(map.getLayer(layer_names[0]).interpolation)
+  {
+    case cv::INTER_NEAREST:
+      resample_alg = GRA_NearestNeighbour;
+      break;
+    case cv::INTER_LINEAR:
+      resample_alg = GRA_Bilinear;
+      break;
+    case cv::INTER_CUBIC:
+      resample_alg = GRA_Cubic;
+      break;
+    default:
+      resample_alg = GRA_Bilinear;
+  }
+
   char** warper_system_options = nullptr;
   warper_system_options = CSLSetNameValue(warper_system_options, "INIT_DEST", "NO_DATA");
   warper_system_options = CSLSetNameValue(warper_system_options, "NUM_THREADS", "ALL_CPUS");
 
   // Setup warp options.
   GDALWarpOptions *warper_options = GDALCreateWarpOptions();
+  warper_options->eResampleAlg = resample_alg;
   warper_options->papszWarpOptions = warper_system_options;
+  warper_options->padfSrcNoDataReal = new double(no_data_value);
+  warper_options->padfDstNoDataReal = new double(no_data_value);
   warper_options->hSrcDS = dataset_mem_src;
   warper_options->hDstDS = dataset_mem_dst;
   warper_options->nBandCount = 0;
-  warper_options->nSrcAlphaBand = data.channels();
-  warper_options->nDstAlphaBand = data.channels();
+  warper_options->nSrcAlphaBand = (data.channels() == 4 ? data.channels() : 0);
+  warper_options->nDstAlphaBand = (data.channels() == 4 ? data.channels() : 0);
 
   // Establish reprojection transformer.
   warper_options->pTransformerArg = GDALCreateGenImgProjTransformer(
@@ -145,16 +178,36 @@ CvGridMap::Ptr gis::GdalWarper::warpMap(const CvGridMap &map, uint8_t zone)
   int raster_rows = dataset_mem_dst->GetRasterYSize();
   int raster_channels = dataset_mem_dst->GetRasterCount();
 
+  int single_channel_type;
+  switch(data.type() & CV_MAT_DEPTH_MASK)
+  {
+    case CV_8U:
+      single_channel_type = CV_8UC1;
+      break;
+    case CV_16U:
+      single_channel_type = CV_16UC1;
+      break;
+    case CV_32F:
+      single_channel_type = CV_32FC1;
+      break;
+    case CV_64F:
+      single_channel_type = CV_64FC1;
+      break;
+  }
+
   std::vector<cv::Mat> warped_data_split;
   for(int i = 1; i <= raster_channels; ++i)
   {
     // Save the channel in var not in the vector of Mat
-    cv::Mat bckVar(raster_rows, raster_cols, CV_8UC1  );
+    cv::Mat bckVar(raster_rows, raster_cols, single_channel_type);
 
-    GDALRasterBand *poBand = dataset_mem_dst->GetRasterBand(i);
+    GDALRasterBand *band = dataset_mem_dst->GetRasterBand(i);
+    band->SetNoDataValue(no_data_value);
 
-    eErr = poBand->RasterIO(GF_Read, 0, 0, raster_cols, raster_rows, bckVar.data, raster_cols, raster_rows, poBand->GetRasterDataType(), 0, 0);
+    eErr = band->RasterIO(GF_Read, 0, 0, raster_cols, raster_rows, bckVar.data, raster_cols, raster_rows, band->GetRasterDataType(), 0, 0);
     CPLAssert( eErr == CE_None );
+
+    fixGdalNoData(bckVar);
 
     warped_data_split.push_back(bckVar);
   }
@@ -184,7 +237,7 @@ CvGridMap::Ptr gis::GdalWarper::warpMap(const CvGridMap &map, uint8_t zone)
   warped_roi.height = warped_data.rows * warped_resolution - warped_resolution;
 
   auto output = std::make_shared<CvGridMap>(warped_roi, warped_resolution);
-  output->add("data", warped_data);
+  output->add(layer_names[0], warped_data, map.getLayer(layer_names[0]).interpolation);
 
   GDALClose(dataset_mem_dst);
   GDALClose(dataset_mem_src);
@@ -202,4 +255,20 @@ void gis::GdalWarper::warpPoints()
     double x = blub[0], y = blub[3];
     coordinate_transformation = OGRCreateCoordinateTransformation(&oSRS, &s_SRS);
     coordinate_transformation->Transform(1, &x, &y);*/
+}
+
+void gis::GdalWarper::fixGdalNoData(cv::Mat &data)
+{
+  if (data.type() == CV_32F)
+  {
+    cv::Mat mask;
+    cv::inRange(data, -std::numeric_limits<float>::epsilon(), std::numeric_limits<float>::epsilon(), mask);
+    data.setTo(std::numeric_limits<float>::quiet_NaN(), mask);
+  }
+  else if (data.type() == CV_64F)
+  {
+    cv::Mat mask;
+    cv::inRange(data, -std::numeric_limits<double>::epsilon(), std::numeric_limits<double>::epsilon(), mask);
+    data.setTo(std::numeric_limits<double>::quiet_NaN(), mask);
+  }
 }

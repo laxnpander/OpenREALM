@@ -51,7 +51,6 @@ class Mosaicing : public StageBase
     struct SaveSettings
     {
         bool split_gtiff_channels;
-        bool save_valid;
         bool save_ortho_rgb_one;
         bool save_ortho_rgb_all;
         bool save_ortho_gtiff_one;
@@ -66,36 +65,6 @@ class Mosaicing : public StageBase
         bool save_num_obs_one;
         bool save_num_obs_all;
         bool save_dense_ply;
-    };
-
-    struct GridQuickAccess
-    {
-      public:
-        using Ptr = std::shared_ptr<GridQuickAccess>;
-        using ConstPtr = std::shared_ptr<const GridQuickAccess>;
-      public:
-        GridQuickAccess(const std::vector<std::string> &layer_names, const CvGridMap &map);
-        void move(int row, int col);
-
-        float* ele;         // elevation at row, col
-        float* var;         // elevation variance at row, col
-        float* hyp;         // elevation hypothesis at row, col
-        float* angle;       // elevation observation angle at row, col
-        uint16_t* nobs;     // number of observations at row, col
-        cv::Vec3f* normal;  // surface normal
-        cv::Vec4b* rgb;     // color at row, col
-        uchar* elevated;    // elevation computed at row, col
-        uchar* valid;       // valid at row, col
-      private:
-        cv::Mat _elevation;
-        cv::Mat _elevation_normal;
-        cv::Mat _elevation_var;
-        cv::Mat _elevation_hyp;
-        cv::Mat _elevation_angle;
-        cv::Mat _elevated;
-        cv::Mat _num_observations;
-        cv::Mat _color_rgb;
-        cv::Mat _valid;
     };
 
   public:
@@ -131,9 +100,6 @@ class Mosaicing : public StageBase
     void printSettingsToLog() override;
 
     CvGridMap blend(CvGridMap::Overlap *overlap);
-
-    void setGridElement(const GridQuickAccess::Ptr &ref, const GridQuickAccess::Ptr &inp);
-    void updateGridElement(const GridQuickAccess::Ptr &ref, const GridQuickAccess::Ptr &inp);
 
     void reset() override;
     void initStageCallback() override;

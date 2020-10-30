@@ -41,7 +41,6 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
       _th_elevation_min_nobs((*stage_set)["th_elevation_min_nobs"].toInt()),
       _th_elevation_var((*stage_set)["th_elevation_variance"].toFloat()),
       _settings_save({(*stage_set)["split_gtiff_channels"].toInt() > 0,
-                      (*stage_set)["save_valid"].toInt() > 0,
                       (*stage_set)["save_ortho_rgb_one"].toInt() > 0,
                       (*stage_set)["save_ortho_rgb_all"].toInt() > 0,
                       (*stage_set)["save_ortho_gtiff_one"].toInt() > 0,
@@ -154,7 +153,7 @@ bool Mosaicing::process()
       }
 
       LOG_F(INFO, "Extracting updated map...");
-      map_update = std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb", "elevation", "valid"}, overlap.first->roi()));
+      map_update = std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb", "elevation"}, overlap.first->roi()));
     }
 
     // Publishings every iteration
@@ -191,156 +190,27 @@ CvGridMap Mosaicing::blend(CvGridMap::Overlap *overlap)
   src["color_rgb"].copyTo(ref["color_rgb"], mask);
   src["elevation"].copyTo(ref["elevation"], mask);
   src["elevation_angle"].copyTo(ref["elevation_angle"], mask);
-  src["valid"].copyTo(ref["valid"], mask);
-  cv::add(ref["num_observations"], cv::Mat::ones(ref.size().height, ref.size().width, CV_16UC1), ref["num_observations"], mask);
+  cv::add(ref["num_observations"], cv::Mat::ones(ref.size().height, ref.size().width, CV_16UC1),
+          ref["num_observations"], mask);
 
   return ref;
-
-//  // Data layers to grab from reference
-//  std::vector<std::string> ref_layers;
-//  // Data layers to grab from input map
-//  std::vector<std::string> inp_layers;
-//
-//  // Surface normal computation is optional, therefore use only if set
-//  if (_use_surface_normals)
-//  {
-//    ref_layers = {"elevation", "elevation_normal", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
-//    inp_layers = {"elevation", "elevation_normal", "elevation_angle", "elevated", "color_rgb", "valid"};
-//  }
-//  else
-//  {
-//    ref_layers = {"elevation", "elevation_var", "elevation_hyp", "elevation_angle", "elevated", "color_rgb", "num_observations", "valid"};
-//    inp_layers = {"elevation", "elevation_angle", "elevated", "color_rgb", "valid"};
-//  }
-//
-//  GridQuickAccess::Ptr ref_grid_element = std::make_shared<GridQuickAccess>(ref_layers, ref);
-//  GridQuickAccess::Ptr inp_grid_element = std::make_shared<GridQuickAccess>(inp_layers, inp);
-//
-//  cv::Size size = ref.size();
-//  for (int r = 0; r < size.height; ++r)
-//    for (int c = 0; c < size.width; ++c)
-//    {
-//      // Move the quick access element to current position
-//      ref_grid_element->move(r, c);
-//      inp_grid_element->move(r, c);
-//
-//      // Check cases for input
-//      if (*inp_grid_element->valid == 0)
-//        continue;
-//      if (*ref_grid_element->elevated && !*inp_grid_element->elevated)
-//        continue;
-//
-//      if (*ref_grid_element->nobs == 0 || (*inp_grid_element->elevated && !*ref_grid_element->elevated))
-//        setGridElement(ref_grid_element, inp_grid_element);
-//      else
-//        updateGridElement(ref_grid_element, inp_grid_element);
-//
-//    }
-//
-//  return ref;
-}
-
-void Mosaicing::updateGridElement(const GridQuickAccess::Ptr &ref, const GridQuickAccess::Ptr &inp)
-{
-  // Formulas avr+std_dev: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
-  assert(*inp->valid == 255);
-
-  if (!*inp->elevated)
-  {
-    *ref->ele = *inp->ele;
-    *ref->elevated = 0;
-    *ref->valid = 255;
-    *ref->nobs = (*ref->nobs)+(uint16_t)1;
-    if (fabsf(*inp->angle - 90) < fabsf(*ref->angle - 90))
-    {
-      *ref->angle = *inp->angle;
-      *ref->rgb = *inp->rgb;
-    }
-    return;
-  }
-
-  // First assume grid element is not valid and set only if legitimate values were computed.
-  *ref->valid = 0;
-
-  // First compute new variance of elevation WITH input elevation and check if it is below threshold
-  // If yes, update average elevation for grid element and return
-  // If no, check if hypothesis is valid
-  float variance_new = ((*ref->nobs) + 1 - 2) / (float) ((*ref->nobs) + 1 - 1) * (*ref->var)
-      + (*inp->ele - *ref->ele)*(*inp->ele - *ref->ele) / (float) ((*ref->nobs) + 1);
-  if (variance_new < _th_elevation_var)
-  {
-    *ref->ele = (*ref->ele) + ((*inp->ele) - (*ref->ele))/ (float)(*ref->nobs+1);
-    *ref->var = variance_new;
-    *ref->nobs = (*ref->nobs)+(uint16_t)1;
-    if (_use_surface_normals)
-      *ref->normal = (*ref->normal) + ((*inp->normal) - (*ref->normal))/ (float)(*ref->nobs+1);
-    if (*ref->nobs >= _th_elevation_min_nobs)
-      *ref->valid = 255;
-    // Color blending
-    if (fabsf(*inp->angle - 90) < fabsf(*ref->angle - 90))
-    {
-      *ref->angle = *inp->angle;
-      *ref->rgb = *inp->rgb;
-    }
-    return;
-  }
-
-  // Compute std deviation of elevation hypothesis WITH input elevation. Check then if below threshold.
-  // If yes OR hypothesis is better than set elevation, switch hypothesis and elevation, update std deviation
-  // If no, go on
-  if (!std::isnan(*ref->hyp))
-  {
-    float variance_hyp = ((*inp->ele)-(*ref->hyp))*((*inp->ele)-(*ref->hyp)) / 2.0f;
-    if (variance_hyp < _th_elevation_var || variance_hyp < variance_new)
-    {
-      float elevation = (*ref->ele);
-      *ref->var = variance_hyp;
-      *ref->ele = ((*ref->hyp) + (*inp->ele))/2.0f;
-      *ref->hyp = elevation;
-      *ref->nobs = 2;
-      if (_use_surface_normals)
-        *ref->normal = ((*ref->normal) + (*inp->normal))/2.0f;
-      if (*ref->nobs >= _th_elevation_min_nobs)
-        *ref->valid = 255;
-      *ref->angle = *inp->angle;
-      *ref->rgb = *inp->rgb;
-    }
-  }
-
-  // No valid assumption of grid element can be identified.
-  // Set current input as new hypothesis and choose the one with the lowest variance.
-  *ref->hyp = *inp->ele;
-}
-
-void Mosaicing::setGridElement(const GridQuickAccess::Ptr &ref, const GridQuickAccess::Ptr &inp)
-{
-  assert(*inp->valid == 255);
-  *ref->ele = *inp->ele;
-  *ref->elevated = *inp->elevated;
-  *ref->var = 0.0f;
-  *ref->hyp = 0.0f;
-  *ref->angle = *inp->angle;
-  *ref->rgb = *inp->rgb;
-  *ref->nobs = 1;
-  *ref->valid = 255;
-  if (_use_surface_normals)
-    *ref->normal = *inp->normal;
 }
 
 void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 {
-  if (_settings_save.save_valid)
-    io::saveImage((*_global_map)["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
+  // Check NaN
+  cv::Mat valid = ((*_global_map)["elevation"] == (*_global_map)["elevation"]);
+
   if (_settings_save.save_ortho_rgb_all)
     io::saveImage((*_global_map)["color_rgb"], io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
   if (_settings_save.save_elevation_all)
-    io::saveImageColorMap((*_global_map)["elevation"], (*_global_map)["valid"], _stage_path + "/elevation/color_map", "elevation", id, io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*_global_map)["elevation"], valid, _stage_path + "/elevation/color_map", "elevation", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_elevation_var_all)
-    io::saveImageColorMap((*_global_map)["elevation_var"], (*_global_map)["valid"], _stage_path + "/variance", "variance", id,io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*_global_map)["elevation_var"], valid, _stage_path + "/variance", "variance", id,io::ColormapType::ELEVATION);
   if (_settings_save.save_elevation_obs_angle_all)
-    io::saveImageColorMap((*_global_map)["elevation_angle"], (*_global_map)["valid"], _stage_path + "/obs_angle", "angle", id, io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*_global_map)["elevation_angle"], valid, _stage_path + "/obs_angle", "angle", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_num_obs_all)
-    io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*_global_map)["num_observations"], valid, _stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
   if (_settings_save.save_ortho_gtiff_all && _gdal_writer != nullptr)
     _gdal_writer->requestSaveGeoTIFF(std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb"})), _utm_reference->zone, _stage_path + "/ortho/ortho_iter.tif", true, _settings_save.split_gtiff_channels);
 
@@ -349,17 +219,20 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 
 void Mosaicing::saveAll()
 {
+  // Check NaN
+  cv::Mat valid = ((*_global_map)["elevation"] == (*_global_map)["elevation"]);
+
   // 2D map output
   if (_settings_save.save_ortho_rgb_one)
     io::saveCvGridMapLayer(*_global_map, _utm_reference->zone, _utm_reference->band, "color_rgb", _stage_path + "/ortho/ortho.png");
   if (_settings_save.save_elevation_one)
-    io::saveImageColorMap((*_global_map)["elevation"], (*_global_map)["valid"], _stage_path + "/elevation/color_map", "elevation", io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*_global_map)["elevation"], valid, _stage_path + "/elevation/color_map", "elevation", io::ColormapType::ELEVATION);
   if (_settings_save.save_elevation_var_one)
-    io::saveImageColorMap((*_global_map)["elevation_var"], (*_global_map)["valid"], _stage_path + "/variance", "variance", io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*_global_map)["elevation_var"], valid, _stage_path + "/variance", "variance", io::ColormapType::ELEVATION);
   if (_settings_save.save_elevation_obs_angle_one)
-    io::saveImageColorMap((*_global_map)["elevation_angle"], (*_global_map)["valid"], _stage_path + "/obs_angle", "angle", io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*_global_map)["elevation_angle"], valid, _stage_path + "/obs_angle", "angle", io::ColormapType::ELEVATION);
   if (_settings_save.save_num_obs_one)
-    io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*_global_map)["num_observations"], valid, _stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
   if (_settings_save.save_num_obs_one)
     io::saveGeoTIFF(_global_map->getSubmap({"num_observations"}), _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
   if (_settings_save.save_ortho_gtiff_one)
@@ -370,20 +243,20 @@ void Mosaicing::saveAll()
   // 3D Point cloud output
   if (_settings_save.save_dense_ply)
   {
-    if (_global_map->exists("elevation_normal"))
-      io::saveElevationPointsToPLY(*_global_map, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
-    else
-      io::saveElevationPointsToPLY(*_global_map, "elevation", "", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
+    //if (_global_map->exists("elevation_normal"))
+    //  io::saveElevationPointsToPLY(*_global_map, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
+    //else
+    //  io::saveElevationPointsToPLY(*_global_map, "elevation", "", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
   }
 
   // 3D Mesh output
   if (_settings_save.save_elevation_mesh_one)
   {
-    std::vector<cv::Point2i> vertex_ids = _mesher->buildMesh(*_global_map, "valid");
-    if (_global_map->exists("elevation_normal"))
-      io::saveElevationMeshToPLY(*_global_map, vertex_ids, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/mesh", "elevation");
-    else
-      io::saveElevationMeshToPLY(*_global_map, vertex_ids, "elevation", "", "color_rgb", "valid", _stage_path + "/elevation/mesh", "elevation");
+    //std::vector<cv::Point2i> vertex_ids = _mesher->buildMesh(*_global_map, "valid");
+    //if (_global_map->exists("elevation_normal"))
+    //  io::saveElevationMeshToPLY(*_global_map, vertex_ids, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/mesh", "elevation");
+    //else
+    //  io::saveElevationMeshToPLY(*_global_map, vertex_ids, "elevation", "", "color_rgb", "valid", _stage_path + "/elevation/mesh", "elevation");
   }
 }
 
@@ -451,8 +324,6 @@ void Mosaicing::initStageCallback()
     io::createDir(_stage_path + "/ortho");
   if (!io::dirExists(_stage_path + "/nobs"))
     io::createDir(_stage_path + "/nobs");
-  if (!io::dirExists(_stage_path + "/valid"))
-    io::createDir(_stage_path + "/valid");
 }
 
 void Mosaicing::printSettingsToLog()
@@ -467,7 +338,6 @@ void Mosaicing::printSettingsToLog()
   LOG_F(INFO, "- th_elevation_var: %4.2f", _th_elevation_var);
 
   LOG_F(INFO, "### Stage save settings ###");
-  LOG_F(INFO, "- save_valid: %i", _settings_save.save_valid);
   LOG_F(INFO, "- save_ortho_rgb_one: %i", _settings_save.save_ortho_rgb_one);
   LOG_F(INFO, "- save_ortho_rgb_all: %i", _settings_save.save_ortho_rgb_all);
   LOG_F(INFO, "- save_ortho_gtiff_one: %i", _settings_save.save_ortho_gtiff_one);
@@ -491,13 +361,15 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
   {
     // Downsampling was set by the user in settings
     LOG_F(INFO, "Downsampling mesh publish to %4.2f [m/gridcell]...", _downsample_publish_mesh);
-    mesh_sampled = std::make_shared<CvGridMap>(map->cloneSubmap({"elevation", "color_rgb", "valid"}));
+    mesh_sampled = std::make_shared<CvGridMap>(map->cloneSubmap({"elevation", "color_rgb"}));
+
+    cv::Mat valid = ((*mesh_sampled)["elevation"] == (*mesh_sampled)["elevation"]);
 
     // TODO: Change resolution correction is not cool -> same in ortho rectification
     // Check ranges of input elevation, this is necessary to correct resizing interpolation errors
     double ele_min, ele_max;
     cv::Point2i min_loc, max_loc;
-    cv::minMaxLoc((*mesh_sampled)["elevation"], &ele_min, &ele_max, &min_loc, &max_loc, (*mesh_sampled)["valid"]);
+    cv::minMaxLoc((*mesh_sampled)["elevation"], &ele_min, &ele_max, &min_loc, &max_loc, valid);
 
     mesh_sampled->changeResolution(_downsample_publish_mesh);
 
@@ -506,8 +378,6 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
     cv::Mat mask_high = ((*mesh_sampled)["elevation"] > ele_max);
     (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_low);
     (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_high);
-    (*mesh_sampled)["valid"].setTo(0, mask_low);
-    (*mesh_sampled)["valid"].setTo(0, mask_high);
   }
   else
   {
@@ -516,19 +386,21 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
     mesh_sampled = map;
   }
 
-  std::vector<cv::Point2i> vertex_ids = _mesher->buildMesh(*mesh_sampled, "valid");
-  std::vector<Face> faces = cvtToMesh((*mesh_sampled), "elevation", "color_rgb", vertex_ids);
-  return faces;
+  //std::vector<cv::Point2i> vertex_ids = _mesher->buildMesh(*mesh_sampled, "valid");
+  //std::vector<Face> faces = cvtToMesh((*mesh_sampled), "elevation", "color_rgb", vertex_ids);
+  //return faces;
 }
 
 void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, const CvGridMap::Ptr &update, uint64_t timestamp)
 {
+  cv::Mat valid = ((*_global_map)["elevation"] == (*_global_map)["elevation"]);
+
   // First update statistics about outgoing frame rate
   updateFpsStatisticsOutgoing();
 
   _transport_img((*_global_map)["color_rgb"], "output/rgb");
   _transport_img(analysis::convertToColorMapFromCVFC1((*_global_map)["elevation"],
-                                                      (*_global_map)["valid"],
+                                                      valid,
                                                       cv::COLORMAP_JET), "output/elevation");
   _transport_cvgridmap(update->getSubmap({"color_rgb"}), _utm_reference->zone, _utm_reference->band, "output/update/ortho");
   //_transport_cvgridmap(update->getSubmap({"elevation", "valid"}), _utm_reference->zone, _utm_reference->band, "output/update/elevation");
@@ -544,57 +416,4 @@ void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, cons
   {
     _publish_mesh_nth_iter++;
   }
-}
-
-Mosaicing::GridQuickAccess::GridQuickAccess(const std::vector<std::string> &layer_names, const CvGridMap &map)
-: ele(nullptr),
-  var(nullptr),
-  hyp(nullptr),
-  nobs(nullptr),
-  rgb(nullptr),
-  valid(nullptr)
-{
-  for (const auto& layer_name : layer_names)
-    if (layer_name == "elevation")
-      _elevation = map["elevation"];
-    else if (layer_name == "elevation_normal")
-      _elevation_normal = map["elevation_normal"];
-    else if (layer_name == "elevation_var")
-      _elevation_var = map["elevation_var"];
-    else if (layer_name == "elevation_hyp")
-      _elevation_hyp = map["elevation_hyp"];
-    else if (layer_name == "elevation_angle")
-      _elevation_angle = map["elevation_angle"];
-    else if (layer_name == "color_rgb")
-      _color_rgb = map["color_rgb"];
-    else if (layer_name == "num_observations")
-      _num_observations = map["num_observations"];
-    else if (layer_name == "elevated")
-      _elevated = map["elevated"];
-    else if (layer_name == "valid")
-      _valid = map["valid"];
-    else
-      throw(std::out_of_range("Error creating GridQuickAccess object. Demanded layer name does not exist!"));
-
-  assert(!_elevation.empty() && _elevation.type() == CV_32F);
-  assert(!_elevation_angle.empty() && _elevation_angle.type() == CV_32F);
-  assert(!_color_rgb.empty() && _color_rgb.type() == CV_8UC4);
-  assert(!_elevated.empty() && _elevated.type() == CV_8UC1);
-  assert(!_valid.empty() && _valid.type() == CV_8UC1);
-
-  move(0, 0);
-}
-
-void Mosaicing::GridQuickAccess::move(int row, int col)
-{
-  ele = &_elevation.ptr<float>(row)[col];
-  var = &_elevation_var.ptr<float>(row)[col];
-  hyp = &_elevation_hyp.ptr<float>(row)[col];
-  angle = &_elevation_angle.ptr<float>(row)[col];
-  nobs = &_num_observations.ptr<uint16_t>(row)[col];
-  rgb = &_color_rgb.ptr<cv::Vec4b>(row)[col];
-  elevated = &_elevated.ptr<uchar>(row)[col];
-  valid = &_valid.ptr<uchar>(row)[col];
-  if (!_elevation_normal.empty())
-    normal = &_elevation_normal.ptr<cv::Vec3f>(row)[col];
 }

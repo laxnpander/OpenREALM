@@ -110,6 +110,12 @@ class CvGridMap
     void add(const CvGridMap &submap, int flag_overlap_handle, bool do_extend = true);
 
     /*!
+     * @brief Removes a layer from the grid
+     * @param layer_name Name of the layer to be removed
+     */
+    void remove(const std::string &layer_name);
+
+    /*!
      * @brief Sets the geometry of the grid map, therefore size of the grid (nrof rows, nrof cols),
      * resolution and the world ROI with (x,y,width,height) in [meters]
      * @param roi Region of interest in the world frame, in aerial mapping typically utm position and dimension
@@ -221,12 +227,20 @@ class CvGridMap
     CvGridMap getSubmap(const std::vector<std::string> &layer_names) const;
 
     /*!
-     * @brief Extracts a region of interest from specified layers
+     * @brief Extracts a floating point region of interest from specified layers
      * @param layer_names names of the desired layers of the submap
-     * @param roi region of interest to be extracted
+     * @param roi floating point region of interest to be extracted
      * @return submap of roi with desired layers
      */
     CvGridMap getSubmap(const std::vector<std::string> &layer_names, const cv::Rect2d &roi) const;
+
+    /*!
+     * @brief Extracts a index-based region of interest from specified layers
+     * @param layer_names names of the desired layers of the submap
+     * @param roi index-based region of interest to be extracted
+     * @return submap of roi with desired layers
+     */
+    CvGridMap getSubmap(const std::vector<std::string> &layer_names, const cv::Rect2i &roi) const;
 
     /*!
      * @brief Extracts the overlapping region of two CvGridMaps and returns it as an isolated CvGridMap

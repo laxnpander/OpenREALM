@@ -25,6 +25,8 @@
 #include <memory>
 #include <opencv2/core.hpp>
 
+#include <realm_core/cv_grid_map.h>
+
 namespace realm
 {
 
@@ -34,7 +36,7 @@ public:
   using Ptr = std::shared_ptr<Tile>;
 
 public:
-  Tile(int zoom_level, int tx, int ty, const cv::Mat &img);
+  Tile(int zoom_level, int tx, int ty, const CvGridMap &map);
 
   void lock();
   void unlock();
@@ -44,7 +46,7 @@ public:
   int x() const;
   int y() const;
 
-  cv::Mat& data();
+  CvGridMap::Ptr& data();
 
 private:
 
@@ -52,7 +54,7 @@ private:
 
   cv::Point2i _index;
 
-  cv::Mat _img;
+  CvGridMap::Ptr _data;
 
   std::mutex _mutex_data;
 };

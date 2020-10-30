@@ -38,10 +38,18 @@ namespace realm
 class TileCache : public WorkerThreadBase
 {
 public:
+  struct LayerMetaData
+  {
+    std::string name;
+    int type;
+    int interpolation_flag;
+  };
+
   struct CacheElement
   {
     using Ptr = std::shared_ptr<CacheElement>;
     long timestamp;
+    std::vector<LayerMetaData> layer_meta;
     Tile::Ptr tile;
     bool was_written;
 
@@ -65,6 +73,8 @@ public:
 
 //private:
 
+  bool _has_init_directories;
+
   std::mutex _mutex_settings;
   std::string _dir_toplevel;
 
@@ -86,6 +96,13 @@ public:
 
   void load(const CacheElement::Ptr &element) const;
   void write(const CacheElement::Ptr &element) const;
+
+  void writePNG(const cv::Mat &data, const std::string &filepath) const;
+  void writeBinary(const cv::Mat &data, const std::string &filepath) const;
+
+  cv::Mat readPNG(const std::string &filepath) const;
+  cv::Mat readBinary(const std::string &filepath) const;
+
   void flush(const CacheElement::Ptr &element) const;
 
   bool isCached(const CacheElement::Ptr &element) const;
@@ -93,6 +110,8 @@ public:
   size_t estimateByteSize(const Tile::Ptr &tile) const;
 
   void updatePrediction(int zoom_level, const cv::Rect2i &roi_current);
+
+  void createDirectories(const std::string &toplevel, const std::vector<std::string> &layer_names, const std::string &tile_tree);
 
 };
 

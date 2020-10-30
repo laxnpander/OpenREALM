@@ -70,6 +70,8 @@ class Tileing : public StageBase
     MapTiler::Ptr _map_tiler_rgb;
     MapTiler::Ptr _map_tiler_elevation;
 
+    Tile::Ptr blend(const Tile::Ptr &t1, const Tile::Ptr &t2);
+
     void finishCallback() override;
     void printSettingsToLog() override;
 
@@ -85,4 +87,4 @@ class Tileing : public StageBase
 } // namespace stages
 } // namespace realm
 
-#endif //PROJECT_MOSAICING_H
+#endif //PROJECT_TILEING_H

@@ -46,7 +46,6 @@ class OrthoRectification : public StageBase
 
     struct SaveSettings
     {
-        bool save_valid;
         bool save_ortho_rgb;
         bool save_ortho_gtiff;
         bool save_elevation;

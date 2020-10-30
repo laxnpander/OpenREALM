@@ -139,6 +139,15 @@ class MosaicingSettings : public StageSettings
     }
 };
 
+class TileingSettings : public StageSettings
+{
+public:
+  TileingSettings()
+  {
+
+  }
+};
+
 } // namespace realm
 
 #endif //PROJECT_STAGE_SETTINGS_H

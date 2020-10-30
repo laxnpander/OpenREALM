@@ -56,6 +56,14 @@ private:
   int _epsg_target;
 
   GDALDriver* _driver;
+
+  /*!
+   * @brief For some reason GDAL sets the no data value to 0.0 for floating point matrices, even though all options
+   * are set to NaN. So for now this is a quickfix finding 0.0 values and setting them to NaN. Not ideal, because 0.0
+   * can also be a valid point.
+   * @param data Floating point matrix to be fixed
+   */
+  void fixGdalNoData(cv::Mat &data);
 };
 
 } // namespace gis

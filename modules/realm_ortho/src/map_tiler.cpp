@@ -24,13 +24,16 @@
 
 using namespace realm;
 
-MapTiler::MapTiler(const std::string &id, const std::string &directory)
-    : _verbosity(1),
+MapTiler::MapTiler(const std::string &id, const std::string &directory, const std::vector<std::string> &layers_all_zoom_levels, bool verbosity)
+    : _verbosity(verbosity),
       _zoom_level_min(11),
       _zoom_level_max(35),
       _tile_size(256),
       _output_directory(directory),
-      _tile_cache(id, 10, false)
+      _layers_all_zoom_levels(layers_all_zoom_levels),
+      _blending_merge(std::bind(&MapTiler::merge, this, std::placeholders::_1, std::placeholders::_2)),
+      _blending_fuse(std::bind(&MapTiler::fuse, this, std::placeholders::_1, std::placeholders::_2)),
+      _tile_cache(id, 100, false)
 {
   _origin_shift = 2 * M_PI * 6378137 / 2.0;
 
@@ -64,10 +67,28 @@ double MapTiler::getResolution(int zoom_level)
     throw(std::invalid_argument("Error getting resolution for zoom level: Lookup table does not contain key!"));
 }
 
+void MapTiler::registerBlendingFunctor(const BlendingFunc &func)
+{
+  _blending_fuse = func;
+}
+
 void MapTiler::createTiles(const CvGridMap::Ptr &map, uint8_t zone)
 {
-  // Transform CvGridMap to Web Mercator (EPSG:3857)
-  CvGridMap::Ptr map_3857 = _warper.warpMap(*map, zone);
+  // Transform each layer of the CvGridMap separately to Web Mercator (EPSG:3857)
+  std::vector<CvGridMap::Ptr> maps_3857;
+  for (const auto &layer_name : map->getAllLayerNames())
+  {
+    maps_3857.emplace_back(_warper.warpMap(map->getSubmap({layer_name}), zone));
+  }
+
+  // Recombine to one single map
+  auto map_3857 = std::make_shared<CvGridMap>(maps_3857[0]->roi(), maps_3857[0]->resolution());
+  for (const auto &map_splitted : maps_3857)
+  {
+    // Each map only contains one layer, because we split them up before
+    CvGridMap::Layer layer = map_splitted->getLayer(map_splitted->getAllLayerNames()[0]);
+    map_3857->add(layer);
+  }
 
   // Set the region of interest before entering the loop, so that even though we transform the map itself the original
   // boundaries will matter
@@ -76,13 +97,35 @@ void MapTiler::createTiles(const CvGridMap::Ptr &map, uint8_t zone)
   // Map was transformed. Now we have to adjust the resolution to fit web style tiles
   int zoom_level_base = computeZoomForPixelSize(map_3857->resolution());
 
-  for (int zoom_level = zoom_level_base; zoom_level >= _zoom_level_min; --zoom_level)
+  // Create base tiles for max resolution
+  computeTileing(map_3857, roi, zoom_level_base, zoom_level_base, _blending_fuse);
+
+  LOG_IF_F(INFO, _verbosity, "Base tiles computed.");
+
+  // Remove all layers that should not be fully tiled
+  for (const auto &layer_in_map : map_3857->getAllLayerNames())
+  {
+    bool found = false;
+    for (const auto &layer_in_list : _layers_all_zoom_levels)
+      if (layer_in_list == layer_in_map)
+        found = true;
+
+    if (!found)
+      map_3857->remove(layer_in_map);
+  }
+
+  // Create tiles of lower zoom levels only for specific layers of the grid
+  computeTileing(map_3857, roi, _zoom_level_min, zoom_level_base-1, _blending_merge);
+}
+
+void MapTiler::computeTileing(const CvGridMap::Ptr &map, const cv::Rect2d &roi, int zoom_level_min, int zoom_level_max, const BlendingFunc &blending_func)
+{
+  for (int zoom_level = zoom_level_max; zoom_level >= zoom_level_min; --zoom_level)
   {
     double zoom_resolution = getResolution(zoom_level);
 
     LOG_IF_F(INFO, _verbosity, "Tileing map on zoom level %i, resolution = %4.4f", zoom_level, zoom_resolution);
-
-    map_3857->changeResolution(zoom_resolution);
+    map->changeResolution(zoom_resolution);
 
     // Map is now in the right coordinate frame and has the correct resolution. It's time to start tileing it
     // Therefore first identify how many tiles we have to split our map into by computing the tile indices
@@ -93,10 +136,7 @@ void MapTiler::createTiles(const CvGridMap::Ptr &map, uint8_t zone)
 
     // Because our map is not yet guaranteed to have exactly the size of the tile region, we have to perform padding to
     // to fit exactly the tile map boundaries
-    map_3857->extendToInclude(tile_bounds_meters);
-
-    // Now our map has exactly the size of the desired tile region and can be tiled accordingly
-    cv::Mat data = (*map_3857)["data"];
+    map->extendToInclude(tile_bounds_meters);
 
     std::vector<Tile::Ptr> tiles;
     for (int x = 0; x < tile_bounds_idx.width; ++x)
@@ -104,13 +144,13 @@ void MapTiler::createTiles(const CvGridMap::Ptr &map, uint8_t zone)
       for (int y = tile_bounds_idx.height; y > 0; --y)
       {
         cv::Rect2i data_roi(x*256, y*256, 256, 256);
-        Tile::Ptr tile_current = std::make_shared<Tile>(zoom_level, tile_bounds_idx.x + x, tile_bounds_idx.y + tile_bounds_idx.height - y, data(data_roi));
+        Tile::Ptr tile_current = std::make_shared<Tile>(zoom_level, tile_bounds_idx.x + x, tile_bounds_idx.y + tile_bounds_idx.height - y, map->getSubmap(map->getAllLayerNames(), data_roi));
         Tile::Ptr tile_cached = _tile_cache.get(tile_bounds_idx.x + x, tile_bounds_idx.y + tile_bounds_idx.height - y, zoom_level);
 
         Tile::Ptr tile_output = nullptr;
         if (tile_cached)
         {
-          tile_output = blend(tile_current, tile_cached);
+          tile_output = blending_func(tile_current, tile_cached);
           tile_cached->unlock();
         }
         else
@@ -123,20 +163,25 @@ void MapTiler::createTiles(const CvGridMap::Ptr &map, uint8_t zone)
     _tile_cache.add(zoom_level, tiles, tile_bounds_idx);
 
     _tile_cache.updatePrediction(zoom_level, tile_bounds_idx);
-
   }
 }
 
-Tile::Ptr MapTiler::blend(const Tile::Ptr &t1, const Tile::Ptr &t2)
+Tile::Ptr MapTiler::merge(const Tile::Ptr &t1, const Tile::Ptr &t2) const
 {
-  if (t2->data().empty())
+  if (t2->data()->empty())
     throw(std::runtime_error("Error: Tile data is empty. Likely a multi threading problem!"));
 
-  cv::Mat bgra[4];
-  split(t1->data(), bgra);
+  t1->data()->add(*t2->data(), REALM_OVERWRITE_ZERO, false);
 
-  cv::Mat mask = (bgra[3] < 255);
-  t2->data().copyTo(t1->data(), mask);
+  return t1;
+}
+
+Tile::Ptr MapTiler::fuse(const Tile::Ptr &t1, const Tile::Ptr &t2) const
+{
+  if (t2->data()->empty())
+    throw(std::runtime_error("Error: Tile data is empty. Likely a multi threading problem!"));
+
+  t1->data()->add(*t2->data(), REALM_OVERWRITE_ZERO, false);
 
   return t1;
 }

@@ -28,7 +28,7 @@ using namespace stages;
 Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("tileing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _utm_reference(nullptr),
-      _map_tiler_rgb(std::make_shared<MapTiler>("rgb", _stage_path + "/rgb")),
+      _map_tiler_rgb(nullptr),
       _settings_save({})
 {
   std::cout << "Stage [" << _stage_name << "]: Created Stage with Settings: " << std::endl;
@@ -60,7 +60,7 @@ void Tileing::addFrame(const Frame::Ptr &frame)
 bool Tileing::process()
 {
   bool has_processed = false;
-  if (!_buffer.empty())
+  if (!_buffer.empty() && _map_tiler_rgb)
   {
     // Prepare timing
     long t;
@@ -69,12 +69,11 @@ bool Tileing::process()
     CvGridMap::Ptr map_update;
 
     Frame::Ptr frame = getNewFrame();
-    CvGridMap::Ptr surface_model = frame->getSurfaceModel();
     CvGridMap::Ptr orthophoto = frame->getOrthophoto();
 
     CvGridMap::Ptr map = std::make_shared<CvGridMap>(orthophoto->roi(), orthophoto->resolution());
-    map->add(*surface_model, REALM_OVERWRITE_ALL, false);
     map->add(*orthophoto, REALM_OVERWRITE_ALL, false);
+    map->add(frame->getSurfaceModel()->getSubmap({"elevation", "elevation_angle", "elevated"}), REALM_OVERWRITE_ALL, false);
 
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
@@ -100,6 +99,33 @@ bool Tileing::process()
     has_processed = true;
   }
   return has_processed;
+}
+
+Tile::Ptr Tileing::blend(const Tile::Ptr &t1, const Tile::Ptr &t2)
+{
+  CvGridMap::Ptr& src = t2->data();
+  CvGridMap::Ptr& dst = t1->data();
+
+  // Cells in the elevation, which have no value are marked as NaN. Therefore v == v returns false for those.
+  cv::Mat src_mask = ((*src)["elevation"] == (*src)["elevation"]);
+
+  // Find all the cells, that are better in the destination tile
+  // First get all elements in the destination tile, that are not elevated (have an elevation, but were not 3D reconstructed)
+  cv::Mat dst_not_elevated;
+  cv::bitwise_not((*dst)["elevated"], dst_not_elevated);
+
+  // Now remove all cells from the source tile, that have a smaller elevation angle than the destination, except those
+  // that are elevated where the destination is not.
+  cv::Mat dst_mask = ((*src)["elevation_angle"] < (*dst)["elevation_angle"]) | ((*src)["elevated"] & dst_not_elevated);
+
+  // Now remove them
+  src_mask.setTo(0, dst_mask);
+
+  (*src)["color_rgb"].copyTo((*dst)["color_rgb"], src_mask);
+  (*src)["elevation"].copyTo((*dst)["elevation"], src_mask);
+  (*src)["elevation_angle"].copyTo((*dst)["elevation_angle"], src_mask);
+
+  return t1;
 }
 
 void Tileing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
@@ -182,6 +208,7 @@ Frame::Ptr Tileing::getNewFrame()
   return (std::move(frame));
 }
 
+
 void Tileing::initStageCallback()
 {
   // Stage directory first
@@ -189,8 +216,16 @@ void Tileing::initStageCallback()
     io::createDir(_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(_stage_path + "/rgb"))
-    io::createDir(_stage_path + "/rgb");
+  if (!io::dirExists(_stage_path + "/tiles"))
+    io::createDir(_stage_path + "/tiles");
+
+  // We can only create the map tiler,  when we have the final initialized stage path, which might be synchronized
+  // across different devies. Consequently it is not created in the constructor but here.
+  if (!_map_tiler_rgb)
+  {
+    _map_tiler_rgb = std::make_shared<MapTiler>("tiler", _stage_path + "/tiles", std::vector<std::string>{"color_rgb", "elevation_angle"}, true);
+    _map_tiler_rgb->registerBlendingFunctor(std::bind(&Tileing::blend, this, std::placeholders::_1, std::placeholders::_2));
+  }
 }
 
 void Tileing::printSettingsToLog()

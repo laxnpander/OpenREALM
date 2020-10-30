@@ -41,7 +41,6 @@ class SurfaceGeneration : public StageBase
   public:
     struct SaveSettings
     {
-        bool save_valid;
         bool save_elevation;
         bool save_normals;
     };

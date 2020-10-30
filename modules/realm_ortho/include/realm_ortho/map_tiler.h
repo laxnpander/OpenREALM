@@ -43,12 +43,16 @@ class MapTiler
 public:
   using Ptr = std::shared_ptr<MapTiler>;
 
+  using BlendingFunc = std::function<Tile::Ptr (Tile::Ptr &, Tile::Ptr &)>;
+
 public:
 
-  MapTiler(const std::string &id, const std::string &directory);
+  MapTiler(const std::string &id, const std::string &directory, const std::vector<std::string> &full_layers, bool verbosity);
   ~MapTiler();
 
   void createTiles(const CvGridMap::Ptr &map, uint8_t zone);
+
+  void registerBlendingFunctor(const BlendingFunc &func);
 
   double getResolution(int zoom_level);
 
@@ -66,15 +70,23 @@ private:
 
   std::string _output_directory;
 
+  std::vector<std::string> _layers_all_zoom_levels;
+
   std::map<int, double> _lookup_resolution_from_zoom;
   std::map<int, long>   _lookup_nrof_tiles_from_zoom;
+
+  BlendingFunc _blending_merge;
+  BlendingFunc _blending_fuse;
 
   /// Warper to transform incoming grid maps from UTM coordinates to Web Mercator (EPSG:3857)
   gis::GdalWarper _warper;
 
   TileCache _tile_cache;
 
-  Tile::Ptr blend(const Tile::Ptr &t1, const Tile::Ptr &t2);
+  Tile::Ptr merge(const Tile::Ptr &t1, const Tile::Ptr &t2) const;
+  Tile::Ptr fuse(const Tile::Ptr &t1, const Tile::Ptr &t2) const;
+
+  void computeTileing(const CvGridMap::Ptr &map, const cv::Rect2d &roi, int zoom_level_min, int zoom_level_max, const BlendingFunc &functor);
 
   /*!
    * @brief Computes the slippy tile index for a given zoom level that contains the requested coordinate in WGS84. The
