@@ -224,7 +224,8 @@ void Tileing::initStageCallback()
   if (!_map_tiler_rgb)
   {
     _map_tiler_rgb = std::make_shared<MapTiler>("tiler", _stage_path + "/tiles", std::vector<std::string>{"color_rgb", "elevation_angle"}, true);
-    _map_tiler_rgb->registerBlendingFunctor(std::bind(&Tileing::blend, this, std::placeholders::_1, std::placeholders::_2));
+    _map_tiler_rgb->registerBlendingFunction(
+        std::bind(&Tileing::blend, this, std::placeholders::_1, std::placeholders::_2));
   }
 }
 

@@ -67,7 +67,7 @@ double MapTiler::getResolution(int zoom_level)
     throw(std::invalid_argument("Error getting resolution for zoom level: Lookup table does not contain key!"));
 }
 
-void MapTiler::registerBlendingFunctor(const BlendingFunc &func)
+void MapTiler::registerBlendingFunction(const BlendingFunc &func)
 {
   _blending_fuse = func;
 }

@@ -34,9 +34,11 @@
 namespace realm
 {
 
+// NOTE: Many of the utility functions are direct translations of Klokan Petr Pridal's Python implementation
+// 'gdal2tiles.py' in https://github.com/OSGeo/gdal/blob/master/gdal/swig/python/scripts/gdal2tiles.py.
+
 /*!
- * @brief Many of the utility functions are direct translations of Klokan Petr Pridal's Python implementation
- * 'gdal2tiles.py' in https://github.com/OSGeo/gdal/blob/master/gdal/swig/python/scripts/gdal2tiles.py.
+ * @brief This class allows to tile and maintain an existing
  */
 class MapTiler
 {
@@ -52,7 +54,7 @@ public:
 
   void createTiles(const CvGridMap::Ptr &map, uint8_t zone);
 
-  void registerBlendingFunctor(const BlendingFunc &func);
+  void registerBlendingFunction(const BlendingFunc &func);
 
   double getResolution(int zoom_level);
 
