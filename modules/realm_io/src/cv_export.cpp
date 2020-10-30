@@ -95,7 +95,31 @@ void saveStereoPair(const Frame::Ptr &frame_left, const Frame::Ptr &frame_right,
 
 void saveImage(const cv::Mat &img, const std::string &filename)
 {
-  cv::imwrite(filename, img);
+  std::string suffix = filename.substr(filename.size()-3, 3);
+
+  if(suffix == "png" || suffix == "jpg")
+    cv::imwrite(filename, img);
+  else if (suffix == "bin")
+    saveImageToBinary(img, filename);
+  else
+    throw(std::invalid_argument("Error writing image: Unknown suffix"));
+}
+
+void saveImageToBinary(const cv::Mat &data, const std::string &filepath)
+{
+  int elem_size_in_bytes = (int)data.elemSize();
+  int elem_type          = (int)data.type();
+
+  FILE* file = fopen((filepath).c_str(), "wb");
+
+  int size[4] = {data.cols, data.rows, elem_size_in_bytes, elem_type};
+  fwrite(size, 4, sizeof(int), file);
+
+  // Operating rowise, so even non-continuous matrices are properly written to binary
+  for (int r = 0; r < data.rows; ++r)
+    fwrite(data.ptr<void>(r), data.cols, elem_size_in_bytes, file);
+
+  fclose(file);
 }
 
 void saveDepthMap(const cv::Mat &img, const std::string &filename, uint32_t id)

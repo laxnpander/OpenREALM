@@ -52,6 +52,7 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(HEADER_FILES
         ${root}/include/realm_io/cv_export.h
+        ${root}/include/realm_io/cv_import.h
         ${root}/include/realm_io/exif_export.h
         ${root}/include/realm_io/exif_import.h
         ${root}/include/realm_io/gis_export.h
@@ -64,6 +65,7 @@ set(HEADER_FILES
 
 set(SOURCE_FILES
         ${root}/src/cv_export.cpp
+        ${root}/src/cv_import.cpp
         ${root}/src/exif_export.cpp
         ${root}/src/exif_import.cpp
         ${root}/src/gis_export.cpp

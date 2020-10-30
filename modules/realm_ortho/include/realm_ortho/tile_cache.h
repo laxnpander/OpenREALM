@@ -97,12 +97,6 @@ public:
   void load(const CacheElement::Ptr &element) const;
   void write(const CacheElement::Ptr &element) const;
 
-  void writePNG(const cv::Mat &data, const std::string &filepath) const;
-  void writeBinary(const cv::Mat &data, const std::string &filepath) const;
-
-  cv::Mat readPNG(const std::string &filepath) const;
-  cv::Mat readBinary(const std::string &filepath) const;
-
   void flush(const CacheElement::Ptr &element) const;
 
   bool isCached(const CacheElement::Ptr &element) const;

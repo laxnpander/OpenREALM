@@ -19,7 +19,10 @@
 */
 
 #include <cstdio>
+
 #include <realm_ortho/tile_cache.h>
+#include <realm_io/cv_import.h>
+#include <realm_io/cv_export.h>
 
 using namespace realm;
 
@@ -252,35 +255,29 @@ void TileCache::load(const CacheElement::Ptr &element) const
                            + std::to_string(element->tile->x()) + "/"
                            + std::to_string(element->tile->y());
 
-    std::string suffix;
-
     int type = meta.type & CV_MAT_DEPTH_MASK;
 
     switch(type)
     {
       case CV_8U:
-        suffix = ".png";
+        filename += ".png";
         break;
       case CV_16U:
-        suffix = ".png";
+        filename += ".bin";
         break;
       case CV_32F:
-        suffix = ".bin";
+        filename += ".bin";
         break;
       case CV_64F:
-        suffix = ".bin";
+        filename += ".bin";
         break;
       default:
         throw(std::invalid_argument("Error reading tile: data type unknown!"));
     }
 
-    if (io::fileExists(filename + suffix))
+    if (io::fileExists(filename))
     {
-      cv::Mat data;
-      if (suffix == ".png")
-        data = readPNG(filename + suffix);
-      else if (suffix == ".bin")
-        data = readBinary(filename + suffix);
+      cv::Mat data = io::loadImage(filename);
 
       element->tile->data()->add(meta.name, data);
 
@@ -311,82 +308,25 @@ void TileCache::write(const CacheElement::Ptr &element) const
     switch(type)
     {
       case CV_8U:
-        writePNG(data, filename);
+        filename += ".png";
         break;
       case CV_16U:
-        writePNG(data, filename);
+        filename += ".bin";
         break;
       case CV_32F:
-        writeBinary(data, filename);
+        filename += ".bin";
         break;
       case CV_64F:
-        writeBinary(data, filename);
+        filename += ".bin";
         break;
       default:
         throw(std::invalid_argument("Error writing tile: data type unknown!"));
     }
 
+    io::saveImage(data, filename);
+
     element->was_written = true;
   }
-}
-
-void TileCache::writePNG(const cv::Mat &data, const std::string &filepath) const
-{
-  cv::imwrite(filepath + ".png", data);
-  LOG_IF_F(INFO, _verbose, "Wrote tile to disk: %s", (filepath + ".png").c_str());
-}
-
-void TileCache::writeBinary(const cv::Mat &data, const std::string &filepath) const
-{
-  int elem_size_in_bytes = (int)data.elemSize();
-  int elem_type          = (int)data.type();
-
-  FILE* file = fopen((filepath + ".bin").c_str(), "wb");
-
-  int size[4] = {data.cols, data.rows, elem_size_in_bytes, elem_type};
-  fwrite(size, 4, sizeof(int), file);
-
-  // Operating rowise, so even non-continuous matrices are properly written to binary
-  for (int r = 0; r < data.rows; ++r)
-    fwrite(data.ptr<void>(r), data.cols, elem_size_in_bytes, file);
-
-  fclose(file);
-
-  LOG_IF_F(INFO, _verbose, "Wrote tile to disk: %s", (filepath + ".bin").c_str());
-}
-
-cv::Mat TileCache::readPNG(const std::string &filepath) const
-{
-  return cv::imread(filepath, cv::IMREAD_UNCHANGED);
-}
-
-cv::Mat TileCache::readBinary(const std::string &filepath) const
-{
-  FILE* file = fopen(filepath.c_str(), "rb");
-
-  int header[4];
-
-  size_t elements_read;
-  elements_read = fread(header, sizeof(int), 4, file);
-
-  if (elements_read != 4)
-    throw(std::runtime_error("Error reading binary: Elements read do not match matrix dimension!"));
-
-  int cols               = header[0];
-  int rows               = header[1];
-  int elem_size_in_bytes = header[2];
-  int elem_type          = header[3];
-
-  cv::Mat data = cv::Mat::ones(rows, cols, elem_type);
-
-  elements_read = fread(data.data, elem_size_in_bytes, (size_t)(cols * rows), file);
-
-  if (elements_read != (size_t)(cols * rows))
-    throw(std::runtime_error("Error reading binary: Elements read do not match matrix dimension!"));
-
-  fclose(file);
-
-  return data;
 }
 
 void TileCache::flush(const CacheElement::Ptr &element) const
