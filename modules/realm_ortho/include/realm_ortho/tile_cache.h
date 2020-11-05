@@ -38,6 +38,8 @@ namespace realm
 class TileCache : public WorkerThreadBase
 {
 public:
+  using Ptr = std::shared_ptr<TileCache>;
+
   struct LayerMetaData
   {
     std::string name;
@@ -59,7 +61,7 @@ public:
   using CacheElementGrid = std::map<int, std::map<int, CacheElement::Ptr>>;
 
 public:
-  TileCache(const std::string &id, double sleep_time, bool verbose);
+  TileCache(const std::string &id, double sleep_time, const std::string &output_directory, bool verbose);
   ~TileCache();
 
   void add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const cv::Rect2i &roi_idx);
@@ -71,7 +73,7 @@ public:
   void flushAll();
   void loadAll();
 
-//private:
+private:
 
   bool _has_init_directories;
 

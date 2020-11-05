@@ -25,7 +25,8 @@
 using namespace realm;
 
 gis::GdalWarper::GdalWarper()
- : _epsg_target(0)
+ : _epsg_target(0),
+   _nrof_threads(-1)
 {
   GDALAllRegister();
 
@@ -38,7 +39,12 @@ void gis::GdalWarper::setTargetEPSG(int epsg_code)
   _epsg_target = epsg_code;
 }
 
-CvGridMap::Ptr gis::GdalWarper::warpMap(const CvGridMap &map, uint8_t zone)
+void gis::GdalWarper::setNrofThreads(int nrof_threads)
+{
+  _nrof_threads = nrof_threads;
+}
+
+CvGridMap::Ptr gis::GdalWarper::warpRaster(const CvGridMap &map, uint8_t zone)
 {
   //=======================================//
   //
@@ -140,7 +146,11 @@ CvGridMap::Ptr gis::GdalWarper::warpMap(const CvGridMap &map, uint8_t zone)
 
   char** warper_system_options = nullptr;
   warper_system_options = CSLSetNameValue(warper_system_options, "INIT_DEST", "NO_DATA");
-  warper_system_options = CSLSetNameValue(warper_system_options, "NUM_THREADS", "ALL_CPUS");
+
+  if (_nrof_threads <= 0)
+    warper_system_options = CSLSetNameValue(warper_system_options, "NUM_THREADS", "ALL_CPUS");
+  else
+    warper_system_options = CSLSetNameValue(warper_system_options, "NUM_THREADS", std::to_string(_nrof_threads).c_str());
 
   // Setup warp options.
   GDALWarpOptions *warper_options = GDALCreateWarpOptions();
@@ -244,6 +254,88 @@ CvGridMap::Ptr gis::GdalWarper::warpMap(const CvGridMap &map, uint8_t zone)
 
   return output;
 }
+
+/*CvGridMap::Ptr gis::GdalWarper::warpImage(const CvGridMap &map, uint8_t zone)
+{
+  //=======================================//
+  //
+  //      Step 1: Check validity
+  //
+  //=======================================//
+
+  if (_epsg_target == 0)
+    throw(std::runtime_error("Error warping map: Target EPSG was not set!"));
+
+  //=======================================//
+  //
+  //      Step 2: Prepare datasets
+  //
+  //=======================================//
+
+  // Get source coordinate system
+  OGRSpatialReference src_SRS;
+  src_SRS.SetUTM(zone, TRUE);
+  src_SRS.SetWellKnownGeogCS("WGS84");
+
+  // Set target coordinate system
+  OGRSpatialReference dst_SRS;
+  dst_SRS.importFromEPSG(_epsg_target);
+
+  // Create transformator
+  OGRCoordinateTransformation *tf = OGRCreateCoordinateTransformation(&src_SRS, &dst_SRS);
+
+  cv::Rect2d roi = map.roi();
+
+  double x[4] = { roi.x, roi.x,              roi.x + roi.width, roi.x + roi.width };
+  double y[4] = { roi.y, roi.y + roi.height, roi.y,             roi.y + roi.height };
+
+  bool success = tf->Transform(4, x, y);
+
+  if (success)
+  {
+    double w = std::min({x[0], x[1], x[2], x[3]});
+    double e = std::max({x[0], x[1], x[2], x[3]});
+    double s = std::min({y[0], y[1], y[2], y[3]});
+    double n = std::max({y[0], y[1], y[2], y[3]});
+    cv::Rect2d roi_warped(w, s, e-w, n-s);
+
+    cv::Mat src_points = (cv::Mat_<float>(4, 2) <<
+                                                -roi.width/2, -roi.height/2,
+        -roi.width/2,  roi.height/2,
+        roi.width/2, -roi.height/2,
+        roi.width/2,  roi.height/2);
+
+    double resolution = map.resolution() * roi_warped.width/roi.width;
+    double tx = roi_warped.x + roi_warped.width/2;
+    double ty = roi_warped.y + roi_warped.height/2;
+
+    cv::Mat dst_points(4, 2, CV_32F);
+    for (int i = 0; i < 4; ++i)
+    {
+      dst_points.at<float>(i, 0) = (float)(x[i] - tx);
+      dst_points.at<float>(i, 1) = (float)(y[i] - ty);
+    }
+
+    cv::Mat H = cv::getPerspectiveTransform(src_points, dst_points);
+
+    CvGridMap map_clone = map.clone();
+    auto map_warped = std::make_shared<CvGridMap>(roi_warped, resolution);
+
+    for (const auto &layer_name : map.getAllLayerNames())
+    {
+      map_clone.changeResolution(resolution);
+      const CvGridMap::Layer &layer = map_clone.getLayer(layer_name);
+
+      cv::Mat data_warped;
+      cv::warpPerspective(layer.data, data_warped, H, map_warped->size());
+
+      map_warped->add(layer.name, data_warped, layer.interpolation);
+    }
+
+    return map_warped;
+  }
+  return nullptr;
+}*/
 
 void gis::GdalWarper::warpPoints()
 {

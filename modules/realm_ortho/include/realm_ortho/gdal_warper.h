@@ -33,28 +33,62 @@ namespace realm
 namespace gis
 {
 
+/*!
+ * @brief GdalWarper allows to transform an input CvGridMap from UTM coordinates into an EPSG standardized frame
+ * utilizing GDAL library as backbone. The grid map is expected to fit into memory and must not contain more than
+ * one layer. The number of threads used to compute the transformation can be provided.
+ */
 class GdalWarper
 {
 public:
+  /*!
+   * @brief Non-default constructor
+   */
   GdalWarper();
 
+  ~GdalWarper() = default;
+  GdalWarper(const GdalWarper &other) = default;
+
+  /*!
+   * @brief Set the target coordinate frame in EPSG standard, see: https://en.wikipedia.org/wiki/EPSG_Geodetic_Parameter_Dataset
+   * @param epsg_code EPSG Code, e.g. 3857 for EPSG:3857
+   */
   void setTargetEPSG(int epsg_code);
 
   /*!
-   * @brief: According to: https://gdal.org/tutorials/warp_tut.html
+   * @brief Set the number of threads used to compute the projection to the target coordinate frame. Default is using
+   * all CPU's.
+   * @param nrof_threads Number of threads used to compute the projection
+   */
+  void setNrofThreads(int nrof_threads);
+
+  /*!
+   * @brief: Following the example in https://gdal.org/tutorials/warp_tut.html
+   * The provided map must be in UTM coordinates and will be warped into the previously defined, target EPSG frame.
+   * Only single layer maps are currently supported. The interpolation strategy is taken from the CvGridMap layer
+   * meta information. No data values are kept as is, though there is currently an issue of GDAL setting no data values
+   * for floating point data to 0.0. The current fix is to identify cells with value 0.0 and fill them to NaN after
+   * warping. The resulting map is a deep copy.
    * @param map Map to be warped into a new coordinate system. Must not contain more than one layer.
    * @param zone UTM zone of the grid. TODO: should probably be solved smarter in the future
    * @return Warped map in the desired coordinate system. Coordinate system must be cartesian.
    */
-  CvGridMap::Ptr warpMap(const CvGridMap &map, uint8_t zone);
+  CvGridMap::Ptr warpRaster(const CvGridMap &map, uint8_t zone);
+
+  //CvGridMap::Ptr warpImage(const CvGridMap &map, uint8_t zone);
 
   // TBD
   void warpPoints();
 
 private:
 
+  /// EPSG Code, e.g. 3857 for EPSG:3857
   int _epsg_target;
 
+  /// Number of threads used for projection
+  int _nrof_threads;
+
+  /// Internal GDAL memory driver to create a dataset from the layer input
   GDALDriver* _driver;
 
   /*!

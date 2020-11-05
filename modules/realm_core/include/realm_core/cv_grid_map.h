@@ -76,7 +76,7 @@ class CvGridMap
      * @brief Function to create deep copy of CvGridMap
      * @return Deep copy of this object
      */
-    CvGridMap clone();
+    CvGridMap clone() const;
 
     /*!
      * @brief Function to create deep copy of specific layers of this object
@@ -114,6 +114,12 @@ class CvGridMap
      * @param layer_name Name of the layer to be removed
      */
     void remove(const std::string &layer_name);
+
+    /*!
+    * @brief Removes layers from the grid
+    * @param layer_name Vector of names of layers to be removed
+    */
+    void remove(const std::vector<std::string> &layer_names);
 
     /*!
      * @brief Sets the geometry of the grid map, therefore size of the grid (nrof rows, nrof cols),

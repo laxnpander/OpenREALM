@@ -26,8 +26,9 @@
 
 using namespace realm;
 
-TileCache::TileCache(const std::string &id, double sleep_time, bool verbose)
+TileCache::TileCache(const std::string &id, double sleep_time, const std::string &output_directory, bool verbose)
  : WorkerThreadBase("tile_cache_" + id, sleep_time, verbose),
+   _dir_toplevel(output_directory),
    _has_init_directories(false),
    _do_update(false)
 {
@@ -37,7 +38,6 @@ TileCache::TileCache(const std::string &id, double sleep_time, bool verbose)
 TileCache::~TileCache()
 {
   flushAll();
-  join();
 }
 
 void TileCache::setOutputFolder(const std::string &dir)
@@ -52,6 +52,8 @@ bool TileCache::process()
 
   if (_mutex_do_update.try_lock())
   {
+    long t;
+
     // Give update lock free as fast as possible, so we won't block other threads from adding data
     bool do_update = _do_update;
     _do_update = false;
@@ -59,6 +61,10 @@ bool TileCache::process()
 
     if (do_update)
     {
+      int n_tiles_written = 0;
+
+      t = getCurrentTimeMilliseconds();
+
       for (auto &cached_elements_zoom : _cache)
       {
         cv::Rect2i roi_prediction = _roi_prediction.at(cached_elements_zoom.first);
@@ -70,7 +76,10 @@ bool TileCache::process()
             cached_elements.second->tile->lock();
 
             if (!cached_elements.second->was_written)
+            {
+              n_tiles_written++;
               write(cached_elements.second);
+            }
 
             if (isCached(cached_elements.second))
             {
@@ -86,6 +95,10 @@ bool TileCache::process()
           }
         }
       }
+
+      LOG_IF_F(INFO, _verbose, "Tiles written: %i", n_tiles_written);
+      LOG_IF_F(INFO, _verbose, "Timing [Cache Flush]: %lu ms", getCurrentTimeMilliseconds()-t);
+
       has_processed = true;
     }
   }
@@ -121,6 +134,8 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
   auto it_zoom = _cache.find(zoom_level);
 
   long timestamp = getCurrentTimeMilliseconds();
+
+  long t = getCurrentTimeMilliseconds();
 
   // Cache for this zoom level already exists
   if (it_zoom != _cache.end())
@@ -176,6 +191,8 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
     _cache[zoom_level] = tile_grid;
   }
 
+  LOG_IF_F(INFO, _verbose, "Timing [Cache Push]: %lu ms", getCurrentTimeMilliseconds()-t);
+
   updatePrediction(zoom_level, roi_idx);
 
   std::lock_guard<std::mutex> lock1(_mutex_do_update);
@@ -217,6 +234,12 @@ Tile::Ptr TileCache::get(int tx, int ty, int zoom_level)
 
 void TileCache::flushAll()
 {
+  int n_tiles_written = 0;
+
+  LOG_IF_F(INFO, _verbose, "Flushing all tiles...");
+
+  long t = getCurrentTimeMilliseconds();
+
   for (auto &zoom_levels : _cache)
     for (auto &cache_column : zoom_levels.second)
       for (auto &cache_element : cache_column.second)
@@ -224,11 +247,17 @@ void TileCache::flushAll()
         std::lock_guard<std::mutex> lock(cache_element.second->mutex);
         cache_element.second->tile->lock();
         if (!cache_element.second->was_written)
+        {
           write(cache_element.second);
+          n_tiles_written++;
+        }
 
         cache_element.second->tile->data() = nullptr;
         cache_element.second->tile->unlock();
       }
+
+  LOG_IF_F(INFO, _verbose, "Tiles written: %i", n_tiles_written);
+  LOG_IF_F(INFO, _verbose, "Timing [Flush All]: %lu ms", getCurrentTimeMilliseconds()-t);
 }
 
 void TileCache::loadAll()
@@ -279,7 +308,7 @@ void TileCache::load(const CacheElement::Ptr &element) const
     {
       cv::Mat data = io::loadImage(filename);
 
-      element->tile->data()->add(meta.name, data);
+      element->tile->data()->add(meta.name, data, meta.interpolation_flag);
 
       LOG_IF_F(INFO, _verbose, "Read tile from disk: %s", filename.c_str());
     }

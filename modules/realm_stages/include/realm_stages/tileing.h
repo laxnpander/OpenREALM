@@ -67,9 +67,13 @@ class Tileing : public StageBase
 
     UTMPose::Ptr _utm_reference;
 
-    MapTiler::Ptr _map_tiler_rgb;
-    MapTiler::Ptr _map_tiler_elevation;
+    /// Warper to transform incoming grid maps from UTM coordinates to Web Mercator (EPSG:3857)
+    gis::GdalWarper _warper;
 
+    MapTiler::Ptr _map_tiler;
+    TileCache::Ptr _tile_cache;
+
+    Tile::Ptr merge(const Tile::Ptr &t1, const Tile::Ptr &t2);
     Tile::Ptr blend(const Tile::Ptr &t1, const Tile::Ptr &t2);
 
     void finishCallback() override;

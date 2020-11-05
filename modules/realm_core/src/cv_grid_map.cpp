@@ -38,13 +38,13 @@ CvGridMap::CvGridMap(const cv::Rect2d &roi, double resolution)
   setGeometry(roi, _resolution);
 }
 
-CvGridMap CvGridMap::clone()
+CvGridMap CvGridMap::clone() const
 {
   CvGridMap copy;
   copy.setGeometry(_roi, _resolution);
   for (const auto &layer : _layers)
     copy.add(layer.name, layer.data.clone(), layer.interpolation);
-  return copy;
+  return std::move(copy);
 }
 
 CvGridMap CvGridMap::cloneSubmap(const std::vector<std::string> &layer_names)
@@ -168,6 +168,12 @@ void CvGridMap::remove(const std::string &layer_name)
     }
     it++;
   }
+}
+
+void CvGridMap::remove(const std::vector<std::string> &layer_names)
+{
+  for (const auto &layer_name : layer_names)
+    remove(layer_name);
 }
 
 bool CvGridMap::empty() const

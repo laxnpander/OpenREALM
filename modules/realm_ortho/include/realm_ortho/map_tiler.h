@@ -21,7 +21,6 @@
 #ifndef GENERAL_TESTBED_MAP_TILER_H
 #define GENERAL_TESTBED_MAP_TILER_H
 
-#include <iostream>
 #include <cmath>
 #include <map>
 
@@ -38,57 +37,70 @@ namespace realm
 // 'gdal2tiles.py' in https://github.com/OSGeo/gdal/blob/master/gdal/swig/python/scripts/gdal2tiles.py.
 
 /*!
- * @brief This class allows to tile and maintain an existing
+ * @brief MapTiler allows to slice a geographically referenced CvGridMap in EPSG:3857 coordinates into equally sized
+ * tiles on different zoom levels following the Tile Map Service (TMS) specification.
  */
 class MapTiler
 {
 public:
   using Ptr = std::shared_ptr<MapTiler>;
 
-  using BlendingFunc = std::function<Tile::Ptr (Tile::Ptr &, Tile::Ptr &)>;
+  struct TiledMap
+  {
+    cv::Rect2i roi;
+    std::vector<Tile::Ptr> tiles;
+  };
 
 public:
 
-  MapTiler(const std::string &id, const std::string &directory, const std::vector<std::string> &full_layers, bool verbosity);
-  ~MapTiler();
+  /*!
+   * @brief Besides member initialization the required lookup tables to map zoom level to image resolution are created.
+   * @param verbosity Flag to set verbose output
+   */
+  explicit MapTiler(bool verbosity);
 
-  void createTiles(const CvGridMap::Ptr &map, uint8_t zone);
+  ~MapTiler() = default;
+  MapTiler(const MapTiler &other) = default;
 
-  void registerBlendingFunction(const BlendingFunc &func);
+  /*!
+   * @brief Slicing the input map in EPSG:3857 coordinates into equally sized tiles on different zoom levels. If no
+   * specific zoom levels are provided, only the maximum possible zoom level is tiled. This in turn is computed based on
+   * the resolution of the input grid map. We perform an up-scaling to the next higher resolution, so we are not missing
+   * out on information provided by the raw data, while accepting higher computational load for interpolated data.
+   * @param map Map in EPSG:3857 coordinates
+   * @param zoom_level_min (optional) Minimum zoom level that should be tiled. If none provided, only maximum zoom level
+   * is created.
+   * @param zoom_level_max (optional) Maximum zoom level that should be tiled. If none provided, the maximum zoom level
+   * will be automatically computed.
+   * @return Tiled map for each requested zoom level. The tiled map consists of a region of interest spanning the
+   * coordinates of the tiles (x, y, width, height) on the specific zoom level and the corresponding data as a vector.
+   */
+  std::map<int, TiledMap> createTiles(const CvGridMap::Ptr &map, int zoom_level_min = -1, int zoom_level_max = -1);
 
   double getResolution(int zoom_level);
 
 private:
 
+  /// Flag to set verbose output
   int _verbosity;
 
+  /// Global minimum zoom level
   int _zoom_level_min;
+
+  /// Global maximum zoom level
   int _zoom_level_max;
 
+  /// Shift of the coordinate frame origin
   double _origin_shift;
 
   /// Size of the tiles in [pix], usually this is 256
   int _tile_size;
 
-  std::string _output_directory;
-
-  std::vector<std::string> _layers_all_zoom_levels;
-
+  /// Lookup table to map zoom levels to a specific resolution in [m/pix]
   std::map<int, double> _lookup_resolution_from_zoom;
+
+  /// Lookup table to map zoom levels to an absolute number of tiles
   std::map<int, long>   _lookup_nrof_tiles_from_zoom;
-
-  BlendingFunc _blending_merge;
-  BlendingFunc _blending_fuse;
-
-  /// Warper to transform incoming grid maps from UTM coordinates to Web Mercator (EPSG:3857)
-  gis::GdalWarper _warper;
-
-  TileCache _tile_cache;
-
-  Tile::Ptr merge(const Tile::Ptr &t1, const Tile::Ptr &t2) const;
-  Tile::Ptr fuse(const Tile::Ptr &t1, const Tile::Ptr &t2) const;
-
-  void computeTileing(const CvGridMap::Ptr &map, const cv::Rect2d &roi, int zoom_level_min, int zoom_level_max, const BlendingFunc &functor);
 
   /*!
    * @brief Computes the slippy tile index for a given zoom level that contains the requested coordinate in WGS84. The
@@ -213,8 +225,6 @@ private:
    * @param latitude (optional) Rough latitude of the area of operation [in degrees]
    */
   void computeLookupResolutionFromZoom(double latitude = 0.0);
-
-  void generateLeaflet();
 };
 
 } // namespace realm

@@ -28,15 +28,24 @@ using namespace stages;
 Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("tileing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       _utm_reference(nullptr),
-      _map_tiler_rgb(nullptr),
+      _map_tiler(nullptr),
+      _tile_cache(nullptr),
       _settings_save({})
 {
   std::cout << "Stage [" << _stage_name << "]: Created Stage with Settings: " << std::endl;
   stage_set->print();
+
+  _warper.setTargetEPSG(3857);
+  _warper.setNrofThreads(4);
 }
 
 Tileing::~Tileing()
 {
+  if (_tile_cache)
+  {
+    _tile_cache->requestFinish();
+    _tile_cache->join();
+  }
 }
 
 void Tileing::addFrame(const Frame::Ptr &frame)
@@ -60,7 +69,7 @@ void Tileing::addFrame(const Frame::Ptr &frame)
 bool Tileing::process()
 {
   bool has_processed = false;
-  if (!_buffer.empty() && _map_tiler_rgb)
+  if (!_buffer.empty() && _map_tiler && _tile_cache)
   {
     // Prepare timing
     long t;
@@ -69,19 +78,146 @@ bool Tileing::process()
     CvGridMap::Ptr map_update;
 
     Frame::Ptr frame = getNewFrame();
-    CvGridMap::Ptr orthophoto = frame->getOrthophoto();
-
-    CvGridMap::Ptr map = std::make_shared<CvGridMap>(orthophoto->roi(), orthophoto->resolution());
-    map->add(*orthophoto, REALM_OVERWRITE_ALL, false);
-    map->add(frame->getSurfaceModel()->getSubmap({"elevation", "elevation_angle", "elevated"}), REALM_OVERWRITE_ALL, false);
 
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
     if (_utm_reference == nullptr)
       _utm_reference = std::make_shared<UTMPose>(frame->getGnssUtm());
 
-    // Processing
-    _map_tiler_rgb->createTiles(map, _utm_reference->zone);
+    //=======================================//
+    //
+    //   Step 1: Warp data to EPSG3857
+    //
+    //=======================================//
+
+    t = getCurrentTimeMilliseconds();
+
+    CvGridMap::Ptr orthophoto = frame->getOrthophoto();
+    CvGridMap::Ptr surface_model = frame->getSurfaceModel();
+
+    // Create the tiles, that will be visualized and therefore need multiple zoom levels
+    CvGridMap::Ptr map = std::make_shared<CvGridMap>(orthophoto->roi(), orthophoto->resolution());
+    map->add(*orthophoto, REALM_OVERWRITE_ALL, false);
+    map->add(*surface_model, REALM_OVERWRITE_ALL, false);
+    map->remove("num_observations"); // Currently not relevant for blending
+
+    // Transform each layer of the CvGridMap separately to Web Mercator (EPSG:3857)
+    std::vector<CvGridMap::Ptr> maps_3857;
+    for (const auto &layer_name : map->getAllLayerNames())
+    {
+      maps_3857.emplace_back(_warper.warpRaster(map->getSubmap({layer_name}), _utm_reference->zone));
+    }
+
+    // Recombine to one single map
+    auto map_3857 = std::make_shared<CvGridMap>(maps_3857[0]->roi(), maps_3857[0]->resolution());
+    for (const auto &map_splitted : maps_3857)
+    {
+      // Each map only contains one layer, because we split them up before
+      CvGridMap::Layer layer = map_splitted->getLayer(map_splitted->getAllLayerNames()[0]);
+      map_3857->add(layer);
+    }
+
+    LOG_F(INFO, "Timing [Warping]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+    //=======================================//
+    //
+    //   Step 2: Tile the whole map on
+    //           maximum zoom level
+    //
+    //=======================================//
+
+    t = getCurrentTimeMilliseconds();
+
+    std::map<int, MapTiler::TiledMap> tiled_map_max_zoom = _map_tiler->createTiles(map_3857);
+
+    LOG_F(INFO, "Timing [Tileing]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+    //=======================================//
+    //
+    //   Step 3: Blend the tiles on maximum
+    //           zoom level and add to cache
+    //
+    //=======================================//
+
+    t = getCurrentTimeMilliseconds();
+
+    int zoom_level_max = tiled_map_max_zoom.begin()->first;
+
+    std::vector<Tile::Ptr> tiles_current = tiled_map_max_zoom.begin()->second.tiles;
+    std::vector<Tile::Ptr> tiles_blended;
+
+    for (const auto &tile : tiles_current)
+    {
+      Tile::Ptr tile_cached = _tile_cache->get(tile->x(), tile->y(), zoom_level_max);
+
+      Tile::Ptr tile_blended;
+      if (tile_cached)
+      {
+        tile_blended = blend(tile, tile_cached);
+        tile_cached->unlock();
+      }
+      else
+      {
+        tile_blended = tile;
+      }
+
+      tiles_blended.push_back(tile_blended);
+    }
+
+    LOG_F(INFO, "Timing [Blending]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+    t = getCurrentTimeMilliseconds();
+    _tile_cache->add(zoom_level_max, tiles_blended, tiled_map_max_zoom.begin()->second.roi);
+    LOG_F(INFO, "Timing [Cache Push]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+    //=======================================//
+    //
+    //   Step 4: Compute range of zoom levels
+    //           and push to cache
+    //
+    //=======================================//
+
+    t = getCurrentTimeMilliseconds();
+
+    // To save computational load we remove layers, that we are not interested in displaying as a whole.
+    // They can be required for the blending for example though, which is why we computed them on maximum resolution
+    map_3857->remove("elevated");
+
+    std::map<int, MapTiler::TiledMap> tiled_map_range = _map_tiler->createTiles(map_3857, 11, zoom_level_max - 1);
+
+    for (const auto& tiled_map : tiled_map_range)
+    {
+      int zoom_level = tiled_map.first;
+
+      std::vector<Tile::Ptr> tiles_merged;
+      for (const auto & tile : tiled_map.second.tiles)
+      {
+        Tile::Ptr tile_cached = _tile_cache->get(tile->x(), tile->y(), zoom_level);
+
+        Tile::Ptr tile_merged;
+        if (tile_cached)
+        {
+          tile_merged = merge(tile, tile_cached);
+          tile_cached->unlock();
+        }
+        else
+        {
+          tile_merged = tile;
+        }
+
+        tiles_merged.push_back(tile_merged);
+      }
+
+      _tile_cache->add(zoom_level, tiles_merged, tiled_map.second.roi);
+    }
+
+    LOG_F(INFO, "Timing [Downscaling]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+    //=======================================//
+    //
+    //   Step 5: Publish & Save
+    //
+    //=======================================//
 
     // Publishings every iteration
     LOG_F(INFO, "Publishing...");
@@ -99,6 +235,16 @@ bool Tileing::process()
     has_processed = true;
   }
   return has_processed;
+}
+
+Tile::Ptr Tileing::merge(const Tile::Ptr &t1, const Tile::Ptr &t2)
+{
+  if (t2->data()->empty())
+    throw(std::runtime_error("Error: Tile data is empty. Likely a multi threading problem!"));
+
+  t1->data()->add(*t2->data(), REALM_OVERWRITE_ZERO, false);
+
+  return t1;
 }
 
 Tile::Ptr Tileing::blend(const Tile::Ptr &t1, const Tile::Ptr &t2)
@@ -221,11 +367,11 @@ void Tileing::initStageCallback()
 
   // We can only create the map tiler,  when we have the final initialized stage path, which might be synchronized
   // across different devies. Consequently it is not created in the constructor but here.
-  if (!_map_tiler_rgb)
+  if (!_map_tiler)
   {
-    _map_tiler_rgb = std::make_shared<MapTiler>("tiler", _stage_path + "/tiles", std::vector<std::string>{"color_rgb", "elevation_angle"}, true);
-    _map_tiler_rgb->registerBlendingFunction(
-        std::bind(&Tileing::blend, this, std::placeholders::_1, std::placeholders::_2));
+    _map_tiler = std::make_shared<MapTiler>(true);
+    _tile_cache = std::make_shared<TileCache>("tile_cache", 100, _stage_path + "/tiles", false);
+    _tile_cache->start();
   }
 }
 
