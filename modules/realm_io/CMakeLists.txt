@@ -157,3 +157,34 @@ install(
 ################################################################################
 # Test
 ################################################################################
+
+
+if(TESTS_ENABLED)
+    include(GoogleTest)
+
+    add_executable(run_realm_io_tests
+            test/test_realm_io.cpp
+            test/cv_io_test.cpp
+            test/realm_io_test.cpp
+            )
+
+    # Standard linking to gtest stuff.
+    target_link_libraries(run_realm_io_tests gtest_main)
+
+    # Extra linking for the project.
+    target_link_libraries(run_realm_io_tests ${LIBRARY_NAME} ${Boost_LIBRARIES})
+
+    add_custom_command(TARGET run_realm_io_tests PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/test/data $<TARGET_FILE_DIR:run_realm_io_tests>
+    )
+
+    # This is so you can do 'make test' to see all your tests run, instead of
+    # manually running the executable run_unit_tests to see those specific tests.
+    add_test(
+            NAME
+                realm_io_unit_tests
+            COMMAND
+                ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/run_realm_io_tests
+    )
+
+endif()

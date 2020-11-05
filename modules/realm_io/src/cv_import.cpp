@@ -19,11 +19,15 @@
 */
 
 #include <realm_io/cv_import.h>
+#include <realm_io/utilities.h>
 
 using namespace realm;
 
 cv::Mat io::loadImage(const std::string &filepath)
 {
+  if (!io::fileExists(filepath))
+    throw(std::invalid_argument("Error loading image: File does not exist!"));
+
   std::string suffix = filepath.substr(filepath.size()-3, 3);
 
   if(suffix == "png" || suffix == "jpg")

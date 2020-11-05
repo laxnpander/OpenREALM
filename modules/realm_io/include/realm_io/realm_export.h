@@ -36,17 +36,11 @@ namespace io
 
 void saveTimestamp(uint64_t timestamp,
                    uint32_t frame_id,
-                   const std::string &directory,
-                   const std::string &name);
-
-void saveTimestamp(uint64_t timestamp,
-                   uint32_t frame_id,
                    const std::string &filename);
 
 void saveTrajectory(uint64_t timestamp,
                     const cv::Mat &pose,
-                    const std::string &directory,
-                    const std::string &name);
+                    const std::string &filepath);
 
 void saveTrajectoryTUM(std::ofstream *file,
                        uint64_t timestamp,
@@ -57,6 +51,14 @@ void saveTrajectoryTUM(std::ofstream *file,
                        double qy,
                        double qz,
                        double qw);
+
+/*!
+ * @brief Saving a CvGridMap as binary. Data is uncompressed and can therefore be of any opencv type (CV_8UC4, CV_32F, ...).
+ * For compressed data image encoding is required, which does not allow to save e.g. floats.
+ * @param map CvGridMap about to be saved to disk
+ * @param filepath Absolute filepath with .grid.bin suffix
+ */
+void saveCvGridMap(const CvGridMap &map, const std::string &filepath);
 
 } // namespace io
 } // namespace realm

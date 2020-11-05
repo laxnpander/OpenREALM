@@ -49,6 +49,18 @@ void io::createDir(const std::string &directory)
   }
 }
 
+bool io::removeFileOrDirectory(const std::string &path)
+{
+  boost::system::error_code error;
+  boost::filesystem::remove_all(path, error);
+
+  if(error)
+  {
+    throw(std::runtime_error(error.message()));
+  }
+  return true;
+}
+
 std::string io::createFilename(const std::string &prefix, uint32_t frame_id, const std::string &suffix)
 {
   char filename[1000];
@@ -56,13 +68,16 @@ std::string io::createFilename(const std::string &prefix, uint32_t frame_id, con
   return std::string(filename);
 }
 
-std::string io::getAbsolutePath(const std::string &directory, const std::string &filename)
+std::string io::getTempDirectoryPath()
 {
-  if (io::fileExists(filename))
-    return filename;
-  if (io::fileExists(directory + filename))
-    return (directory + filename);
-  throw(std::invalid_argument("Error: File '" + filename + "' could not be found."));
+  boost::system::error_code error;
+  boost::filesystem::path path = boost::filesystem::temp_directory_path(error);
+
+  if(error)
+  {
+    throw(std::runtime_error(error.message()));
+  }
+  return path.string();
 }
 
 std::string io::getDateTime()

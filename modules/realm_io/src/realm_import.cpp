@@ -24,11 +24,6 @@
 
 using namespace realm;
 
-camera::Pinhole io::loadCameraFromYaml(const std::string &directory, const std::string &filename)
-{
-  return loadCameraFromYaml(directory + "/" + filename);
-}
-
 camera::Pinhole io::loadCameraFromYaml(const std::string &filepath, double* fps)
 {
   // Identify camera model
@@ -139,4 +134,70 @@ cv::Mat io::loadSurfacePointsFromTxt(const std::string &filepath)
     points.push_back(pt);
   }
   return points;
+}
+
+CvGridMap::Ptr io::loadCvGridMap(const std::string &filepath)
+{
+  if (!io::fileExists(filepath))
+    throw(std::invalid_argument("Error loading image: File does not exist!"));
+
+  std::string suffix = filepath.substr(filepath.size()-9, 9);
+
+  if(suffix != ".grid.bin")
+    throw(std::invalid_argument("Error loading CvGridMap: Unknown suffix"));
+
+  FILE* file = fopen(filepath.c_str(), "rb");
+
+  size_t elements_read;
+
+  double x, y, width, height;
+  double resolution;
+
+  elements_read = fread(&x, sizeof(double), 1, file);
+  elements_read = fread(&y, sizeof(double), 1, file);
+  elements_read = fread(&width, sizeof(double), 1, file);
+  elements_read = fread(&height, sizeof(double), 1, file);
+  elements_read = fread(&resolution, sizeof(double), 1, file);
+
+  int nrof_layers;
+
+  elements_read = fread(&nrof_layers, sizeof(int), 1, file);
+
+  auto map = std::make_shared<CvGridMap>(cv::Rect2d(x, y, width, height), resolution);
+
+  for (int i = 0; i < nrof_layers; ++i)
+  {
+    int length;
+    elements_read = fread(&length, sizeof(int), 1, file);
+
+    char layer_name[length];
+    elements_read = fread(&layer_name, sizeof(char), length, file);
+
+    int interpolation;
+    elements_read = fread(&interpolation, sizeof(int), 1, file);
+
+    int header[4];
+    elements_read = fread(header, sizeof(int), 4, file);
+
+    if (elements_read != 4)
+      throw(std::runtime_error("Error reading binary: Elements read do not match matrix dimension!"));
+
+    int cols               = header[0];
+    int rows               = header[1];
+    int elem_size_in_bytes = header[2];
+    int elem_type          = header[3];
+
+    cv::Mat data = cv::Mat::ones(rows, cols, elem_type);
+
+    elements_read = fread(data.data, elem_size_in_bytes, (size_t)(cols * rows), file);
+
+    if (elements_read != (size_t)(cols * rows))
+      throw(std::runtime_error("Error reading binary: Elements read do not match matrix dimension!"));
+
+    map->add(std::string(layer_name), data, interpolation);
+  }
+
+  fclose(file);
+
+  return map;
 }

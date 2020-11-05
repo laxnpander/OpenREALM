@@ -24,6 +24,7 @@
 #include <fstream>
 #include <unordered_map>
 
+#include <realm_core/cv_grid_map.h>
 #include <realm_core/camera_settings_factory.h>
 #include <realm_io/utilities.h>
 
@@ -31,15 +32,6 @@ namespace realm
 {
 namespace io
 {
-
-/*!
- * @brief Function for loading camera from .yaml file. For formatted examples see realm_ros/config/...
- *        Interface for directory + filename version
- * @param directory Directory of the file
- * @param filename Name of the file including suffix
- * @return Loaded camera model
- */
-camera::Pinhole loadCameraFromYaml(const std::string &directory, const std::string &filename);
 
 /*!
  * @brief Function for loading camera from .yaml file. For formatted examples see realm_ros/config/...
@@ -83,6 +75,13 @@ std::unordered_map<uint64_t, cv::Mat> loadTrajectoryFromTxtTUM(const std::string
  * @return Surface points as cv::Mat rowise x,y,z
  */
 cv::Mat loadSurfacePointsFromTxt(const std::string &filepath);
+
+/*!
+ * @brief
+ * @param filepath
+ * @return
+ */
+CvGridMap::Ptr loadCvGridMap(const std::string &filepath);
 
 } // namespace io
 } // namespace realm
