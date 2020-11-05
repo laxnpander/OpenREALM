@@ -28,6 +28,8 @@ Depthmap::Depthmap(const cv::Mat &data, const camera::Pinhole &cam)
 {
   if (_data.type() != CV_32F)
     throw(std::invalid_argument("Error creating depth map: Matrix type not CV_32F"));
+  if (data.rows != _cam->height() || data.cols != _cam->width())
+    throw(std::invalid_argument("Error creating depth map: Dimension mismatch! Camera size does not match data."));
 
   updateDepthParameters();
 }

@@ -180,6 +180,7 @@ if(TESTS_ENABLED)
             test/test_helper.cpp
             test/conversion_test.cpp
             test/cvgridmap_test.cpp
+            test/depthmap_test.cpp
             test/frame_test.cpp
             test/pinhole_test.cpp
             test/plane_fitter_test.cpp

@@ -421,12 +421,12 @@ class Frame
        ###################################################*/
 
     // Measured data constant, no editing, no mutex neccessary
-    std::string _camera_id;
-    uint32_t _frame_id;
-    uint64_t _timestamp;                // timestamp of acquisition in nano seconds
-    cv::Mat _img;                       // Image data captured
-    UTMPose _utm;                       // GNSS measurement or "GeoTag"
-    cv::Mat _orientation;               // Orientation of the camera
+    std::string _camera_id;             // (required) Unique camera identifier
+    uint32_t _frame_id;                 // (required) Unique frame identifier
+    uint64_t _timestamp;                // (required) timestamp of acquisition in nano seconds
+    cv::Mat _img;                       // (required) Image data captured
+    UTMPose _utm;                       // (required) GNSS measurement or "GeoTag"
+    cv::Mat _orientation;               // (optional) Orientation of the camera
 
     /**########################################################
      * ########## Data computed after frame creation ##########
