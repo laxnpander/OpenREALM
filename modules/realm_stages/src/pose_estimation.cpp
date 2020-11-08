@@ -293,6 +293,11 @@ void PoseEstimation::reset()
   _reset_requested = false;
 }
 
+void PoseEstimation::queueImuData(const VisualSlamIF::ImuData &imu) const
+{
+  _vslam->queueImuData(imu);
+}
+
 bool PoseEstimation::changeParam(const std::string& name, const std::string &val)
 {
   std::unique_lock<std::mutex> lock;

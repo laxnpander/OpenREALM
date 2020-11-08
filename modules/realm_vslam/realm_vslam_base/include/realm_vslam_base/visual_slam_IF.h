@@ -46,6 +46,14 @@ public:
     KEYFRAME_INSERT,
     FRAME_INSERT
   };
+
+  struct ImuData
+  {
+    uint64_t timestamp;
+    cv::Point3d acceleration;
+    cv::Point3d gyroscope;
+  };
+
   // Class definition
 public:
 
@@ -86,6 +94,9 @@ public:
 //====================================================================================================================
 //=======  Optional
 //====================================================================================================================
+
+  virtual void queueImuData(const ImuData &)
+  {};
 
   virtual cv::Mat getMapPoints() const
   {};
