@@ -343,4 +343,4 @@ TEST(CvGridMap, ExtractSubmap)
 
   CvGridMap submap1 = map.getSubmap({"a", "b"}, cv::Rect2d(5, 20, 5, 5));
   EXPECT_EQ(submap1["a"].at<uchar>(0, 0), 125);
-}re
+}
