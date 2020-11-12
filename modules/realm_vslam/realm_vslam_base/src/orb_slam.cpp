@@ -18,13 +18,15 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "realm_vslam_base/orb_slam.h"
+#include <realm_vslam_base/orb_slam.h>
+#include <realm_core/loguru.h>
 
 using namespace realm;
 
-OrbSlam2::OrbSlam2(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set)
+OrbSlam::OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set)
 : _prev_keyid(-1),
   _resizing((*vslam_set)["resizing"].toDouble()),
+  _timestamp_reference(0),
   _path_vocabulary((*vslam_set)["path_vocabulary"].toString())
 {
   // Read the settings files
@@ -41,49 +43,63 @@ OrbSlam2::OrbSlam2(const VisualSlamSettings::Ptr &vslam_set, const CameraSetting
   dist_coeffs_32f.at<float>(3) = (*cam_set)["p2"].toFloat();
   dist_coeffs_32f.at<float>(4) = (*cam_set)["k3"].toFloat();
 
-  _cam_set.calibration = K_32f;
-  _cam_set.distortion = dist_coeffs_32f;
-  _cam_set.fps = (*cam_set)["fps"].toFloat();
-  _cam_set.imgWidth = (*cam_set)["width"].toInt();
-  _cam_set.imgHeight = (*cam_set)["height"].toInt();
-  _cam_set.rgb = 0;
+  ORB_SLAM3::CameraParameters cam{};
+  cam.K = K_32f;
+  cam.distCoeffs = dist_coeffs_32f;
+  cam.fps        = (*cam_set)["fps"].toFloat();
+  cam.width      = (*cam_set)["width"].toInt();
+  cam.height     = (*cam_set)["height"].toInt();
+  cam.isRGB      = false; // BGR
 
-  _track_set.nFeatures = (*vslam_set)["nrof_features"].toInt();
-  _track_set.nLevels = (*vslam_set)["n_pyr_levels"].toInt();
-  _track_set.scaleFactor = (*vslam_set)["scale_factor"].toFloat();
-  _track_set.iniThFast = (*vslam_set)["ini_th_FAST"].toInt();
-  _track_set.minThFast = (*vslam_set)["min_th_FAST"].toInt();
+  ORB_SLAM3::OrbParameters orb{};
+  orb.nFeatures   = (*vslam_set)["nrof_features"].toInt();
+  orb.nLevels     = (*vslam_set)["n_pyr_levels"].toInt();
+  orb.scaleFactor = (*vslam_set)["scale_factor"].toFloat();
+  orb.minThFast   = (*vslam_set)["min_th_FAST"].toInt();
+  orb.iniThFast   = (*vslam_set)["ini_th_FAST"].toInt();
 
-  _slam = new ORB_SLAM2::System(_cam_set, _track_set, _view_set, _path_vocabulary, ORB_SLAM2::System::MONOCULAR, false);
+  ORB_SLAM3::ImuParameters imu{};
 
-  namespace ph = std::placeholders;
-  std::function<void(ORB_SLAM2::KeyFrame*)> kf_update = std::bind(&OrbSlam2::keyframeUpdateCb, this, ph::_1);
-  _slam->RegisterKeyTransport(kf_update);
+  _slam = new ORB_SLAM3::System(_path_vocabulary, cam, imu, orb, ORB_SLAM3::System::MONOCULAR);
+
+  //namespace ph = std::placeholders;
+  //std::function<void(ORB_SLAM2::KeyFrame*)> kf_update = std::bind(&OrbSlam::keyframeUpdateCb, this, ph::_1);
+  //_slam->RegisterKeyTransport(kf_update);
 }
 
-OrbSlam2::~OrbSlam2()
+OrbSlam::~OrbSlam()
 {
   _slam->Shutdown();
   delete _slam;
 }
 
-VisualSlamIF::State OrbSlam2::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial)
+VisualSlamIF::State OrbSlam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial)
 {
+  if (_timestamp_reference == 0)
+  {
+    _timestamp_reference = frame->getTimestamp();
+    return State::LOST;
+  }
+
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(_resizing);
 
+  double timestamp = static_cast<double>(frame->getTimestamp() - _timestamp_reference)/10e9;
+  LOG_IF_F(INFO, true, "Time elapsed since first frame: %4.2f [s]", timestamp);
+
   // ORB SLAM returns a transformation from the world to the camera frame (T_w2c). In case we provide an initial guess
   // of the current pose, we have to invert this before, because in OpenREALM the standard is defined as T_c2w.
+
   cv::Mat T_w2c;
   if (T_c2w_initial.empty())
   {
-    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp()*10e-9);
+    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), timestamp);
   }
   else
   {
     cv::Mat T_w2c_initial = invertPose(T_c2w_initial);
     T_w2c_initial.convertTo(T_w2c_initial, CV_32F);
-    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), frame->getTimestamp()*10e-9, T_w2c_initial);
+    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), timestamp, T_w2c_initial);
   }
 
   // In case tracking was successfull and slam not lost
@@ -106,7 +122,7 @@ VisualSlamIF::State OrbSlam2::track(Frame::Ptr &frame, const cv::Mat &T_c2w_init
     frame->setSparseCloud(surface_pts, true);
 
     // Check if new frame is keyframe by comparing current keyid with last keyid
-    int32_t keyid = (int32_t)_slam->GetLastKeyFrameId();
+    auto keyid = static_cast<int32_t>(_slam->GetLastKeyFrameId());
 
     // Check current state of the slam
     if (_prev_keyid == -1)
@@ -128,23 +144,24 @@ VisualSlamIF::State OrbSlam2::track(Frame::Ptr &frame, const cv::Mat &T_c2w_init
   return State::LOST;
 }
 
-void OrbSlam2::reset()
+void OrbSlam::reset()
 {
   _slam->Reset();
+  _timestamp_reference = 0;
 }
 
-void OrbSlam2::close()
+void OrbSlam::close()
 {
   _slam->Shutdown();
 }
 
-cv::Mat OrbSlam2::getTrackedMapPoints() const
+cv::Mat OrbSlam::getTrackedMapPoints() const
 {
-  vector<ORB_SLAM2::MapPoint *> mappoints;
+  std::vector<ORB_SLAM3::MapPoint*> mappoints;
 
-  size_t n = 0;
   mappoints = _slam->GetTrackedMapPoints();
-  n = mappoints.size();
+
+  size_t n = mappoints.size();
 
   cv::Mat cvpoints;
   cvpoints.reserve(n);
@@ -160,31 +177,31 @@ cv::Mat OrbSlam2::getTrackedMapPoints() const
   return cvpoints;
 }
 
-cv::Mat OrbSlam2::getMapPoints() const
+cv::Mat OrbSlam::getMapPoints() const
 {
 
 }
 
-bool OrbSlam2::drawTrackedImage(cv::Mat &img) const
+bool OrbSlam::drawTrackedImage(cv::Mat &img) const
 {
   img = _slam->DrawTrackedImage();
   return true;
 }
 
-void OrbSlam2::registerUpdateTransport(const PoseUpdateFuncCb &func)
+void OrbSlam::registerUpdateTransport(const PoseUpdateFuncCb &func)
 {
   _pose_update_func_cb = func;
 }
 
-void OrbSlam2::registerResetCallback(const ResetFuncCb &func)
+void OrbSlam::registerResetCallback(const ResetFuncCb &func)
 {
   if (func)
   {
-    _slam->RegisterResetCallback(func);
+    //_slam->RegisterResetCallback(func);
   }
 }
 
-void OrbSlam2::keyframeUpdateCb(ORB_SLAM2::KeyFrame* kf)
+void OrbSlam::keyframeUpdateCb(ORB_SLAM3::KeyFrame* kf)
 {
   if (kf != nullptr && _pose_update_func_cb)
   {
@@ -197,7 +214,7 @@ void OrbSlam2::keyframeUpdateCb(ORB_SLAM2::KeyFrame* kf)
     T_c2w.pop_back();
 
     // Get update on map points
-    std::set<ORB_SLAM2::MapPoint*> map_points = kf->GetMapPoints();
+    std::set<ORB_SLAM3::MapPoint*> map_points = kf->GetMapPoints();
     cv::Mat points;
     points.reserve(map_points.size());
     for (const auto &pt : map_points)
@@ -210,7 +227,7 @@ void OrbSlam2::keyframeUpdateCb(ORB_SLAM2::KeyFrame* kf)
   }
 }
 
-cv::Mat OrbSlam2::invertPose(const cv::Mat &pose) const
+cv::Mat OrbSlam::invertPose(const cv::Mat &pose) const
 {
   cv::Mat pose_inv = cv::Mat::eye(4, 4, pose.type());
   cv::Mat R_t = (pose.rowRange(0, 3).colRange(0, 3)).t();
@@ -220,31 +237,11 @@ cv::Mat OrbSlam2::invertPose(const cv::Mat &pose) const
   return pose_inv;
 }
 
-void OrbSlam2::printSettingsToLog()
+void OrbSlam::printSettingsToLog()
 {
   LOG_F(INFO, "### OrbSlam2 general settings ###");
   LOG_F(INFO, "- use_viewer: %i", _use_viewer);
   LOG_F(INFO, "- resizing: %4.2f", _resizing);
   LOG_F(INFO, "- path settings: %s", _path_settings.c_str());
   LOG_F(INFO, "- path vocabulary: %s", _path_vocabulary.c_str());
-  LOG_F(INFO, "### OrbSlam2 camera settings ###");
-  LOG_F(INFO, "- fps: %4.2f", _cam_set.fps);
-  LOG_F(INFO, "- rgb: %i", _cam_set.rgb);
-  LOG_F(INFO, "- width: %i", _cam_set.imgWidth);
-  LOG_F(INFO, "- height: %i", _cam_set.imgHeight);
-  LOG_F(INFO, "- fx: %4.2f", _cam_set.calibration.at<float>(0, 0));
-  LOG_F(INFO, "- fy: %4.2f", _cam_set.calibration.at<float>(1, 1));
-  LOG_F(INFO, "- cx: %4.2f", _cam_set.calibration.at<float>(0, 2));
-  LOG_F(INFO, "- cy: %4.2f", _cam_set.calibration.at<float>(1, 2));
-  LOG_F(INFO, "- k1: %2.6f", _cam_set.distortion.at<float>(0));
-  LOG_F(INFO, "- k2: %2.6f", _cam_set.distortion.at<float>(1));
-  LOG_F(INFO, "- p1: %2.6f", _cam_set.distortion.at<float>(2));
-  LOG_F(INFO, "- p2: %2.6f", _cam_set.distortion.at<float>(3));
-  LOG_F(INFO, "- k3: %2.6f", _cam_set.distortion.at<float>(4));
-  LOG_F(INFO, "### OrbSlam2 SLAM settings ###");
-  LOG_F(INFO, "- nFeatures: %i", _track_set.nFeatures);
-  LOG_F(INFO, "- nLevels: %i", _track_set.nLevels);
-  LOG_F(INFO, "- scaleFactor: %4.2f", _track_set.scaleFactor);
-  LOG_F(INFO, "- iniThFast: %i", _track_set.iniThFast);
-  LOG_F(INFO, "- minThFast: %i", _track_set.minThFast);
 }

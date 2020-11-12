@@ -25,7 +25,7 @@
 #include <realm_core/camera_settings.h>
 #include <realm_vslam_base/visual_slam_IF.h>
 #include <realm_vslam_base/visual_slam_settings.h>
-#ifdef USE_ORB_SLAM2
+#ifdef USE_ORB_SLAM3
   #include <realm_vslam_base/orb_slam.h>
 #elif USE_OPEN_VSLAM
   #include <realm_vslam_base/open_vslam.h>

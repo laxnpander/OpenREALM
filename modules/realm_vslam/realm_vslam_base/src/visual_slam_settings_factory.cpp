@@ -26,7 +26,7 @@ using namespace realm;
 VisualSlamSettings::Ptr VisualSlamSettingsFactory::load(const std::string &filepath, const std::string &directory)
 {
   std::string method = VisualSlamSettings::sneakParameterFromFile<std::string>("type", filepath);
-  if (method == "ORB_SLAM2")
+  if (method == "ORB_SLAM3")
     return loadOrbSlam2(filepath, directory);
   if (method == "OPEN_VSLAM")
     return loadOpenVslam(filepath, directory);
@@ -45,7 +45,7 @@ VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOrbSlam2(const std::strin
   settings->loadFromFile(filepath);
 
   // Check and correct paths
-  settings->set("path_vocabulary", directory + "/orb_slam2/ORBvoc.bin");
+  settings->set("path_vocabulary", directory + "/orb_slam3/ORBvoc.bin");
   return std::move(settings);
 }
 
@@ -55,7 +55,7 @@ VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOpenVslam(const std::stri
   settings->loadFromFile(filepath);
 
   // Check and correct paths
-  settings->set("path_vocabulary", directory + "/orb_slam2/ORBvoc.bin");
+  settings->set("path_vocabulary", directory + "/orb_slam3/ORBvoc.bin");
   return std::move(settings);
 }
 
