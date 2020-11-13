@@ -57,3 +57,8 @@ TEST(WorkerThread, Basics)
   worker->requestFinish();
   worker->join();
 }
+
+TEST(WorkerThread, InvalidConstruction)
+{
+  EXPECT_ANY_THROW(auto worker = std::make_shared<DummyWorker>(0););
+}

@@ -195,6 +195,10 @@ if(TESTS_ENABLED)
     # Extra linking for the project.
     target_link_libraries(run_realm_core_tests ${LIBRARY_NAME})
 
+    add_custom_command(TARGET run_realm_core_tests PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/test/data $<TARGET_FILE_DIR:run_realm_core_tests>
+            )
+
     # This is so you can do 'make test' to see all your tests run, instead of
     # manually running the executable run_unit_tests to see those specific tests.
     add_test(

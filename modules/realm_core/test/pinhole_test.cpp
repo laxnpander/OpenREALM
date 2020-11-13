@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <realm_core/camera.h>
+#include <realm_core/camera_settings_factory.h>
 
 #include "test_helper.h"
 
@@ -182,4 +183,27 @@ TEST(Pinhole, Projections)
   EXPECT_NEAR(p1.at<double>(0), 0.0, 10e-6);
   EXPECT_NEAR(p1.at<double>(1), 0.0, 10e-6);
   EXPECT_NEAR(p1.at<double>(2), 0.0, 10e-6);
+}
+
+TEST(Pinhole, Settings)
+{
+  auto settings = CameraSettingsFactory::load("calib.yaml");
+
+  EXPECT_EQ((*settings)["type"].toString(), "pinhole");
+  EXPECT_NEAR((*settings)["fps"].toDouble(), 10.0, 10e-6);
+  EXPECT_EQ((*settings)["width"].toInt(), 1200);
+  EXPECT_EQ((*settings)["height"].toInt(), 1000);
+  EXPECT_NEAR((*settings)["fx"].toDouble(), 1200.0, 10e-6);
+  EXPECT_NEAR((*settings)["fy"].toDouble(), 1200.0, 10e-6);
+  EXPECT_NEAR((*settings)["cx"].toDouble(), 600.0, 10e-6);
+  EXPECT_NEAR((*settings)["cy"].toDouble(), 500.0, 10e-6);
+  EXPECT_NEAR((*settings)["k1"].toDouble(), 0.1, 10e-6);
+  EXPECT_NEAR((*settings)["k2"].toDouble(), 0.2, 10e-6);
+  EXPECT_NEAR((*settings)["p1"].toDouble(), 0.3, 10e-6);
+  EXPECT_NEAR((*settings)["p2"].toDouble(), 0.4, 10e-6);
+  EXPECT_NEAR((*settings)["k3"].toDouble(), 0.5, 10e-6);
+
+  EXPECT_ANY_THROW((*settings)["Some non-existent param"].toDouble());
+  EXPECT_ANY_THROW(auto settings_wrong = CameraSettingsFactory::load("wrong.yaml"));
+  EXPECT_ANY_THROW(auto settings_unsupported = CameraSettingsFactory::load("unsupported.yaml"));
 }

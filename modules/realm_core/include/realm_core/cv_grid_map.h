@@ -307,11 +307,7 @@ class CvGridMap
      */
     cv::Rect2d roi() const;
 
-    /*!
-     * @brief Prints debug information of the grid map, e.g. size of the data, layers, roi in the world frame
-     */
-    void printInfo() const;
-  private:
+private:
     // resolution therefor [m] / cell
     double _resolution;
     // Global region of interest the map is played in
@@ -324,19 +320,7 @@ class CvGridMap
 
     void mergeMatrices(const cv::Mat &mat1, cv::Mat &mat2, int flag_merge_handling);
 
-    /*!
-     * @brief Function to check if input data is valid. Depends on the currently supported data formats
-     * @param data Data to be checked -> Debug assertions if not valid
-     */
-    void checkValid(const cv::Mat &data);
-
-    /*!
-     * @brief Function to check if input layer is valid. Depends on the currently supported data formats
-     * @param layer Data to be checked -> Debug assertions if not valid
-     */
-    void checkValid(const Layer &layer);
-
-    /*!
+  /*!
      * @brief Checks the input matrix type and return true if CvGridMap currently supports it.
      * @param type OpenCV matrix type, e.g. CV_32F, ...
      * @return True if matrix type is supported

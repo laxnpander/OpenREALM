@@ -48,7 +48,7 @@ namespace realm {
   class DummyWorker : public WorkerThreadBase
   {
   public:
-    DummyWorker() : WorkerThreadBase("dummy_worker", 100, false), counter(0) {}
+    explicit DummyWorker(int64_t sleep_time = 100) : WorkerThreadBase("dummy_worker", sleep_time, false), counter(0) {}
     bool process() override { counter++; };
     void reset() override { counter = 0; };
 

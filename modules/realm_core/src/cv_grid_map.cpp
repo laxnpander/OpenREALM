@@ -62,9 +62,9 @@ CvGridMap CvGridMap::cloneSubmap(const std::vector<std::string> &layer_names)
 void CvGridMap::add(const Layer &layer, bool is_data_empty)
 {
   if (!is_data_empty && (layer.data.size().width != _size.width || layer.data.size().height != _size.height))
-  {
     throw(std::invalid_argument("Error: Adding Layer failed. Size of data does not match grid map size."));
-  }
+  if (!isMatrixTypeValid(layer.data.type()))
+    throw(std::invalid_argument("Error: Adding Layer failed. Matrix type is not supported."));
 
   // Add data if layer already exists, push to container if not
   if (!exists(layer.name))
@@ -391,17 +391,15 @@ void CvGridMap::changeResolution(double resolution)
 
 void CvGridMap::changeResolution(const cv::Size2i &size)
 {
-  // Compute the resizing depending on the final size of the matrix data. The +1 must be added here, because the first
+  // Compute the resizing depending on the final size of the matrix data. The -1 must be subtracted here, because the first
   // sample point is at (resolution/2, resolution/2) and the last at (width - resolution/2, height - resolution/2)
-  double x_factor = static_cast<double>(size.width) / _size.width;
-  double y_factor = static_cast<double>(size.height) / _size.height;
+  double x_factor = static_cast<double>(size.width-1) / (_size.width-1);
+  double y_factor = static_cast<double>(size.height-1) / (_size.height-1);
 
   if (fabs(x_factor-y_factor) > 10e-6)
     throw(std::invalid_argument("Error changing resolution of CvGridMap: Desired size was not changed uniformly!"));
 
   _resolution /= x_factor;
-  _roi.width -= _resolution;
-  _roi.height -= _resolution;
 
   fitGeometryToResolution(_roi, _roi, _size);
   for (auto &layer : _layers)
@@ -490,18 +488,6 @@ cv::Rect2d CvGridMap::roi() const
   return _roi;
 }
 
-void CvGridMap::printInfo() const
-{
-  std::cout.precision(10);
-  std::cout << "##### CvGridMap Debug Info #####" << std::endl;
-  std::cout << "Geometry:" << std::endl;
-  std::cout << "- Roi: " << _roi << std::endl;
-  std::cout << "- Size: " << _size.width << "x" << _size.height << std::endl;
-  std::cout << "Layers:" << std::endl;
-  for (const auto &layer : _layers)
-    std::cout << "- ['" << layer.name << "']: size = " << layer.data.cols << "x" << layer.data.rows << std::endl;
-}
-
 void CvGridMap::mergeMatrices(const cv::Mat &from, cv::Mat &to, int flag_merge_handling)
 {
   switch(flag_merge_handling)
@@ -520,24 +506,9 @@ void CvGridMap::mergeMatrices(const cv::Mat &from, cv::Mat &to, int flag_merge_h
   }
 }
 
-void CvGridMap::checkValid(const cv::Mat &data)
-{
-  if (data.empty())
-    throw(std::invalid_argument("Error: Layer data empty!"));
-  if (data.cols != _size.width || data.rows != _size.height)
-    throw(std::invalid_argument("Error: Layer dimension mismatch!"));
-  if (!isMatrixTypeValid(data.type()))
-    throw(std::invalid_argument("Error: Layer data type not supported!"));
-}
-
-void CvGridMap::checkValid(const Layer &layer)
-{
-  checkValid(layer.data);
-}
-
 bool CvGridMap::isMatrixTypeValid(int type)
 {
-  switch (type)
+  switch(type & CV_MAT_DEPTH_MASK)
   {
     case CV_32F:
       return true;

@@ -310,6 +310,9 @@ TEST(CvGridMap, LayerManagement)
 
   // Write of empty data with flag being set
   map.add(CvGridMap::Layer{"b", cv::Mat(), CV_INTER_AREA}, true);
+
+  map.remove(std::vector<std::string>{"b", "c"});
+  EXPECT_EQ(map.empty(), true);
 }
 
 TEST(CvGridMap, Clone)
@@ -336,11 +339,41 @@ TEST(CvGridMap, Clone)
 
 TEST(CvGridMap, ExtractSubmap)
 {
+  // From world frame / floating point
   CvGridMap map(cv::Rect2d(0, 0, 20, 30), 1.0);
   map.add("a", cv::Mat(map.size(), CV_8UC1, 50), CV_INTER_AREA);
   map.add("b", cv::Mat(map.size(), CV_8UC1, 100), CV_INTER_AREA);
   map["a"].at<uchar>(5, 5) = 125; // Note: World coordinate system is y up
 
-  CvGridMap submap1 = map.getSubmap({"a", "b"}, cv::Rect2d(5, 20, 5, 5));
+  CvGridMap submap1 = map.getSubmap({"a", "b"}, cv::Rect2d(5.0, 20.0, 5.0, 5.0));
   EXPECT_EQ(submap1["a"].at<uchar>(0, 0), 125);
+
+  // Extracting a region, which is larger than the original map is also possible, but only the overlap is returned
+  CvGridMap submap2 = map.getSubmap({"a"}, cv::Rect2d(-5.0, 20.0, 15.0, 5.0));
+  EXPECT_EQ(submap2["a"].at<uchar>(0, 5), 125);
+  EXPECT_NEAR(submap2.roi().width, 10.0, 10e-3);
+  EXPECT_NEAR(submap2.roi().height, 5.0, 10e-3);
+
+  // From grid frame / discrete integer data
+  CvGridMap submap3 = map.getSubmap({"a", "b"}, cv::Rect2i(0, 0, 6, 6));
+  EXPECT_EQ(submap3["a"].at<uchar>(5, 5), 125);
+}
+
+TEST(CvGridMap, ChangeResolution)
+{
+  CvGridMap map(cv::Rect2d(0, 0, 20, 30), 1.0);
+
+  EXPECT_EQ(map.size().width, 21);
+  EXPECT_EQ(map.size().height, 31);
+
+  map.changeResolution(0.5);
+
+  EXPECT_EQ(map.size().width, 41);
+  EXPECT_EQ(map.size().height, 61);
+
+  map.changeResolution(cv::Size2i(21, 31));
+
+  EXPECT_NEAR(map.resolution(), 1.0, 10e-3);
+  EXPECT_EQ(map.size().width, 21);
+  EXPECT_EQ(map.size().height, 31);
 }
