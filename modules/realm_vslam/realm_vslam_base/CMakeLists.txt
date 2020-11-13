@@ -28,7 +28,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 ################################################################################
 
 
-SET(VSLAM_IMPL_TYPE "ORB_SLAM3")
+SET(VSLAM_IMPL_TYPE "OPEN_VSLAM")
 
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)

@@ -53,6 +53,13 @@ Frame::Frame(const std::string &camera_id,
       _med_scene_depth(0.0),
       _depthmap(nullptr)
 {
+  if (_camera_id.empty())
+    throw(std::invalid_argument("Error creating frame: Camera Id not provided!"));
+  if (!_camera_model)
+    throw(std::invalid_argument("Error creating frame: Camera model not provided!"));
+  if (_img.empty())
+    throw(std::invalid_argument("Error creating frame: Image data empty!"));
+
   _camera_model->setPose(getDefaultPose());
 }
 
