@@ -78,6 +78,9 @@ class PoseEstimation : public StageBase
     ~PoseEstimation();
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
+
+    void queueImuData(const VisualSlamIF::ImuData &imu) const;
+
   private:
     // Flag for initialization of georeference
     bool _is_georef_initialized;

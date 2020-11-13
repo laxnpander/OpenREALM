@@ -228,6 +228,11 @@ void OpenVslam::printSettingsToLog()
 
 }
 
+void OpenVslam::queueImuData(const VisualSlamIF::ImuData &imu)
+{
+  // TBD
+}
+
 OpenVslamKeyframeUpdater::OpenVslamKeyframeUpdater(const std::string &thread_name, int64_t sleep_time, bool verbose)
   : WorkerThreadBase(thread_name, sleep_time, verbose)
 {

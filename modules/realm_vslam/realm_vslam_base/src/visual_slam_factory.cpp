@@ -26,9 +26,9 @@ VisualSlamIF::Ptr VisualSlamFactory::create(const VisualSlamSettings::Ptr &vslam
                                             const CameraSettings::Ptr &cam_set)
 {
   // If compiled with ORB SLAM 2
-#ifdef USE_ORB_SLAM2
-  if ((*vslam_set)["type"].toString() == "ORB_SLAM2")
-    return std::make_shared<OrbSlam2>(vslam_set, cam_set);
+#ifdef USE_ORB_SLAM3
+  if ((*vslam_set)["type"].toString() == "ORB_SLAM3")
+    return std::make_shared<OrbSlam>(vslam_set, cam_set);
 #elif USE_OPEN_VSLAM
   if ((*vslam_set)["type"].toString() == "OPEN_VSLAM")
     return std::make_shared<OpenVslam>(vslam_set, cam_set);

@@ -45,6 +45,8 @@ public:
   void reset() override;
   void printSettingsToLog() override;
 
+  void queueImuData(const VisualSlamIF::ImuData &imu) override;
+
   bool drawTrackedImage(cv::Mat &img) const override;
 
   cv::Mat getTrackedMapPoints() const override;

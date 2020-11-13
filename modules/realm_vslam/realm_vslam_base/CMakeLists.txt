@@ -28,7 +28,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 ################################################################################
 
 
-SET(VSLAM_IMPL_TYPE "OPEN_VSLAM")
+SET(VSLAM_IMPL_TYPE "ORB_SLAM3")
 
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)
@@ -44,20 +44,20 @@ if(NOT Eigen3_FOUND)
 	set(Eigen3_INCLUDE_DIR ${Eigen3_INCLUDE_DIRS})
 endif()
 
-
 ################################################################################
 # Sources
 ################################################################################
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(${VSLAM_IMPL_TYPE} STREQUAL "ORB_SLAM2")
-	set(VSLAM_IMPL_LIB orb_slam_2)
-	set(VSLAM_IMPL_LIB_HEADERS ${orb_slam_2_INCLUDE_DIR})
+if(${VSLAM_IMPL_TYPE} STREQUAL "ORB_SLAM3")
+	find_package(ORB_SLAM3 REQUIRED)
+	set(VSLAM_IMPL_LIB ORB_SLAM3)
+	set(VSLAM_IMPL_LIB_HEADERS ${ORB_SLAM3_INCLUDE_DIR})
 	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/orb_slam.h)
 	set(VSLAM_IF_SOURCES ${root}/src/orb_slam.cpp)
-	set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM2=ON")
-	message(STATUS "Selected ORB SLAM 2 for visual pose estimation")
+	set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM3=ON")
+	message(STATUS "Selected ORB SLAM 3 for visual pose estimation")
 
 elseif(${VSLAM_IMPL_TYPE} STREQUAL "OPEN_VSLAM")
 	set(VSLAM_IMPL_LIB openvslam)
@@ -151,9 +151,9 @@ target_link_libraries(${LIBRARY_NAME}
 		PUBLIC
 			realm_core
 			realm_io
-			${VSLAM_IMPL_LIB}
 		PRIVATE
 			${OpenCV_LIBRARIES}
+			${VSLAM_IMPL_LIB}
 )
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC ${VSLAM_IF_COMPILE_FLAG})
