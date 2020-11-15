@@ -25,6 +25,8 @@
 #include <chrono>
 #include <mutex>
 #include <string>
+#include <condition_variable>
+#include <functional>
 
 namespace realm
 {
@@ -32,10 +34,13 @@ namespace realm
 class WorkerThreadBase
 {
   public:
+
     /*!
      * @brief Basic constructor for worker thread class
      * @param thread_name Name of the thread
-     * @param sleep_time Duration the thread is sleeping after processing in milliseconds
+     * @param sleep_time Duration the thread is sleeping after processing in milliseconds. Note that we implemented
+     * it with a condition variable, so you can also asynchronously wake up the processing thread by calling the notify()
+     * function.
      * @param verbose Flag for verbose output
      */
     explicit WorkerThreadBase(const std::string &thread_name, int64_t sleep_time, bool verbose);
@@ -77,6 +82,11 @@ class WorkerThreadBase
      */
     void requestFinish();
 
+    /*!
+     * @brief Allows the processing thread to return before sleep time is over.
+     */
+    void notify();
+
   protected:
 
     /*!
@@ -93,6 +103,10 @@ class WorkerThreadBase
      * @brief Verbose flag, set true if additional output should be generated
      */
     bool _verbose;
+
+    std::mutex _mutex_processing;
+    std::function<bool()> _data_ready_functor;
+    std::condition_variable _condition_processing;
 
     /*!
      * @brief Function that every derived worker thread should implement. run() will trigger process, if no stop, reset or

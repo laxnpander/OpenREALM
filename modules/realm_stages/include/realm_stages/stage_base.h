@@ -237,6 +237,14 @@ class StageBase : public WorkerThreadBase
     CvGridMapTransportFunc _transport_cvgridmap;
 
     /*!
+     * @brief Setting an async data ready functor allows the thread to wake up from sleep outside the sleep time. It
+     * will only sleep as long as the data ready functor returns falls. It  could therefore be provided with a function
+     * that checks the size of a processing queue and returns true as long as there is data inside.
+     * @param func Functor that tells the worker thread when there is something to process and when there is not.
+     */
+    void registerAsyncDataReadyFunctor(const std::function<bool()> &func);
+
+    /*!
      * @brief Function for creation of all neccessary output directories of the derived stage. Will be called whenever
      * "initStagePath" was triggered.
      */

@@ -47,6 +47,8 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                       (*stage_set)["save_keyframes"].toInt() > 0,
                       (*stage_set)["save_keyframes_full"].toInt() > 0})
 {
+  registerAsyncDataReadyFunctor([=]{ return !_buffer_no_pose.empty(); });
+
   if (_use_vslam)
   {
     _vslam = VisualSlamFactory::create(vslam_set, cam_set);
@@ -121,6 +123,7 @@ void PoseEstimation::addFrame(const Frame::Ptr &frame)
     pushToBufferNoPose(frame);
   else
     pushToBufferPublish(frame);
+  notify();
 
   // Ringbuffer implementation for buffer with no pose
   if (_buffer_no_pose.size() > 5)

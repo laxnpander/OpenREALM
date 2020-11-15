@@ -34,7 +34,8 @@ WorkerThreadBase::WorkerThreadBase(const std::string &thread_name, int64_t sleep
   _reset_requested(false),
   _stop_requested(false),
   _is_stopped(false),
-  _verbose(verbose)
+  _verbose(verbose),
+  _data_ready_functor([=]{ return isFinishRequested(); })
 {
   if (_sleep_time == 0)
     throw(std::runtime_error("Error: Worker thread was created with 0s sleep time."));
@@ -58,8 +59,16 @@ void WorkerThreadBase::run()
   loguru::set_thread_name(_thread_name.c_str());
 
   LOG_IF_F(INFO, _verbose, "Thread '%s' starting loop...", _thread_name.c_str());
+  bool is_first_run = true;
+
   while (!isFinishRequested())
   {
+    std::unique_lock<std::mutex> lock(_mutex_processing);
+    if (!is_first_run)
+      _condition_processing.wait_for(lock, std::chrono::milliseconds(_sleep_time), _data_ready_functor);
+    else
+      is_first_run = false;
+
     // Handle stops and finish
     if (isStopRequested())
     {
@@ -92,8 +101,6 @@ void WorkerThreadBase::run()
                "Timing [Total]: %lu ms",
                getCurrentTimeMilliseconds() - t);
     }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(_sleep_time));
   }
   LOG_IF_F(INFO, _verbose, "Thread '%s' finished!", _thread_name.c_str());
 }
@@ -156,6 +163,11 @@ bool WorkerThreadBase::isStopped()
   if (_is_stopped)
     _stop_requested = false;
   return _is_stopped;
+}
+
+void WorkerThreadBase::notify()
+{
+  _condition_processing.notify_one();
 }
 
 long WorkerThreadBase::getCurrentTimeMilliseconds()
