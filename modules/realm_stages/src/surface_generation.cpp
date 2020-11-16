@@ -36,6 +36,7 @@ SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double 
   _settings_save({(*settings)["save_elevation"].toInt() > 0,
                   (*settings)["save_normals"].toInt() > 0})
 {
+  registerAsyncDataReadyFunctor([=]{ return !_buffer.empty(); });
 }
 
 void SurfaceGeneration::addFrame(const Frame::Ptr &frame)

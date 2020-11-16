@@ -64,6 +64,8 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
     _gdal_writer.reset(new io::GDALContinuousWriter("mosaicing_gtiff_writer", 100, true));
     _gdal_writer->start();
   }
+
+  registerAsyncDataReadyFunctor([=]{ return !_buffer.empty(); });
 }
 
 Mosaicing::~Mosaicing()

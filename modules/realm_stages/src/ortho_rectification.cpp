@@ -36,6 +36,8 @@ OrthoRectification::OrthoRectification(const StageSettings::Ptr &stage_set, doub
 {
   std::cout << "Stage [" << _stage_name << "]: Created Stage with Settings: " << std::endl;
   stage_set->print();
+
+  registerAsyncDataReadyFunctor([=]{ return !_buffer.empty(); });
 }
 
 void OrthoRectification::addFrame(const Frame::Ptr &frame)

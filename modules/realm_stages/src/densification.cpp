@@ -41,6 +41,8 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
                   (*stage_set)["save_thumb"].toInt() > 0,
                   (*stage_set)["save_normals"].toInt() > 0})
 {
+  registerAsyncDataReadyFunctor([=]{ return !_buffer_reco.empty(); });
+
   _densifier = densifier::DensifierFactory::create(densifier_set);
   _n_frames = _densifier->getNrofInputFrames();
 
@@ -92,6 +94,8 @@ bool Densification::process()
   Depthmap::Ptr depthmap = processStereoReconstruction(_buffer_reco, frame_processed);
   popFromBufferReco();
   LOG_IF_F(INFO, _verbose, "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds()-t);
+  if (!depthmap)
+    return true;
 
   // Compute normals if desired
   t = getCurrentTimeMilliseconds();
