@@ -76,6 +76,7 @@ void Densification::addFrame(const Frame::Ptr &frame)
   }
 
   pushToBufferReco(frame);
+  notify();
 }
 
 bool Densification::process()

@@ -60,6 +60,7 @@ void OrthoRectification::addFrame(const Frame::Ptr &frame)
   // Ringbuffer implementation for buffer with no pose
   if (_buffer.size() > _queue_size)
     _buffer.pop_front();
+  notify();
 }
 
 bool OrthoRectification::process()

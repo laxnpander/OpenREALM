@@ -49,6 +49,7 @@ void SurfaceGeneration::addFrame(const Frame::Ptr &frame)
   // Ringbuffer implementation
   if (_buffer.size() > _queue_size)
     _buffer.pop_front();
+  notify();
 }
 
 bool SurfaceGeneration::process()

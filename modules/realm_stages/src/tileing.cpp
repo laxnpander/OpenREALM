@@ -37,6 +37,8 @@ Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
 
   _warper.setTargetEPSG(3857);
   _warper.setNrofThreads(4);
+
+  registerAsyncDataReadyFunctor([=]{ return !_buffer.empty(); });
 }
 
 Tileing::~Tileing()
@@ -64,6 +66,7 @@ void Tileing::addFrame(const Frame::Ptr &frame)
   // Ringbuffer implementation for buffer with no pose
   if (_buffer.size() > _queue_size)
     _buffer.pop_front();
+  notify();
 }
 
 bool Tileing::process()
