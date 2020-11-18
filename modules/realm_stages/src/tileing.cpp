@@ -373,7 +373,7 @@ void Tileing::initStageCallback()
   if (!_map_tiler)
   {
     _map_tiler = std::make_shared<MapTiler>(true);
-    _tile_cache = std::make_shared<TileCache>("tile_cache", 100, _stage_path + "/tiles", false);
+    _tile_cache = std::make_shared<TileCache>("tile_cache", 500, _stage_path + "/tiles", false);
     _tile_cache->start();
   }
 }

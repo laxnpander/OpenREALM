@@ -32,7 +32,7 @@ TileCache::TileCache(const std::string &id, double sleep_time, const std::string
    _has_init_directories(false),
    _do_update(false)
 {
-
+  _data_ready_functor = [=]{ return (_do_update || isFinishRequested()); };
 }
 
 TileCache::~TileCache()
@@ -197,6 +197,7 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
 
   std::lock_guard<std::mutex> lock1(_mutex_do_update);
   _do_update = true;
+  notify();
 }
 
 Tile::Ptr TileCache::get(int tx, int ty, int zoom_level)
