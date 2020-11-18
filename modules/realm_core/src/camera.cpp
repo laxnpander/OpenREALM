@@ -37,29 +37,29 @@ Pinhole::Pinhole(double fx,
                  double cy,
                  uint32_t img_width,
                  uint32_t img_height)
-    : _do_undistort(false),
-      _img_width(img_width),
-      _img_height(img_height)
+    : m_do_undistort(false),
+      m_width(img_width),
+      m_height(img_height)
 {
-  _camera_matrix = cv::Mat_<double>(3, 3);
-  _camera_matrix.at<double>(0, 0) = fx;
-  _camera_matrix.at<double>(0, 1) = 0;
-  _camera_matrix.at<double>(0, 2) = cx;
-  _camera_matrix.at<double>(1, 0) = 0;
-  _camera_matrix.at<double>(1, 1) = fy;
-  _camera_matrix.at<double>(1, 2) = cy;
-  _camera_matrix.at<double>(2, 0) = 0;
-  _camera_matrix.at<double>(2, 1) = 0;
-  _camera_matrix.at<double>(2, 2) = 1.0;
+  m_K = cv::Mat_<double>(3, 3);
+  m_K.at<double>(0, 0) = fx;
+  m_K.at<double>(0, 1) = 0;
+  m_K.at<double>(0, 2) = cx;
+  m_K.at<double>(1, 0) = 0;
+  m_K.at<double>(1, 1) = fy;
+  m_K.at<double>(1, 2) = cy;
+  m_K.at<double>(2, 0) = 0;
+  m_K.at<double>(2, 1) = 0;
+  m_K.at<double>(2, 2) = 1.0;
 }
 
 Pinhole::Pinhole(const cv::Mat &K,
                  uint32_t img_width,
                  uint32_t img_height)
-    : _do_undistort(false),
-      _camera_matrix(K),
-      _img_width(img_width),
-      _img_height(img_height)
+    : m_do_undistort(false),
+      m_K(K),
+      m_width(img_width),
+      m_height(img_height)
 {
 }
 
@@ -67,27 +67,27 @@ Pinhole::Pinhole(const cv::Mat &K,
                  const cv::Mat &dist_coeffs,
                  uint32_t img_width,
                  uint32_t img_height)
-    : _do_undistort(false),
-      _camera_matrix(K),
-      _img_width(img_width),
-      _img_height(img_height)
+    : m_do_undistort(false),
+      m_K(K),
+      m_width(img_width),
+      m_height(img_height)
 {
   setDistortionMap(dist_coeffs);
 }
 
 Pinhole::Pinhole(const Pinhole &that)
-: _do_undistort(that._do_undistort),
-  _exterior_rotation(that._exterior_rotation.clone()),
-  _exterior_translation(that._exterior_translation.clone()),
-  _camera_matrix(that._camera_matrix.clone()),
-  _img_width(that._img_width),
-  _img_height(that._img_height)
+: m_do_undistort(that.m_do_undistort),
+  m_R(that.m_R.clone()),
+  m_t(that.m_t.clone()),
+  m_K(that.m_K.clone()),
+  m_width(that.m_width),
+  m_height(that.m_height)
 {
-  if (_do_undistort)
+  if (m_do_undistort)
   {
-    _distortion_coeff = that._distortion_coeff.clone();
-    _undistortion_map1 = that._undistortion_map1.clone();
-    _undistortion_map2 = that._undistortion_map2.clone();
+    m_dist_coeffs = that.m_dist_coeffs.clone();
+    m_undistortion_map1 = that.m_undistortion_map1.clone();
+    m_undistortion_map2 = that.m_undistortion_map2.clone();
   }
 }
 
@@ -95,17 +95,17 @@ Pinhole& Pinhole::operator=(const Pinhole &that)
 {
   if (this != &that)
   {
-    _do_undistort = that._do_undistort;
-    _exterior_rotation = that._exterior_rotation.clone();
-    _exterior_translation = that._exterior_translation.clone();
-    _camera_matrix = that._camera_matrix.clone();
-    _img_width = that._img_width;
-    _img_height = that._img_height;
+    m_do_undistort = that.m_do_undistort;
+    m_R = that.m_R.clone();
+    m_t = that.m_t.clone();
+    m_K = that.m_K.clone();
+    m_width = that.m_width;
+    m_height = that.m_height;
 
-    if (_do_undistort) {
-      _distortion_coeff = that._distortion_coeff.clone();
-      _undistortion_map1 = that._undistortion_map1.clone();
-      _undistortion_map2 = that._undistortion_map2.clone();
+    if (m_do_undistort) {
+      m_dist_coeffs = that.m_dist_coeffs.clone();
+      m_undistortion_map1 = that.m_undistortion_map1.clone();
+      m_undistortion_map2 = that.m_undistortion_map2.clone();
     }
   }
   return *this;
@@ -113,132 +113,132 @@ Pinhole& Pinhole::operator=(const Pinhole &that)
 
 bool Pinhole::hasDistortion() const
 {
-  return _do_undistort;
+  return m_do_undistort;
 }
 
 uint32_t Pinhole::width() const
 {
-  return _img_width;
+  return m_width;
 }
 
 uint32_t Pinhole::height() const
 {
-  return _img_height;
+  return m_height;
 }
 
 double Pinhole::fx() const
 {
-  assert(!_camera_matrix.empty() && _camera_matrix.type() == CV_64F);
-  return _camera_matrix.at<double>(0, 0);
+  assert(!m_K.empty() && m_K.type() == CV_64F);
+  return m_K.at<double>(0, 0);
 }
 
 double Pinhole::fy() const
 {
-  assert(!_camera_matrix.empty() && _camera_matrix.type() == CV_64F);
-  return _camera_matrix.at<double>(1, 1);
+  assert(!m_K.empty() && m_K.type() == CV_64F);
+  return m_K.at<double>(1, 1);
 }
 
 double Pinhole::cx() const
 {
-  assert(!_camera_matrix.empty() && _camera_matrix.type() == CV_64F);
-  return _camera_matrix.at<double>(0, 2);
+  assert(!m_K.empty() && m_K.type() == CV_64F);
+  return m_K.at<double>(0, 2);
 }
 
 double Pinhole::cy() const
 {
-  assert(!_camera_matrix.empty() && _camera_matrix.type() == CV_64F);
-  return _camera_matrix.at<double>(1, 2);
+  assert(!m_K.empty() && m_K.type() == CV_64F);
+  return m_K.at<double>(1, 2);
 }
 
 double Pinhole::k1() const
 {
-  assert(!_distortion_coeff.empty() && _distortion_coeff.type() == CV_64F);
-  return _distortion_coeff.at<double>(0);
+  assert(!m_dist_coeffs.empty() && m_dist_coeffs.type() == CV_64F);
+  return m_dist_coeffs.at<double>(0);
 }
 
 double Pinhole::k2() const
 {
-  assert(!_distortion_coeff.empty() && _distortion_coeff.type() == CV_64F);
-  return _distortion_coeff.at<double>(1);
+  assert(!m_dist_coeffs.empty() && m_dist_coeffs.type() == CV_64F);
+  return m_dist_coeffs.at<double>(1);
 }
 
 double Pinhole::p1() const
 {
-  assert(!_distortion_coeff.empty() && _distortion_coeff.type() == CV_64F);
-  return _distortion_coeff.at<double>(2);
+  assert(!m_dist_coeffs.empty() && m_dist_coeffs.type() == CV_64F);
+  return m_dist_coeffs.at<double>(2);
 }
 
 double Pinhole::p2() const
 {
-  assert(!_distortion_coeff.empty() && _distortion_coeff.type() == CV_64F);
-  return _distortion_coeff.at<double>(3);
+  assert(!m_dist_coeffs.empty() && m_dist_coeffs.type() == CV_64F);
+  return m_dist_coeffs.at<double>(3);
 }
 
 double Pinhole::k3() const
 {
-  assert(!_distortion_coeff.empty() && _distortion_coeff.type() == CV_64F);
-  return _distortion_coeff.at<double>(4);
+  assert(!m_dist_coeffs.empty() && m_dist_coeffs.type() == CV_64F);
+  return m_dist_coeffs.at<double>(4);
 }
 
 cv::Mat Pinhole::K() const
 {
-  assert(!_camera_matrix.empty() && _camera_matrix.type() == CV_64F);
-  return _camera_matrix.clone();
+  assert(!m_K.empty() && m_K.type() == CV_64F);
+  return m_K.clone();
 }
 
 cv::Mat Pinhole::P() const
 {
-  if (_exterior_rotation.empty())
+  if (m_R.empty())
     throw(std::runtime_error("Error: Projection matrix could not be computed. Exterior rotation not set!"));
-  if (_exterior_translation.empty())
+  if (m_t.empty())
     throw(std::runtime_error("Error: Projection matrix could not be computed. Exterior translation not set!"));
 
   cv::Mat T_w2c = Tw2c();
 
   cv::Mat P;
-  hconcat(_camera_matrix * T_w2c.rowRange(0, 3).colRange(0, 3), _camera_matrix * T_w2c.rowRange(0, 3).col(3), P);
+  hconcat(m_K * T_w2c.rowRange(0, 3).colRange(0, 3), m_K * T_w2c.rowRange(0, 3).col(3), P);
   return P;
 }
 
 cv::Mat Pinhole::distCoeffs() const
 {
-  assert(!_distortion_coeff.empty() && _camera_matrix.type() == CV_64F);
+  assert(!m_dist_coeffs.empty() && m_K.type() == CV_64F);
 
-  return _distortion_coeff.clone();
+  return m_dist_coeffs.clone();
 }
 
 cv::Mat Pinhole::R() const
 {
-  assert(!_exterior_rotation.empty() && _exterior_rotation.type() == CV_64F);
+  assert(!m_R.empty() && m_R.type() == CV_64F);
 
-  return _exterior_rotation.clone();
+  return m_R.clone();
 }
 
 cv::Mat Pinhole::t() const
 {
-  assert(!_exterior_translation.empty() && _exterior_translation.type() == CV_64F);
-  return _exterior_translation.clone();
+  assert(!m_t.empty() && m_t.type() == CV_64F);
+  return m_t.clone();
 }
 
 cv::Mat Pinhole::pose() const
 {
-  if (_exterior_rotation.empty() || _exterior_translation.empty())
+  if (m_R.empty() || m_t.empty())
     return cv::Mat();
 
   cv::Mat pose = cv::Mat_<double>(3, 4);
-  _exterior_rotation.copyTo(pose.rowRange(0, 3).colRange(0, 3));
-  _exterior_translation.copyTo(pose.col(3));
+  m_R.copyTo(pose.rowRange(0, 3).colRange(0, 3));
+  m_t.copyTo(pose.col(3));
   return std::move(pose);
 }
 
 cv::Mat Pinhole::Tw2c() const
 {
-  if (_exterior_rotation.empty() || _exterior_translation.empty())
+  if (m_R.empty() || m_t.empty())
     return cv::Mat();
 
   cv::Mat T_w2c = cv::Mat::eye(4, 4, CV_64F);
-  cv::Mat R_w2c = _exterior_rotation.t();
-  cv::Mat t_w2c = -R_w2c * _exterior_translation;
+  cv::Mat R_w2c = m_R.t();
+  cv::Mat t_w2c = -R_w2c * m_t;
   R_w2c.copyTo(T_w2c.rowRange(0, 3).colRange(0, 3));
   t_w2c.copyTo(T_w2c.rowRange(0, 3).col(3));
   return T_w2c;
@@ -247,12 +247,12 @@ cv::Mat Pinhole::Tw2c() const
 // Pose of camera in the world reference
 cv::Mat Pinhole::Tc2w() const
 {
-  if (_exterior_rotation.empty() || _exterior_translation.empty())
+  if (m_R.empty() || m_t.empty())
     return cv::Mat();
 
   cv::Mat T_c2w = cv::Mat::eye(4, 4, CV_64F);
-  _exterior_rotation.copyTo(T_c2w.rowRange(0, 3).colRange(0, 3));
-  _exterior_translation.copyTo(T_c2w.rowRange(0, 3).col(3));
+  m_R.copyTo(T_c2w.rowRange(0, 3).colRange(0, 3));
+  m_t.copyTo(T_c2w.rowRange(0, 3).col(3));
   return T_c2w;
 }
 
@@ -275,43 +275,43 @@ void Pinhole::setDistortionMap(const double &k1,
 void Pinhole::setDistortionMap(const cv::Mat &dist_coeffs)
 {
   assert(!dist_coeffs.empty() && dist_coeffs.type() == CV_64F);
-  _distortion_coeff = dist_coeffs;
-  cv::initUndistortRectifyMap(_camera_matrix,
-                              _distortion_coeff,
+  m_dist_coeffs = dist_coeffs;
+  cv::initUndistortRectifyMap(m_K,
+                              m_dist_coeffs,
                               cv::Mat_<double>::eye(3, 3),
-                              _camera_matrix,
-                              cv::Size(_img_width, _img_height),
+                              m_K,
+                              cv::Size(m_width, m_height),
                               CV_16SC2,
-                              _undistortion_map1,
-                              _undistortion_map2);
-  _do_undistort = true;
+                              m_undistortion_map1,
+                              m_undistortion_map2);
+  m_do_undistort = true;
 }
 
 void Pinhole::setPose(const cv::Mat &pose)
 {
   assert(!pose.empty() && pose.type() == CV_64F);
   assert(pose.rows == 3 && pose.cols == 4);
-  _exterior_translation = pose.col(3).rowRange(0, 3);
-  _exterior_rotation = pose.colRange(0, 3).rowRange(0, 3);
+  m_t = pose.col(3).rowRange(0, 3);
+  m_R = pose.colRange(0, 3).rowRange(0, 3);
 }
 
 Pinhole Pinhole::resize(double factor) const
 {
-  assert(!_camera_matrix.empty());
-  cv::Mat K = _camera_matrix.clone();
+  assert(!m_K.empty());
+  cv::Mat K = m_K.clone();
   K.at<double>(0, 0) *= factor;
   K.at<double>(1, 1) *= factor;
   K.at<double>(0, 2) *= factor;
   K.at<double>(1, 2) *= factor;
-  cv::Mat dist_coeffs = _distortion_coeff.clone();
-  auto width = static_cast<uint32_t>(std::round((double)_img_width * factor));
-  auto height = static_cast<uint32_t>(std::round((double)_img_height * factor));
+  cv::Mat dist_coeffs = m_dist_coeffs.clone();
+  auto width = static_cast<uint32_t>(std::round((double)m_width * factor));
+  auto height = static_cast<uint32_t>(std::round((double)m_height * factor));
 
   Pinhole cam_resized(K, dist_coeffs, width, height);
-  if (!_exterior_rotation.empty() && !_exterior_translation.empty())
+  if (!m_R.empty() && !m_t.empty())
   {
-    cam_resized._exterior_rotation = _exterior_rotation.clone();
-    cam_resized._exterior_translation = _exterior_translation.clone();
+    cam_resized.m_R = m_R.clone();
+    cam_resized.m_t = m_t.clone();
   }
 
   return cam_resized;
@@ -322,8 +322,8 @@ Pinhole Pinhole::resize(uint32_t width, uint32_t height)
   if (width == 0 || height == 0)
     throw(std::invalid_argument("Error resizing camera: Resizing to zero dimensions not permitted."));
 
-  double factor_x = static_cast<double>(width) / _img_width;
-  double factor_y = static_cast<double>(height) / _img_height;
+  double factor_x = static_cast<double>(width) / m_width;
+  double factor_y = static_cast<double>(height) / m_height;
 
   if (fabs(factor_x - factor_y) > 10e-2)
     throw(std::invalid_argument("Error resizing camera: Only multiples of the original image size are supported."));
@@ -336,17 +336,17 @@ Pinhole Pinhole::resize(uint32_t width, uint32_t height)
 cv::Mat Pinhole::computeImageBounds2Ddistorted() const
 {
   return (cv::Mat_<double>(4, 2)
-      << 0, 0, 0, (double) _img_height, (double) _img_width, (double) _img_height, (double) _img_width, 0);
+      << 0, 0, 0, (double) m_height, (double) m_width, (double) m_height, (double) m_width, 0);
 }
 
 cv::Mat Pinhole::computeImageBounds2D() const
 {
   cv::Mat img_bounds = computeImageBounds2Ddistorted();
 
-  if (_do_undistort)
+  if (m_do_undistort)
   {
     img_bounds = img_bounds.reshape(2);
-    cv::undistortPoints(img_bounds, img_bounds, _camera_matrix, _distortion_coeff, cv::Mat(), _camera_matrix);
+    cv::undistortPoints(img_bounds, img_bounds, m_K, m_dist_coeffs, cv::Mat(), m_K);
     img_bounds = img_bounds.reshape(1);
   }
 
@@ -355,14 +355,14 @@ cv::Mat Pinhole::computeImageBounds2D() const
 
 cv::Mat Pinhole::projectImageBoundsToPlane(const cv::Mat &pt, const cv::Mat &n) const
 {
-  assert(!_exterior_rotation.empty() && !_exterior_translation.empty() && !_camera_matrix.empty());
+  assert(!m_R.empty() && !m_t.empty() && !m_K.empty());
   cv::Mat img_bounds = computeImageBounds2D();
   cv::Mat plane_points;
   for (uint i = 0; i < 4; i++)
   {
     cv::Mat u = (cv::Mat_<double>(3, 1) << img_bounds.at<double>(i, 0), img_bounds.at<double>(i, 1), 1.0);
-    double s = (pt - _exterior_translation).dot(n) / (_exterior_rotation * _camera_matrix.inv() * u).dot(n);
-    cv::Mat p = _exterior_rotation * (s * _camera_matrix.inv() * u) + _exterior_translation;
+    double s = (pt - m_t).dot(n) / (m_R * m_K.inv() * u).dot(n);
+    cv::Mat p = m_R * (s * m_K.inv() * u) + m_t;
     cv::Mat world_point = (cv::Mat_<double>(1, 3) << p.at<double>(0), p.at<double>(1), p.at<double>(2));
     plane_points.push_back(world_point);
   }
@@ -374,8 +374,8 @@ cv::Mat Pinhole::undistort(const cv::Mat &src, int interpolation) const
   // If undistortion is not neccessary, just return input img
   // Elsewise undistort img
   cv::Mat img_undistorted;
-  if (_do_undistort)
-    cv::remap(src, img_undistorted, _undistortion_map1, _undistortion_map2, interpolation);
+  if (m_do_undistort)
+    cv::remap(src, img_undistorted, m_undistortion_map1, m_undistortion_map2, interpolation);
   else
     img_undistorted = src;
   return img_undistorted;
@@ -396,8 +396,8 @@ cv::Mat Pinhole::projectPointToWorld(double x, double y, double depth) const
   if (depth <= 0.0)
     return cv::Mat();
   cv::Mat point(4, 1, CV_64F);
-  point.at<double>(0) = (x - _camera_matrix.at<double>(0, 2)) * depth / _camera_matrix.at<double>(0, 0);
-  point.at<double>(1) = (y - _camera_matrix.at<double>(1, 2)) * depth / _camera_matrix.at<double>(1, 1);
+  point.at<double>(0) = (x - m_K.at<double>(0, 2)) * depth / m_K.at<double>(0, 0);
+  point.at<double>(1) = (y - m_K.at<double>(1, 2)) * depth / m_K.at<double>(1, 1);
   point.at<double>(2) = depth;
   point.at<double>(3) = 1;
   return Tc2w()*point;

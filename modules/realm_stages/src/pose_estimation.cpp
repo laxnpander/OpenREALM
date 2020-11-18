@@ -259,11 +259,11 @@ void PoseEstimation::track(Frame::Ptr &frame)
 
 void PoseEstimation::reset()
 {
-  std::unique_lock<std::mutex> lock(_mutex_reset_requested);
+  std::unique_lock<std::mutex> lock(m_mutex_reset_requested);
   std::unique_lock<std::mutex> lock1(_mutex_buffer_no_pose);
   std::unique_lock<std::mutex> lock2(_mutex_buffer_pose_init);
   std::unique_lock<std::mutex> lock3(_mutex_buffer_pose_all);
-  if (_reset_requested)  // User reset
+  if (m_reset_requested)  // User reset
   {
     LOG_F(INFO, "Reset has been requested!");
     // reset visual slam
@@ -293,7 +293,7 @@ void PoseEstimation::reset()
     _georeferencer.reset(new GeometricReferencer(_th_error_georef));
   _stage_publisher->requestReset();
   _is_georef_initialized = false;
-  _reset_requested = false;
+  m_reset_requested = false;
 }
 
 void PoseEstimation::queueImuData(const VisualSlamIF::ImuData &imu) const
@@ -572,10 +572,10 @@ bool PoseEstimationIO::process()
 
 void PoseEstimationIO::reset()
 {
-  std::unique_lock<std::mutex> lock(_mutex_reset_requested);
+  std::unique_lock<std::mutex> lock(m_mutex_reset_requested);
   _is_time_ref_set = false;
   _t_ref = TimeReference{0, 0};
-  _reset_requested = false;
+  m_reset_requested = false;
 }
 
 void PoseEstimationIO::publishPose(const Frame::Ptr &frame)

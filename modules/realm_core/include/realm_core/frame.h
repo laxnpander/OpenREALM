@@ -377,28 +377,28 @@ class Frame
        ###########################*/
 
     //! Mutex to protect flags from access
-    mutable std::mutex _mutex_flags;
+    mutable std::mutex m_mutex_flags;
 
     //! Flag to set frame as keyframe
-    bool _is_keyframe;
+    bool m_is_keyframe;
 
     //! Flag to set frame georefernced
-    bool _is_georeferenced;
+    bool m_is_georeferenced;
 
     //! Flag if img resized factor was set
-    bool _is_img_resizing_set;
+    bool m_is_img_resizing_set;
 
     //! Flag if depth of the observed scene is computed
-    bool _is_depth_computed;
+    bool m_is_depth_computed;
 
     //! Flag if frame as accurately computed pose (therefore pose is not default)
-    bool _has_accurate_pose;
+    bool m_has_accurate_pose;
 
     //! Flag for surface assumption. Default: PLANAR
-    SurfaceAssumption _surface_assumption;
+    SurfaceAssumption m_surface_assumption;
 
     //! Resize factor can be set by processing pipelines to grab image and calibration scaled to resized image sizes
-    double _img_resize_factor;
+    double m_img_resize_factor;
 
 
     /**##########################################
@@ -406,27 +406,27 @@ class Frame
        ##########################################*/
 
     //! Minimum scene depth computed from the set surface points. Is computed as soon as at least a sparse cloud was set
-    double _min_scene_depth;
+    double m_min_depth;
 
     //! Maximum scene depth computed from the set surface points. Is computed as soon as at least a sparse cloud was set
-    double _max_scene_depth;
+    double m_max_depth;
 
     //! Median scene depth computed from the set surface points. Is computed as soon as at least a sparse cloud was set
-    double _med_scene_depth;
+    double m_med_depth;
 
-    Depthmap::Ptr _depthmap;
+    Depthmap::Ptr m_depthmap;
 
     /**###################################################
      * ########## Measured data / apriori infos ##########
        ###################################################*/
 
     // Measured data constant, no editing, no mutex neccessary
-    std::string _camera_id;             // (required) Unique camera identifier
-    uint32_t _frame_id;                 // (required) Unique frame identifier
-    uint64_t _timestamp;                // (required) timestamp of acquisition in nano seconds
-    cv::Mat _img;                       // (required) Image data captured
-    UTMPose _utm;                       // (required) GNSS measurement or "GeoTag"
-    cv::Mat _orientation;               // (optional) Orientation of the camera
+    std::string m_camera_id;             // (required) Unique camera identifier
+    uint32_t m_frame_id;                 // (required) Unique frame identifier
+    uint64_t m_timestamp;                // (required) timestamp of acquisition in nano seconds
+    cv::Mat m_img;                       // (required) Image data captured
+    UTMPose m_utm;                       // (required) GNSS measurement or "GeoTag"
+    cv::Mat m_orientation;               // (optional) Orientation of the camera
 
     /**########################################################
      * ########## Data computed after frame creation ##########
@@ -435,53 +435,53 @@ class Frame
     // invariant over all processing steps, which is why it must be protected with mutex
 
     //! Resized image, resize factor defined through image resize factor, only grabbable if factor was set
-    cv::Mat _img_resized;
+    cv::Mat m_img_resized;
 
     //! Reconstructed 3D sparse cloud structured as cv::Mat
     //! Note: Point cloud can be either dense or sparse, and it can contain only positional informations (x,y,z),
     //!       optionally color (x,y,z,r,g,b) or also point normal (x,y,z,r,g,b,nx,ny,nz)
-    cv::Mat _sparse_cloud;
+    cv::Mat m_sparse_cloud;
 
     //! Digital surface model of the observed scene represented by a 2.5D grid map. Layers contained:
     //! Essential:
     //! ["elevation"]: Containing the elevation data per grid cell
     //! Optional:
     //! [...]
-    CvGridMap::Ptr _surface_model;
+    CvGridMap::Ptr m_surface_model;
 
     //! Orthophoto of the observed scene. Layers contained:
     //! ["color_rgb"]: Containing the rectified RGB data per grid cell
-    CvGridMap::Ptr _orthophoto;
+    CvGridMap::Ptr m_orthophoto;
 
     //! Camera model of the frame that performs all the projection work. Currently only pinhole supported
-    camera::Pinhole::Ptr _camera_model;
+    camera::Pinhole::Ptr m_camera_model;
 
     //! 4x4 transformation from world to geographic UTM frame
-    cv::Mat _transformation_w2g;
+    cv::Mat m_transformation_w2g;
 
     //! 3x4 camera motion matrix in the local world frame
-    cv::Mat _motion_c2w;
+    cv::Mat m_motion_c2w;
 
     //! 3x4 camera motion in the geographic frame
-    cv::Mat _motion_c2g;
+    cv::Mat m_motion_c2g;
 
     //! Mutex for img resized
-    mutable std::mutex _mutex_img_resized;
+    mutable std::mutex m_mutex_img_resized;
 
     //! Mutex for sparse cloud
-    mutable std::mutex _mutex_sparse_points;
+    mutable std::mutex m_mutex_sparse_points;
 
     //! Mutex for the digital surface model
-    mutable std::mutex _mutex_surface_model;
+    mutable std::mutex m_mutex_surface_model;
 
     //! Mutex for orthophoto
-    mutable std::mutex _mutex_orthophoto;
+    mutable std::mutex m_mutex_orthophoto;
 
     //! Mutex for camera model
-    mutable std::mutex _mutex_cam;
+    mutable std::mutex m_mutex_cam;
 
     //! Mutex for transformation from world to geographic coordinate frame
-    mutable std::mutex _mutex_T_w2g;
+    mutable std::mutex m_mutex_T_w2g;
 
     /*!
      * @brief Private function to compute scene depth using the previously set sparse cloud. Can obviously only be

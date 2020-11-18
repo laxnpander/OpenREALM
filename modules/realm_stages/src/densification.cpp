@@ -94,7 +94,7 @@ bool Densification::process()
   Frame::Ptr frame_processed;
   Depthmap::Ptr depthmap = processStereoReconstruction(_buffer_reco, frame_processed);
   popFromBufferReco();
-  LOG_IF_F(INFO, _verbose, "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds() - t);
   if (!depthmap)
     return true;
 
@@ -103,7 +103,7 @@ bool Densification::process()
   cv::Mat normals;
   if (_compute_normals)
     normals = stereo::computeNormalsFromDepthMap(depthmap->data());
-  LOG_IF_F(INFO, _verbose, "Timing [Computing Normals]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Computing Normals]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   // Remove outliers
   double depth_min = frame_processed->getMedianSceneDepth()*0.25;
@@ -114,7 +114,7 @@ bool Densification::process()
   // Set data in the frame
   t = getCurrentTimeMilliseconds();
   frame_processed->setDepthmap(depthmap);
-  LOG_IF_F(INFO, _verbose, "Timing [Setting]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Setting]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   // Creating dense cloud
   cv::Mat img3d = stereo::reprojectDepthMap(depthmap->getCamera(), depthmap->data());
@@ -130,10 +130,10 @@ bool Densification::process()
   }
   else
   {
-    LOG_IF_F(INFO, _verbose, "Consistency filter is activated. Waiting for more frames for denoising...");
+    LOG_IF_F(INFO, m_verbose, "Consistency filter is activated. Waiting for more frames for denoising...");
     return true;
   }
-  LOG_IF_F(INFO, _verbose, "Timing [Denoising]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Denoising]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   // Last check if frame still has valid depthmap
   if (!frame_processed->getDepthmap())
@@ -148,12 +148,12 @@ bool Densification::process()
   // Savings
   t = getCurrentTimeMilliseconds();
   saveIter(frame_processed, normals);
-  LOG_IF_F(INFO, _verbose, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   // Republish frame to next stage
   t = getCurrentTimeMilliseconds();
   publish(frame_processed, depthmap->data());
-  LOG_IF_F(INFO, _verbose, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   return true;
 }
@@ -201,7 +201,7 @@ Frame::Ptr Densification::consistencyFilter(std::deque<std::pair<Frame::Ptr, cv:
 
   if (perc_coverage < 30.0)
   {
-    LOG_IF_F(WARNING, _verbose, "Depthmap coverage too low (%3.1f%%). Assuming plane surface.");
+    LOG_IF_F(WARNING, m_verbose, "Depthmap coverage too low (%3.1f%%). Assuming plane surface.");
     frame->setDepthmap(nullptr);
 
     for (auto it = buffer_denoise->begin(); it != buffer_denoise->end(); ) {
@@ -216,7 +216,7 @@ Frame::Ptr Densification::consistencyFilter(std::deque<std::pair<Frame::Ptr, cv:
   }
   else
   {
-    LOG_IF_F(INFO, _verbose, "Depthmap coverage left after denoising: %3.1f%%", perc_coverage);
+    LOG_IF_F(INFO, m_verbose, "Depthmap coverage left after denoising: %3.1f%%", perc_coverage);
   }
 
   return frame;

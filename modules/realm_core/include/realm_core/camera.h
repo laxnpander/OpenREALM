@@ -313,23 +313,23 @@ class Pinhole
 
   protected:
     // With distortion map
-    bool _do_undistort;
+    bool m_do_undistort;
 
     // Interior parameters
-    cv::Mat _camera_matrix; // K
+    cv::Mat m_K; // K
 
     // Distortion parameters
-    cv::Mat _distortion_coeff;
-    cv::Mat _undistortion_map1;
-    cv::Mat _undistortion_map2;
+    cv::Mat m_dist_coeffs;
+    cv::Mat m_undistortion_map1;
+    cv::Mat m_undistortion_map2;
 
     // Exterior parameters
-    cv::Mat _exterior_translation; // t
-    cv::Mat _exterior_rotation; // R
+    cv::Mat m_t; // t
+    cv::Mat m_R; // R
 
     // Image parameters
-    uint32_t _img_width;
-    uint32_t _img_height;
+    uint32_t m_width;
+    uint32_t m_height;
 };
 
 } // namespace camera

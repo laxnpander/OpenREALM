@@ -76,9 +76,9 @@ public:
   void print() const;
 
 private:
-  T _data{};
-  std::weak_ptr<TreeNode<T>> _parent{nullptr};
-  std::vector<std::shared_ptr<TreeNode<T>>> _children{};
+  T m_data{};
+  std::weak_ptr<TreeNode<T>> m_parent{nullptr};
+  std::vector<std::shared_ptr<TreeNode<T>>> m_children{};
 
 };
 
@@ -86,64 +86,64 @@ template<class T>
 void TreeNode<T>::changeParent(std::weak_ptr<TreeNode<T>> parent)
 {
   parent.lock()->addChild(this->shared_from_this());
-  _parent.lock()->removeChild(this->shared_from_this());
-  _parent = parent;
+  m_parent.lock()->removeChild(this->shared_from_this());
+  m_parent = parent;
 }
 
 template<class T>
-TreeNode<T>::TreeNode(T data, std::weak_ptr<TreeNode<T>> parent) : _parent(parent)
+TreeNode<T>::TreeNode(T data, std::weak_ptr<TreeNode<T>> parent) : m_parent(parent)
 {
-  _data = data;
+  m_data = data;
 }
 
 template<class T>
 T TreeNode<T>::getData() const
 {
-  return _data;
+  return m_data;
 }
 
 template<class T>
 void TreeNode<T>::setData(const T &data)
 {
-  _data = data;
+  m_data = data;
 }
 
 template<class T>
 TreeNode<T> &TreeNode<T>::addChild(const T &data)
 {
-  _children.push_back(std::make_shared<TreeNode<T>>(data, this->shared_from_this()));
-  return *_children.back();
+  m_children.push_back(std::make_shared<TreeNode<T>>(data, this->shared_from_this()));
+  return *m_children.back();
 }
 
 template<class T>
 TreeNode<T> &TreeNode<T>::addChild(std::shared_ptr<TreeNode<T>> ptr)
 {
-  _children.push_back(ptr);
-  return *_children.back();
+  m_children.push_back(ptr);
+  return *m_children.back();
 }
 
 template<class T>
 void TreeNode<T>::removeChild(size_t indx)
 {
-  _children.erase(_children.begin() + indx);
+  m_children.erase(m_children.begin() + indx);
 }
 
 template<class T>
 void TreeNode<T>::removeChild(std::shared_ptr<TreeNode<T>> ptr)
 {
-  _children.erase(std::remove(_children.begin(), _children.end(), ptr), _children.end());
+  m_children.erase(std::remove(m_children.begin(), m_children.end(), ptr), m_children.end());
 }
 
 template<class T>
 const std::shared_ptr<TreeNode<T>> TreeNode<T>::findChild(const T &data) const
 {
-  for (size_t i{0}; i < _children.size(); ++i)
+  for (size_t i{0}; i < m_children.size(); ++i)
   {
-    if (_children[i]->getData() == data)
+    if (m_children[i]->getData() == data)
     {
-      return _children[i];
+      return m_children[i];
     }
-    auto find_child = _children[i]->findChild(data);
+    auto find_child = m_children[i]->findChild(data);
     if (find_child != nullptr)
     {
       return find_child;
@@ -155,13 +155,13 @@ const std::shared_ptr<TreeNode<T>> TreeNode<T>::findChild(const T &data) const
 template<class T>
 std::shared_ptr<TreeNode<T>> TreeNode<T>::findChild(const T &data)
 {
-  for (size_t i{0}; i < _children.size(); ++i)
+  for (size_t i{0}; i < m_children.size(); ++i)
   {
-    if (_children[i]->getData() == data)
+    if (m_children[i]->getData() == data)
     {
-      return _children[i];
+      return m_children[i];
     }
-    auto find_child = _children[i]->findChild(data);
+    auto find_child = m_children[i]->findChild(data);
     if (find_child != nullptr)
     {
       return find_child;
@@ -173,44 +173,44 @@ std::shared_ptr<TreeNode<T>> TreeNode<T>::findChild(const T &data)
 template<class T>
 std::shared_ptr<const TreeNode<T>> TreeNode<T>::getChild(size_t indx) const
 {
-  assert(indx < _children.size());
-  return _children[indx];
+  assert(indx < m_children.size());
+  return m_children[indx];
 }
 
 template<class T>
 std::shared_ptr<TreeNode<T> > TreeNode<T>::getChild(size_t indx)
 {
-  assert(indx < _children.size());
-  return _children[indx];
+  assert(indx < m_children.size());
+  return m_children[indx];
 }
 
 template<class T>
 const std::weak_ptr<TreeNode<T> > TreeNode<T>::getParent() const
 {
-  return _parent;
+  return m_parent;
 }
 
 template<class T>
 std::weak_ptr<TreeNode<T>> TreeNode<T>::getParent()
 {
-  return _parent;
+  return m_parent;
 }
 
 
 template<class T>
 size_t TreeNode<T>::getNumChildren() const
 {
-  return _children.size();
+  return m_children.size();
 }
 
 template<class T>
 void TreeNode<T>::print() const
 {
-  std::cout << _data << " ";
-  if (!_children.empty())
+  std::cout << m_data << " ";
+  if (!m_children.empty())
   {
     std::cout << "(";
-    for (const auto &child : _children)
+    for (const auto &child : m_children)
     {
       child->print();
     }

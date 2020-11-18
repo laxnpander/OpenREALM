@@ -285,7 +285,7 @@ bool OpenVslamKeyframeUpdater::process()
 
       if (surface_points.rows != new_surface_points.rows)
       {
-        LOG_IF_F(INFO, _verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), surface_points.rows, new_surface_points.rows);
+        LOG_IF_F(INFO, m_verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), surface_points.rows, new_surface_points.rows);
         frame_realm->setSparseCloud(new_surface_points, true);
       }
 
@@ -293,7 +293,7 @@ bool OpenVslamKeyframeUpdater::process()
     }
     else
     {
-      LOG_IF_F(INFO, _verbose, "Frame object out of scope. Deleting reference.");
+      LOG_IF_F(INFO, m_verbose, "Frame object out of scope. Deleting reference.");
       // Frame is not existing anymore, delete from dequeue
       it = _keyframe_links.erase(it);
     }

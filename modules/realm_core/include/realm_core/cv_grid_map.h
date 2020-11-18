@@ -309,14 +309,14 @@ class CvGridMap
 
 private:
     // resolution therefor [m] / cell
-    double _resolution;
+    double m_resolution;
     // Global region of interest the map is played in
-    cv::Rect2d _roi;
+    cv::Rect2d m_roi;
     // Dimensions of the grid in [cols, rows]
-    cv::Size2i _size;
+    cv::Size2i m_size;
     // vector of all layers added, currently very dynamic operations
     // like adding and removing layers frequently is not expected
-    std::vector<Layer> _layers;
+    std::vector<Layer> m_layers;
 
     void mergeMatrices(const cv::Mat &mat1, cv::Mat &mat2, int flag_merge_handling);
 

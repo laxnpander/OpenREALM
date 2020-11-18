@@ -23,19 +23,19 @@
 using namespace realm;
 
 Timer::Timer(const std::chrono::milliseconds &period, const std::function<void()> &func)
-    : _period(period),
-      _func(func),
-      _in_flight(true)
+    : m_period(period),
+      m_func(func),
+      m_in_flight(true)
 {
     // Lambda implementation for threading
-    _thread = std::thread([this]
+    m_thread = std::thread([this]
             {
-                while (_in_flight)
+                while (m_in_flight)
                 {
-                    std::this_thread::sleep_for(_period);
-                    if (_in_flight)
+                    std::this_thread::sleep_for(m_period);
+                    if (m_in_flight)
                     {
-                        _func();
+                        m_func();
                     }
                 }
             });
@@ -43,8 +43,8 @@ Timer::Timer(const std::chrono::milliseconds &period, const std::function<void()
 
 Timer::~Timer()
 {
-    _in_flight = false;
-    _thread.join();
+  m_in_flight = false;
+    m_thread.join();
 }
 
 long Timer::getCurrentTimeMilliseconds()

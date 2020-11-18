@@ -80,50 +80,50 @@ class SettingsBase
       };
       using Ptr = std::unique_ptr<Variant>;
     public:
-      explicit Variant(const Parameter_t<int> &p) : _type(VariantType::INT), _int_container(p) {};
-      explicit Variant(const Parameter_t<double> &p) : _type(VariantType::DOUBLE), _double_container(p) {};
-      explicit Variant(const Parameter_t<std::string> &p) : _type(VariantType::STRING), _string_container(p) {};
+      explicit Variant(const Parameter_t<int> &p) : m_type(VariantType::INT), m_int_container(p) {};
+      explicit Variant(const Parameter_t<double> &p) : m_type(VariantType::DOUBLE), m_double_container(p) {};
+      explicit Variant(const Parameter_t<std::string> &p) : m_type(VariantType::STRING), m_string_container(p) {};
 
       int toInt() const
       {
-        if (_type == VariantType::INT) return _int_container.value;
-        if (_type == VariantType::DOUBLE) return static_cast<int>(_double_container.value);
-        if (_type == VariantType::STRING) throw(std::bad_cast());
+        if (m_type == VariantType::INT) return m_int_container.value;
+        if (m_type == VariantType::DOUBLE) return static_cast<int>(m_double_container.value);
+        if (m_type == VariantType::STRING) throw(std::bad_cast());
       }
 
       float toFloat() const
       {
-        if (_type == VariantType::INT) return static_cast<float>(_int_container.value);
-        if (_type == VariantType::DOUBLE) return static_cast<float>(_double_container.value);
-        if (_type == VariantType::STRING) throw(std::bad_cast());
+        if (m_type == VariantType::INT) return static_cast<float>(m_int_container.value);
+        if (m_type == VariantType::DOUBLE) return static_cast<float>(m_double_container.value);
+        if (m_type == VariantType::STRING) throw(std::bad_cast());
       }
 
       double toDouble() const
       {
-        if (_type == VariantType::INT) return static_cast<double>(_int_container.value);
-        if (_type == VariantType::DOUBLE) return _double_container.value;
-        if (_type == VariantType::STRING) throw(std::bad_cast());
+        if (m_type == VariantType::INT) return static_cast<double>(m_int_container.value);
+        if (m_type == VariantType::DOUBLE) return m_double_container.value;
+        if (m_type == VariantType::STRING) throw(std::bad_cast());
       }
 
       std::string toString() const
       {
-        if (_type == VariantType::INT) return std::to_string(_int_container.value);
-        if (_type == VariantType::DOUBLE) return std::to_string(_double_container.value);
-        if (_type == VariantType::STRING) return _string_container.value;
+        if (m_type == VariantType::INT) return std::to_string(m_int_container.value);
+        if (m_type == VariantType::DOUBLE) return std::to_string(m_double_container.value);
+        if (m_type == VariantType::STRING) return m_string_container.value;
       }
 
       std::string help() const
       {
-        if (_type == VariantType::INT) return _int_container.help;
-        if (_type == VariantType::DOUBLE) return _double_container.help;
-        if (_type == VariantType::STRING) return _string_container.help;
+        if (m_type == VariantType::INT) return m_int_container.help;
+        if (m_type == VariantType::DOUBLE) return m_double_container.help;
+        if (m_type == VariantType::STRING) return m_string_container.help;
       }
 
     private:
-      VariantType _type;
-      Parameter_t<std::string> _string_container;
-      Parameter_t<double> _double_container;
-      Parameter_t<int> _int_container;
+      VariantType m_type;
+      Parameter_t<std::string> m_string_container;
+      Parameter_t<double> m_double_container;
+      Parameter_t<int> m_int_container;
     };
 
   public:
@@ -222,7 +222,7 @@ class SettingsBase
   private:
 
     //! Container for parameters
-    std::unordered_map<std::string, Variant::Ptr> _parameters;
+    std::unordered_map<std::string, Variant::Ptr> m_parameters;
 };
 
 }

@@ -31,8 +31,8 @@ SettingsBase::Variant SettingsBase::operator[](const std::string &key) const
 
 SettingsBase::Variant SettingsBase::get(const std::string &key) const
 {
-  auto it = _parameters.find(key);
-  if (it != _parameters.end())
+  auto it = m_parameters.find(key);
+  if (it != m_parameters.end())
     return *it->second;
   else
     throw(std::out_of_range("Error: Parameter with name '" + key + "' could not be found in settings."));
@@ -40,17 +40,17 @@ SettingsBase::Variant SettingsBase::get(const std::string &key) const
 
 void SettingsBase::set(const std::string &key, int val)
 {
-  _parameters[key]->_int_container.value = val;
+  m_parameters[key]->m_int_container.value = val;
 }
 
 void SettingsBase::set(const std::string &key, double val)
 {
-  _parameters[key]->_double_container.value = val;
+  m_parameters[key]->m_double_container.value = val;
 }
 
 void SettingsBase::set(const std::string &key, const std::string &val)
 {
-  _parameters[key]->_string_container.value = val;
+  m_parameters[key]->m_string_container.value = val;
 }
 
 void SettingsBase::loadFromFile(const std::string &filepath)
@@ -58,11 +58,11 @@ void SettingsBase::loadFromFile(const std::string &filepath)
   cv::FileStorage fs(filepath, cv::FileStorage::READ);
   if (fs.isOpened())
   {
-    for (auto &param : _parameters) 
+    for (auto &param : m_parameters)
     {
-      if (param.second->_type == SettingsBase::Variant::VariantType::INT) fs[param.first] >> param.second->_int_container.value;
-      if (param.second->_type == SettingsBase::Variant::VariantType::DOUBLE) fs[param.first] >> param.second->_double_container.value;
-      if (param.second->_type == SettingsBase::Variant::VariantType::STRING) fs[param.first] >> param.second->_string_container.value;
+      if (param.second->m_type == SettingsBase::Variant::VariantType::INT) fs[param.first] >> param.second->m_int_container.value;
+      if (param.second->m_type == SettingsBase::Variant::VariantType::DOUBLE) fs[param.first] >> param.second->m_double_container.value;
+      if (param.second->m_type == SettingsBase::Variant::VariantType::STRING) fs[param.first] >> param.second->m_string_container.value;
     }
   }
   else
@@ -71,8 +71,8 @@ void SettingsBase::loadFromFile(const std::string &filepath)
 
 bool SettingsBase::has(const std::string &key) const
 {
-  auto it = _parameters.find(key);
-  if (it != _parameters.end())
+  auto it = m_parameters.find(key);
+  if (it != m_parameters.end())
     return true;
   else
     return false;
@@ -81,11 +81,11 @@ bool SettingsBase::has(const std::string &key) const
 void SettingsBase::print()
 {
   std::cout.precision(6);
-  for (auto &param : _parameters)
+  for (auto &param : m_parameters)
   {
-    if (param.second->_type == SettingsBase::Variant::VariantType::INT) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toInt() << std::endl;
-    if (param.second->_type == SettingsBase::Variant::VariantType::DOUBLE) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toDouble() << std::endl;
-    if (param.second->_type == SettingsBase::Variant::VariantType::STRING) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toString() << std::endl;
+    if (param.second->m_type == SettingsBase::Variant::VariantType::INT) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toInt() << std::endl;
+    if (param.second->m_type == SettingsBase::Variant::VariantType::DOUBLE) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toDouble() << std::endl;
+    if (param.second->m_type == SettingsBase::Variant::VariantType::STRING) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toString() << std::endl;
   }
 }
 
@@ -93,15 +93,15 @@ void SettingsBase::print()
 
 void SettingsBase::add(const std::string &key, const Parameter_t<int> &param)
 {
-  _parameters[key].reset(new Variant(param));
+  m_parameters[key].reset(new Variant(param));
 }
 
 void SettingsBase::add(const std::string &key, const Parameter_t<double> &param)
 {
-  _parameters[key].reset(new Variant(param));
+  m_parameters[key].reset(new Variant(param));
 }
 
 void SettingsBase::add(const std::string &key, const Parameter_t<std::string> &param)
 {
-  _parameters[key].reset(new Variant(param));
+  m_parameters[key].reset(new Variant(param));
 }

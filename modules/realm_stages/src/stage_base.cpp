@@ -61,7 +61,7 @@ void StageBase::initStagePath(const std::string &abs_path)
 void StageBase::registerAsyncDataReadyFunctor(const std::function<bool()> &func)
 {
   // Return true if either the functor evaluates to true, or when a finish is requested.
-  _data_ready_functor = ([=]{ return (func() || isFinishRequested()); });
+  m_data_ready_functor = ([=]{ return (func() || isFinishRequested()); });
 }
 
 void StageBase::registerFrameTransport(const std::function<void(const Frame::Ptr&, const std::string&)> &func)

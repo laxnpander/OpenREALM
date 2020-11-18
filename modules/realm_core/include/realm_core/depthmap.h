@@ -92,19 +92,19 @@ public:
 private:
 
   /// Minimum depth value in the data matrix
-  double _min_depth;
+  double m_min_depth;
 
   /// Median depth value in the data matrix
-  double _med_depth;
+  double m_med_depth;
 
   /// Maximum depth value in the data matrix
-  double _max_depth;
+  double m_max_depth;
 
   /// Depth data as CV_32F floating point matrix. Invalid depth is set to -1.0.
-  cv::Mat _data;
+  cv::Mat m_data;
 
   /// Camera model during reconstruction. Most importantly is resized to fit the depth map size.
-  camera::Pinhole::Ptr _cam;
+  camera::Pinhole::Ptr m_cam;
 };
 
 }

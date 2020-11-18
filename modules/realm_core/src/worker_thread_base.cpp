@@ -28,68 +28,68 @@
 using namespace realm;
 
 WorkerThreadBase::WorkerThreadBase(const std::string &thread_name, int64_t sleep_time, bool verbose)
-: _thread_name(thread_name),
-  _sleep_time(sleep_time),
-  _finish_requested(false),
-  _reset_requested(false),
-  _stop_requested(false),
-  _is_stopped(false),
-  _verbose(verbose),
-  _data_ready_functor([=]{ return isFinishRequested(); })
+: m_thread_name(thread_name),
+  m_sleep_time(sleep_time),
+  m_finish_requested(false),
+  m_reset_requested(false),
+  m_stop_requested(false),
+  m_is_stopped(false),
+  m_verbose(verbose),
+  m_data_ready_functor([=]{ return isFinishRequested(); })
 {
-  if (_sleep_time == 0)
+  if (m_sleep_time == 0)
     throw(std::runtime_error("Error: Worker thread was created with 0s sleep time."));
 }
 
 void WorkerThreadBase::start()
 {
   startCallback();
-  _thread = std::thread(std::bind(&WorkerThreadBase::run, this));
+  m_thread = std::thread(std::bind(&WorkerThreadBase::run, this));
 }
 
 void WorkerThreadBase::join()
 {
-  if (_thread.joinable())
-    _thread.join();
+  if (m_thread.joinable())
+    m_thread.join();
 }
 
 void WorkerThreadBase::run()
 {
   // To have better readability in the log file we set the thread name
-  loguru::set_thread_name(_thread_name.c_str());
+  loguru::set_thread_name(m_thread_name.c_str());
 
-  LOG_IF_F(INFO, _verbose, "Thread '%s' starting loop...", _thread_name.c_str());
+  LOG_IF_F(INFO, m_verbose, "Thread '%s' starting loop...", m_thread_name.c_str());
   bool is_first_run = true;
 
   while (!isFinishRequested())
   {
-    std::unique_lock<std::mutex> lock(_mutex_processing);
+    std::unique_lock<std::mutex> lock(m_mutex_processing);
     if (!is_first_run)
-      _condition_processing.wait_for(lock, std::chrono::milliseconds(_sleep_time), _data_ready_functor);
+      m_condition_processing.wait_for(lock, std::chrono::milliseconds(m_sleep_time), m_data_ready_functor);
     else
       is_first_run = false;
 
     // Handle stops and finish
     if (isStopRequested())
     {
-      LOG_IF_F(INFO, _verbose, "Thread '%s' stopped!", _thread_name.c_str());
+      LOG_IF_F(INFO, m_verbose, "Thread '%s' stopped!", m_thread_name.c_str());
       while (isStopped() && !isFinishRequested())
       {
         if (isResetRequested())
         {
           reset();
-          LOG_IF_F(INFO, _verbose, "Thread '%s' reseted!", _thread_name.c_str());
+          LOG_IF_F(INFO, m_verbose, "Thread '%s' reseted!", m_thread_name.c_str());
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(_sleep_time));
+        std::this_thread::sleep_for(std::chrono::milliseconds(m_sleep_time));
       }
-      LOG_IF_F(INFO, _verbose, "Thread '%s' resumed to loop!", _thread_name.c_str());
+      LOG_IF_F(INFO, m_verbose, "Thread '%s' resumed to loop!", m_thread_name.c_str());
     }
 
     // Check if reset was requested and execute if neccessary
     if (isResetRequested())
     {
       reset();
-      LOG_IF_F(INFO, _verbose, "Thread '%s' reseted!", _thread_name.c_str());
+      LOG_IF_F(INFO, m_verbose, "Thread '%s' reseted!", m_thread_name.c_str());
     }
 
     // Calls to derived classes implementation of process()
@@ -97,77 +97,77 @@ void WorkerThreadBase::run()
     if (process())
     {
       LOG_IF_F(INFO,
-               _verbose,
+               m_verbose,
                "Timing [Total]: %lu ms",
                getCurrentTimeMilliseconds() - t);
     }
   }
-  LOG_IF_F(INFO, _verbose, "Thread '%s' finished!", _thread_name.c_str());
+  LOG_IF_F(INFO, m_verbose, "Thread '%s' finished!", m_thread_name.c_str());
 }
 
 void WorkerThreadBase::resume()
 {
-  std::unique_lock<std::mutex> lock(_mutex_is_stopped);
-  if (_is_stopped)
-    _is_stopped = false;
+  std::unique_lock<std::mutex> lock(m_mutex_is_stopped);
+  if (m_is_stopped)
+    m_is_stopped = false;
 }
 
 void WorkerThreadBase::requestStop()
 {
-  std::unique_lock<std::mutex> lock(_mutex_stop_requested);
-  _stop_requested = true;
-  LOG_IF_F(INFO, _verbose, "Thread '%s' received stop request...", _thread_name.c_str());
+  std::unique_lock<std::mutex> lock(m_mutex_stop_requested);
+  m_stop_requested = true;
+  LOG_IF_F(INFO, m_verbose, "Thread '%s' received stop request...", m_thread_name.c_str());
 }
 
 void WorkerThreadBase::requestReset()
 {
-  std::unique_lock<std::mutex> lock(_mutex_reset_requested);
-  _reset_requested = true;
-  LOG_IF_F(INFO, _verbose, "Thread '%s' received reset request...", _thread_name.c_str());
+  std::unique_lock<std::mutex> lock(m_mutex_reset_requested);
+  m_reset_requested = true;
+  LOG_IF_F(INFO, m_verbose, "Thread '%s' received reset request...", m_thread_name.c_str());
 }
 
 void WorkerThreadBase::requestFinish()
 {
-  std::unique_lock<std::mutex> lock(_mutex_finish_requested);
-  _finish_requested = true;
-  LOG_IF_F(INFO, _verbose, "Thread '%s' received finish request...", _thread_name.c_str());
+  std::unique_lock<std::mutex> lock(m_mutex_finish_requested);
+  m_finish_requested = true;
+  LOG_IF_F(INFO, m_verbose, "Thread '%s' received finish request...", m_thread_name.c_str());
   finishCallback();
 }
 
 bool WorkerThreadBase::isStopRequested()
 {
-  std::unique_lock<std::mutex> lock(_mutex_stop_requested);
-  std::unique_lock<std::mutex> lock1(_mutex_is_stopped);
-  if (_stop_requested && !_is_stopped)
+  std::unique_lock<std::mutex> lock(m_mutex_stop_requested);
+  std::unique_lock<std::mutex> lock1(m_mutex_is_stopped);
+  if (m_stop_requested && !m_is_stopped)
   {
-    _is_stopped = true;
+    m_is_stopped = true;
   }
-  return _stop_requested;
+  return m_stop_requested;
 }
 
 bool WorkerThreadBase::isResetRequested()
 {
-  std::unique_lock<std::mutex> lock(_mutex_reset_requested);
-  return _reset_requested;
+  std::unique_lock<std::mutex> lock(m_mutex_reset_requested);
+  return m_reset_requested;
 }
 
 bool WorkerThreadBase::isFinishRequested()
 {
-  std::unique_lock<std::mutex> lock(_mutex_finish_requested);
-  return _finish_requested;
+  std::unique_lock<std::mutex> lock(m_mutex_finish_requested);
+  return m_finish_requested;
 }
 
 bool WorkerThreadBase::isStopped()
 {
-  std::unique_lock<std::mutex> lock(_mutex_is_stopped);
-  if (_is_stopped)
-    _stop_requested = false;
-  return _is_stopped;
+  std::unique_lock<std::mutex> lock(m_mutex_is_stopped);
+  if (m_is_stopped)
+    m_stop_requested = false;
+  return m_is_stopped;
 }
 
 void WorkerThreadBase::notify()
 {
-  _condition_processing.notify_one();
+  m_condition_processing.notify_one();
 }
 
 long WorkerThreadBase::getCurrentTimeMilliseconds()

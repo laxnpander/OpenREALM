@@ -32,7 +32,7 @@ TileCache::TileCache(const std::string &id, double sleep_time, const std::string
    _has_init_directories(false),
    _do_update(false)
 {
-  _data_ready_functor = [=]{ return (_do_update || isFinishRequested()); };
+  m_data_ready_functor = [=]{ return (_do_update || isFinishRequested()); };
 }
 
 TileCache::~TileCache()
@@ -96,8 +96,8 @@ bool TileCache::process()
         }
       }
 
-      LOG_IF_F(INFO, _verbose, "Tiles written: %i", n_tiles_written);
-      LOG_IF_F(INFO, _verbose, "Timing [Cache Flush]: %lu ms", getCurrentTimeMilliseconds()-t);
+      LOG_IF_F(INFO, m_verbose, "Tiles written: %i", n_tiles_written);
+      LOG_IF_F(INFO, m_verbose, "Timing [Cache Flush]: %lu ms", getCurrentTimeMilliseconds() - t);
 
       has_processed = true;
     }
@@ -191,7 +191,7 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
     _cache[zoom_level] = tile_grid;
   }
 
-  LOG_IF_F(INFO, _verbose, "Timing [Cache Push]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Cache Push]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   updatePrediction(zoom_level, roi_idx);
 
@@ -237,7 +237,7 @@ void TileCache::flushAll()
 {
   int n_tiles_written = 0;
 
-  LOG_IF_F(INFO, _verbose, "Flushing all tiles...");
+  LOG_IF_F(INFO, m_verbose, "Flushing all tiles...");
 
   long t = getCurrentTimeMilliseconds();
 
@@ -257,8 +257,8 @@ void TileCache::flushAll()
         cache_element.second->tile->unlock();
       }
 
-  LOG_IF_F(INFO, _verbose, "Tiles written: %i", n_tiles_written);
-  LOG_IF_F(INFO, _verbose, "Timing [Flush All]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Tiles written: %i", n_tiles_written);
+  LOG_IF_F(INFO, m_verbose, "Timing [Flush All]: %lu ms", getCurrentTimeMilliseconds() - t);
 }
 
 void TileCache::loadAll()
@@ -311,11 +311,11 @@ void TileCache::load(const CacheElement::Ptr &element) const
 
       element->tile->data()->add(meta.name, data, meta.interpolation_flag);
 
-      LOG_IF_F(INFO, _verbose, "Read tile from disk: %s", filename.c_str());
+      LOG_IF_F(INFO, m_verbose, "Read tile from disk: %s", filename.c_str());
     }
     else
     {
-      LOG_IF_F(WARNING, _verbose, "Failed reading tile from disk: %s", filename.c_str());
+      LOG_IF_F(WARNING, m_verbose, "Failed reading tile from disk: %s", filename.c_str());
       throw(std::invalid_argument("Error loading tile."));
     }
   }
@@ -369,7 +369,7 @@ void TileCache::flush(const CacheElement::Ptr &element) const
     element->tile->data()->remove(meta.name);
   }
 
-  LOG_IF_F(INFO, _verbose, "Flushed tile (%i, %i, %i) [zoom, x, y]", element->tile->zoom_level(), element->tile->x(), element->tile->y());
+  LOG_IF_F(INFO, m_verbose, "Flushed tile (%i, %i, %i) [zoom, x, y]", element->tile->zoom_level(), element->tile->x(), element->tile->y());
 }
 
 bool TileCache::isCached(const CacheElement::Ptr &element) const

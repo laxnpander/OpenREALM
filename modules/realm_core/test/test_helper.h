@@ -52,8 +52,8 @@ namespace realm {
     bool process() override { counter++; };
     void reset() override { counter = 0; };
 
-    void registerAsyncConditionFunctor(const std::function<bool()> &func) { _data_ready_functor = ([=]{ return func() || isFinishRequested();}); };
-    void setSleepTime(int64_t sleep_time) { _sleep_time = sleep_time; };
+    void registerAsyncConditionFunctor(const std::function<bool()> &func) { m_data_ready_functor = ([=]{ return func() || isFinishRequested();}); };
+    void setSleepTime(int64_t sleep_time) { m_sleep_time = sleep_time; };
 
     volatile int counter;
   };

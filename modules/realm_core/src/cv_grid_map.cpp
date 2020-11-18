@@ -28,21 +28,21 @@
 using namespace realm;
 
 CvGridMap::CvGridMap()
-    : _resolution(1.0)
+    : m_resolution(1.0)
 {
 }
 
 CvGridMap::CvGridMap(const cv::Rect2d &roi, double resolution)
-    : _resolution(resolution)
+    : m_resolution(resolution)
 {
-  setGeometry(roi, _resolution);
+  setGeometry(roi, m_resolution);
 }
 
 CvGridMap CvGridMap::clone() const
 {
   CvGridMap copy;
-  copy.setGeometry(_roi, _resolution);
-  for (const auto &layer : _layers)
+  copy.setGeometry(m_roi, m_resolution);
+  for (const auto &layer : m_layers)
     copy.add(layer.name, layer.data.clone(), layer.interpolation);
   return std::move(copy);
 }
@@ -50,7 +50,7 @@ CvGridMap CvGridMap::clone() const
 CvGridMap CvGridMap::cloneSubmap(const std::vector<std::string> &layer_names)
 {
   CvGridMap copy;
-  copy.setGeometry(_roi, _resolution);
+  copy.setGeometry(m_roi, m_resolution);
   for (const auto &layer_name : layer_names)
   {
     Layer layer = getLayer(layer_name);
@@ -61,17 +61,17 @@ CvGridMap CvGridMap::cloneSubmap(const std::vector<std::string> &layer_names)
 
 void CvGridMap::add(const Layer &layer, bool is_data_empty)
 {
-  if (!is_data_empty && (layer.data.size().width != _size.width || layer.data.size().height != _size.height))
+  if (!is_data_empty && (layer.data.size().width != m_size.width || layer.data.size().height != m_size.height))
     throw(std::invalid_argument("Error: Adding Layer failed. Size of data does not match grid map size."));
   if (!isMatrixTypeValid(layer.data.type()))
     throw(std::invalid_argument("Error: Adding Layer failed. Matrix type is not supported."));
 
   // Add data if layer already exists, push to container if not
   if (!exists(layer.name))
-    _layers.push_back(layer);
+    m_layers.push_back(layer);
   else
   {
-    _layers[findContainerIdx(layer.name)] = layer;
+    m_layers[findContainerIdx(layer.name)] = layer;
   }
 }
 
@@ -86,7 +86,7 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
     throw(std::invalid_argument("Error add submap: Resolution mismatch!"));
 
   // Check if extending the map is necessary
-  bool contains_sub_roi = containsRoi(submap._roi);
+  bool contains_sub_roi = containsRoi(submap.m_roi);
 
   // Create the theoretical ROI bounds to copy the submap data to
   cv::Rect2d copy_roi = submap.roi();
@@ -100,7 +100,7 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
   else if(!do_extend && !contains_sub_roi)
   {
     // Get the overlapping region of interest of both rectangles
-    copy_roi = (copy_roi & _roi);
+    copy_roi = (copy_roi & m_roi);
 
     // Check if there is an overlap at all
     if (copy_roi.area() < 10e-6)
@@ -114,7 +114,7 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
   cv::Rect2i dst_roi(this->atIndexROI(copy_roi));
 
   // iterate through submap
-  for (const auto &submap_layer : submap._layers)
+  for (const auto &submap_layer : submap.m_layers)
   {
     // Add of submap to this, if not existing
     if (!exists(submap_layer.name))
@@ -124,24 +124,24 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
     uint32_t idx_layer = findContainerIdx(submap_layer.name);
 
     // But might be empty
-    if (_layers[idx_layer].data.empty())
+    if (m_layers[idx_layer].data.empty())
     {
-      switch(_layers[idx_layer].data.type())
+      switch(m_layers[idx_layer].data.type())
       {
         case CV_32F:
-          _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), std::numeric_limits<float>::quiet_NaN());
+          m_layers[idx_layer].data = cv::Mat(m_size, submap_layer.data.type(), std::numeric_limits<float>::quiet_NaN());
           break;
         case CV_64F:
-          _layers[idx_layer].data = cv::Mat(_size, submap_layer.data.type(), std::numeric_limits<double>::quiet_NaN());
+          m_layers[idx_layer].data = cv::Mat(m_size, submap_layer.data.type(), std::numeric_limits<double>::quiet_NaN());
           break;
         default:
-          _layers[idx_layer].data = cv::Mat::zeros(_size, submap_layer.data.type());
+          m_layers[idx_layer].data = cv::Mat::zeros(m_size, submap_layer.data.type());
       }
     }
 
     // Get the data in the overlapping area of both mat
     cv::Mat src_data_roi = submap_layer.data(src_roi);
-    cv::Mat dst_data_roi = _layers[idx_layer].data(dst_roi);
+    cv::Mat dst_data_roi = m_layers[idx_layer].data(dst_roi);
 
     // Final check for matrix size
     if (src_data_roi.rows != dst_data_roi.rows || src_data_roi.cols != dst_data_roi.cols)
@@ -152,18 +152,18 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
 
     // Now is finally the turn to calculate overlap result and copy it to src grid map
     mergeMatrices(src_data_roi, dst_data_roi, flag_overlap_handle);
-    dst_data_roi.copyTo(_layers[idx_layer].data(dst_roi));
+    dst_data_roi.copyTo(m_layers[idx_layer].data(dst_roi));
   }
 }
 
 void CvGridMap::remove(const std::string &layer_name)
 {
-  auto it = _layers.begin();
-  while(it != _layers.end())
+  auto it = m_layers.begin();
+  while(it != m_layers.end())
   {
     if (it->name == layer_name)
     {
-      _layers.erase(it);
+      m_layers.erase(it);
       break;
     }
     it++;
@@ -178,12 +178,12 @@ void CvGridMap::remove(const std::vector<std::string> &layer_names)
 
 bool CvGridMap::empty() const
 {
-  return (_layers.size() == 0);
+  return (m_layers.size() == 0);
 }
 
 bool CvGridMap::exists(const std::string &layer_name) const
 {
-  for (const auto &layer : _layers)
+  for (const auto &layer : m_layers)
   {
     if (layer.name == layer_name)
       return true;
@@ -193,12 +193,12 @@ bool CvGridMap::exists(const std::string &layer_name) const
 
 bool CvGridMap::containsRoi(const cv::Rect2d &roi) const
 {
-  return fabs((_roi & roi).area() - roi.area()) < 10e-6;
+  return fabs((m_roi & roi).area() - roi.area()) < 10e-6;
 }
 
 cv::Mat& CvGridMap::get(const std::string& layer_name)
 {
-  for (auto &layer : _layers)
+  for (auto &layer : m_layers)
   {
     if (layer.name == layer_name)
       return layer.data;
@@ -208,7 +208,7 @@ cv::Mat& CvGridMap::get(const std::string& layer_name)
 
 const cv::Mat& CvGridMap::get(const std::string& layer_name) const
 {
-  for (const auto &layer : _layers)
+  for (const auto &layer : m_layers)
   {
     if (layer.name == layer_name)
       return layer.data;
@@ -218,7 +218,7 @@ const cv::Mat& CvGridMap::get(const std::string& layer_name) const
 
 CvGridMap::Layer CvGridMap::getLayer(const std::string& layer_name) const
 {
-  for (const auto& layer : _layers)
+  for (const auto& layer : m_layers)
     if (layer.name == layer_name)
       return layer;
 }
@@ -226,7 +226,7 @@ CvGridMap::Layer CvGridMap::getLayer(const std::string& layer_name) const
 std::vector<std::string> CvGridMap::getAllLayerNames() const
 {
   std::vector<std::string> layer_names;
-  for (const auto &layer : _layers)
+  for (const auto &layer : m_layers)
     layer_names.push_back(layer.name);
   return layer_names;
 }
@@ -234,7 +234,7 @@ std::vector<std::string> CvGridMap::getAllLayerNames() const
 CvGridMap CvGridMap::getSubmap(const std::vector<std::string> &layer_names) const
 {
   CvGridMap submap;
-  submap.setGeometry(_roi, _resolution);
+  submap.setGeometry(m_roi, m_resolution);
   for (const auto &layer_name : layer_names)
   {
     Layer layer = getLayer(layer_name);
@@ -246,7 +246,7 @@ CvGridMap CvGridMap::getSubmap(const std::vector<std::string> &layer_names) cons
 CvGridMap CvGridMap::getSubmap(const std::vector<std::string> &layer_names, const cv::Rect2d &roi) const
 {
   CvGridMap submap;
-  submap.setGeometry(roi, _resolution);
+  submap.setGeometry(roi, m_resolution);
   CvGridMap::Overlap overlap = getOverlap(submap);
 
   if (overlap.first != nullptr && overlap.second != nullptr)
@@ -260,7 +260,7 @@ CvGridMap CvGridMap::getSubmap(const std::vector<std::string> &layer_names, cons
   CvGridMap submap;
 
   cv::Point2d pt = atPosition2d(roi.y, roi.x);
-  submap.setGeometry(cv::Rect2d(pt.x, pt.y, (roi.width-1) * _resolution, (roi.height-1) * _resolution), _resolution);
+  submap.setGeometry(cv::Rect2d(pt.x, pt.y, (roi.width-1) * m_resolution, (roi.height - 1) * m_resolution), m_resolution);
 
   for (const auto &layer_name : layer_names)
   {
@@ -273,7 +273,7 @@ CvGridMap CvGridMap::getSubmap(const std::vector<std::string> &layer_names, cons
 
 CvGridMap::Overlap CvGridMap::getOverlap(const CvGridMap &other_map) const
 {
-  cv::Rect2d overlap_roi = (_roi & other_map._roi);
+  cv::Rect2d overlap_roi = (m_roi & other_map.m_roi);
 
   // Check if overlap exists
   if (overlap_roi.area() < 10e-6)
@@ -285,8 +285,8 @@ CvGridMap::Overlap CvGridMap::getOverlap(const CvGridMap &other_map) const
 
   // Create this map as reference and initialize with layer names
   auto map_ref = std::make_shared<CvGridMap>();
-  map_ref->setGeometry(overlap_roi, _resolution);
-  for (const auto &layer : _layers)
+  map_ref->setGeometry(overlap_roi, m_resolution);
+  for (const auto &layer : m_layers)
   {
     cv::Mat overlap_data = layer.data(this_grid_roi).clone();
     map_ref->add(layer.name, overlap_data, layer.interpolation);
@@ -294,8 +294,8 @@ CvGridMap::Overlap CvGridMap::getOverlap(const CvGridMap &other_map) const
 
   // Create other map as added map and initialize with other map layer names
   auto map_added = std::make_shared<CvGridMap>();
-  map_added->setGeometry(overlap_roi, _resolution);
-  for (const auto &layer : other_map._layers)
+  map_added->setGeometry(overlap_roi, m_resolution);
+  for (const auto &layer : other_map.m_layers)
   {
     cv::Mat overlap_data = layer.data(other_grid_roi).clone();
     map_added->add(layer.name, overlap_data, layer.interpolation);
@@ -317,21 +317,21 @@ void CvGridMap::setGeometry(const cv::Rect2d &roi, double resolution)
 {
   if (roi.width < 10e-6 || roi.height < 10e-6)
     LOG_F(WARNING, "Grid dimension: %f x %f", roi.width, roi.height);
-  if (_resolution < 10e-6)
+  if (m_resolution < 10e-6)
     throw(std::invalid_argument("Error: Resolution is zero!"));
 
   // Set basic members
-  _resolution = resolution;
-  fitGeometryToResolution(roi, _roi, _size);
+  m_resolution = resolution;
+  fitGeometryToResolution(roi, m_roi, m_size);
 
   // Release all current data
-  for (auto &layer : _layers)
+  for (auto &layer : m_layers)
     layer.data.release();
 }
 
 void CvGridMap::setLayerInterpolation(const std::string& layer_name, int interpolation)
 {
-  _layers[findContainerIdx(layer_name)].interpolation = interpolation;
+  m_layers[findContainerIdx(layer_name)].interpolation = interpolation;
 }
 
 void CvGridMap::extendToInclude(const cv::Rect2d &roi)
@@ -340,30 +340,30 @@ void CvGridMap::extendToInclude(const cv::Rect2d &roi)
     throw(std::invalid_argument("Error: Extending grid to include ROI failed. ROI dimensions zero!"));
 
   cv::Rect2d bounding_box;
-  bounding_box.x = std::min({_roi.x, roi.x});
-  bounding_box.y = std::min({_roi.y, roi.y});
-  bounding_box.width = std::max({_roi.x + _roi.width, roi.x + roi.width}) - bounding_box.x;
-  bounding_box.height = std::max({_roi.y + _roi.height, roi.y + roi.height}) - bounding_box.y;
+  bounding_box.x = std::min({m_roi.x, roi.x});
+  bounding_box.y = std::min({m_roi.y, roi.y});
+  bounding_box.width = std::max({m_roi.x + m_roi.width, roi.x + roi.width}) - bounding_box.x;
+  bounding_box.height = std::max({m_roi.y + m_roi.height, roi.y + roi.height}) - bounding_box.y;
 
   // The bounding box is the new ROI, next fit it to the given resolution and adjust the corresponding size of the grid
   cv::Rect2d roi_set;
-  fitGeometryToResolution(bounding_box, roi_set, _size);
+  fitGeometryToResolution(bounding_box, roi_set, m_size);
 
   // Add the grid growth to existing layer data
-  int size_x_right  = static_cast<int>(std::round((roi_set.x+roi_set.width - (_roi.x+_roi.width)) / _resolution));
-  int size_y_top    = static_cast<int>(std::round((roi_set.y+roi_set.height - (_roi.y+_roi.height)) / _resolution));
-  int size_x_left   = static_cast<int>(std::round((_roi.x - roi_set.x) / _resolution));
-  int size_y_bottom = static_cast<int>(std::round((_roi.y - roi_set.y) / _resolution));
+  int size_x_right  = static_cast<int>(std::round((roi_set.x+roi_set.width - (m_roi.x + m_roi.width)) / m_resolution));
+  int size_y_top    = static_cast<int>(std::round((roi_set.y+roi_set.height - (m_roi.y + m_roi.height)) / m_resolution));
+  int size_x_left   = static_cast<int>(std::round((m_roi.x - roi_set.x) / m_resolution));
+  int size_y_bottom = static_cast<int>(std::round((m_roi.y - roi_set.y) / m_resolution));
 
   if (size_x_left < 0) size_x_left = 0;
   if (size_y_bottom < 0) size_y_bottom = 0;
   if (size_x_right < 0) size_x_right = 0;
   if (size_y_top < 0) size_y_top = 0;
 
-  _roi = roi_set;
+  m_roi = roi_set;
 
   // afterwards add new size to existing layers
-  for (auto &layer : _layers)
+  for (auto &layer : m_layers)
     if (!layer.data.empty())
     {
       switch(layer.data.type())
@@ -382,44 +382,44 @@ void CvGridMap::extendToInclude(const cv::Rect2d &roi)
 
 void CvGridMap::changeResolution(double resolution)
 {
-  _resolution = resolution;
-  fitGeometryToResolution(_roi, _roi, _size);
-  for (auto &layer : _layers)
-    if (!layer.data.empty() && (layer.data.cols != _size.width || layer.data.rows != _size.height))
-      cv::resize(layer.data, layer.data, _size, layer.interpolation);
+  m_resolution = resolution;
+  fitGeometryToResolution(m_roi, m_roi, m_size);
+  for (auto &layer : m_layers)
+    if (!layer.data.empty() && (layer.data.cols != m_size.width || layer.data.rows != m_size.height))
+      cv::resize(layer.data, layer.data, m_size, layer.interpolation);
 }
 
 void CvGridMap::changeResolution(const cv::Size2i &size)
 {
   // Compute the resizing depending on the final size of the matrix data. The -1 must be subtracted here, because the first
   // sample point is at (resolution/2, resolution/2) and the last at (width - resolution/2, height - resolution/2)
-  double x_factor = static_cast<double>(size.width-1) / (_size.width-1);
-  double y_factor = static_cast<double>(size.height-1) / (_size.height-1);
+  double x_factor = static_cast<double>(size.width-1) / (m_size.width - 1);
+  double y_factor = static_cast<double>(size.height-1) / (m_size.height - 1);
 
   if (fabs(x_factor-y_factor) > 10e-6)
     throw(std::invalid_argument("Error changing resolution of CvGridMap: Desired size was not changed uniformly!"));
 
-  _resolution /= x_factor;
+  m_resolution /= x_factor;
 
-  fitGeometryToResolution(_roi, _roi, _size);
-  for (auto &layer : _layers)
-    if (!layer.data.empty() && (layer.data.cols != _size.width || layer.data.rows != _size.height))
-      cv::resize(layer.data, layer.data, _size, layer.interpolation);
+  fitGeometryToResolution(m_roi, m_roi, m_size);
+  for (auto &layer : m_layers)
+    if (!layer.data.empty() && (layer.data.cols != m_size.width || layer.data.rows != m_size.height))
+      cv::resize(layer.data, layer.data, m_size, layer.interpolation);
 }
 
 cv::Point2i CvGridMap::atIndex(const cv::Point2d &pos) const
 {
-  double x_rounded = roundToResolution(pos.x, _resolution);
-  double y_rounded = roundToResolution(pos.y, _resolution);
+  double x_rounded = roundToResolution(pos.x, m_resolution);
+  double y_rounded = roundToResolution(pos.y, m_resolution);
 
-  double epsilon = _resolution / 2;
-  if (x_rounded < _roi.x-epsilon || x_rounded > _roi.x+_roi.width+epsilon
-          || y_rounded < _roi.y-epsilon || y_rounded > _roi.y+_roi.height+epsilon)
+  double epsilon = m_resolution / 2;
+  if (x_rounded < m_roi.x - epsilon || x_rounded > m_roi.x + m_roi.width + epsilon
+      || y_rounded < m_roi.y - epsilon || y_rounded > m_roi.y + m_roi.height + epsilon)
     throw std::out_of_range("Requested world position is out of bounds.");
 
   cv::Point2i idx;
-  idx.x = static_cast<int>(std::round((x_rounded -_roi.x)/_resolution));
-  idx.y = static_cast<int>(std::round((_roi.y + _roi.height - y_rounded)/_resolution));
+  idx.x = static_cast<int>(std::round((x_rounded - m_roi.x) / m_resolution));
+  idx.y = static_cast<int>(std::round((m_roi.y + m_roi.height - y_rounded) / m_resolution));
 
   return idx;
 }
@@ -429,8 +429,8 @@ cv::Rect2i CvGridMap::atIndexROI(const cv::Rect2d &roi) const
   // Get the four corners of the world coordinates in the matrix
   cv::Point2i idx = atIndex(cv::Point2d(roi.x, roi.y+roi.height));
 
-  int width = static_cast<int>(std::round(roi.width/_resolution)) + 1;
-  int height = static_cast<int>(std::round(roi.height/_resolution)) + 1;
+  int width = static_cast<int>(std::round(roi.width / m_resolution)) + 1;
+  int height = static_cast<int>(std::round(roi.height / m_resolution)) + 1;
 
   return cv::Rect2i(idx.x, idx.y, width, height);
 }
@@ -438,14 +438,14 @@ cv::Rect2i CvGridMap::atIndexROI(const cv::Rect2d &roi) const
 cv::Point2d CvGridMap::atPosition2d(uint32_t r, uint32_t c) const
 {
   // check validity
-  assert(r < _size.height && r >= 0);
-  assert(c < _size.width && c >= 0);
-  assert(_roi.width > 0 && _roi.height > 0);
-  assert(_resolution > 0.0);
+  assert(r < m_size.height && r >= 0);
+  assert(c < m_size.width && c >= 0);
+  assert(m_roi.width > 0 && m_roi.height > 0);
+  assert(m_resolution > 0.0);
 
   cv::Point2d pos;
-  pos.x = _roi.x + static_cast<double>(c)*_resolution;
-  pos.y = _roi.y + _roi.height - static_cast<double>(r)*_resolution;  // ENU world frame
+  pos.x = m_roi.x + static_cast<double>(c) * m_resolution;
+  pos.y = m_roi.y + m_roi.height - static_cast<double>(r) * m_resolution;  // ENU world frame
   return pos;
 }
 
@@ -456,13 +456,13 @@ cv::Point3d CvGridMap::atPosition3d(const int &r, const int &c, const std::strin
   // check validity
   if (layer_data.empty())
     throw(std::runtime_error("Error: Layer data empty! Requesting data failed."));
-  if (r < 0 || r >= _size.height || c < 0 || c >= _size.width)
+  if (r < 0 || r >= m_size.height || c < 0 || c >= m_size.width)
     throw(std::invalid_argument("Error: Requested position outside matrix boundaries!"));
 
   // create position and set data
   cv::Point3d pos;
-  pos.x = _roi.x + static_cast<double>(c)*_resolution;
-  pos.y = _roi.y + _roi.height - static_cast<double>(r)*_resolution;  // ENU world frame
+  pos.x = m_roi.x + static_cast<double>(c) * m_resolution;
+  pos.y = m_roi.y + m_roi.height - static_cast<double>(r) * m_resolution;  // ENU world frame
 
   if (layer_data.type() == CV_32F)
     pos.z = static_cast<double>(layer_data.at<float>(r, c));
@@ -475,17 +475,17 @@ cv::Point3d CvGridMap::atPosition3d(const int &r, const int &c, const std::strin
 
 double CvGridMap::resolution() const
 {
-  return _resolution;
+  return m_resolution;
 }
 
 cv::Size2i CvGridMap::size() const
 {
-  return _size;
+  return m_size;
 }
 
 cv::Rect2d CvGridMap::roi() const
 {
-  return _roi;
+  return m_roi;
 }
 
 void CvGridMap::mergeMatrices(const cv::Mat &from, cv::Mat &to, int flag_merge_handling)
@@ -525,8 +525,8 @@ bool CvGridMap::isMatrixTypeValid(int type)
 
 uint32_t CvGridMap::findContainerIdx(const std::string &layer_name)
 {
-  for (uint32_t i = 0; i < _layers.size(); ++i)
-    if (_layers[i].name == layer_name)
+  for (uint32_t i = 0; i < m_layers.size(); ++i)
+    if (m_layers[i].name == layer_name)
       return i;
   throw(std::out_of_range("Error: Index for layer not found!"));
 }
@@ -535,16 +535,16 @@ void CvGridMap::fitGeometryToResolution(const cv::Rect2d &roi_desired, cv::Rect2
 {
   // We round the geometry of our region of interest to fit exactly into our resolution. So position x,y and dimensions
   // width,height are always multiples of the resolution
-  roi_set.x = roundToResolution(roi_desired.x, _resolution);
-  roi_set.y = roundToResolution(roi_desired.y, _resolution);
-  roi_set.width = roundToResolution(roi_desired.width, _resolution);
-  roi_set.height = roundToResolution(roi_desired.height, _resolution);
+  roi_set.x = roundToResolution(roi_desired.x, m_resolution);
+  roi_set.y = roundToResolution(roi_desired.y, m_resolution);
+  roi_set.width = roundToResolution(roi_desired.width, m_resolution);
+  roi_set.height = roundToResolution(roi_desired.height, m_resolution);
 
   // Please note, that the grid is always 1 element bigger than the width and height of the ROI. This is because the
   // samples in the world coordinate frame are in the center of the matrix elements. Therefore a resolution/2 is added
   // to all sides of the grid resulting in the additional + 1 as matrix size.
-  size_set.width = static_cast<int>(std::round(roi_set.width/_resolution))+1;
-  size_set.height = static_cast<int>(std::round(roi_set.height/_resolution))+1;
+  size_set.width = static_cast<int>(std::round(roi_set.width / m_resolution)) + 1;
+  size_set.height = static_cast<int>(std::round(roi_set.height / m_resolution)) + 1;
 }
 
 double CvGridMap::roundToResolution(double value, double resolution)
