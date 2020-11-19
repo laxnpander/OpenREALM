@@ -52,22 +52,22 @@ class SurfaceGeneration : public StageBase
     bool changeParam(const std::string& name, const std::string &val) override;
   private:
 
-    std::mutex _mutex_params;
-    bool _try_use_elevation;
+    std::mutex m_mutex_params;
+    bool m_try_use_elevation;
 
-    int _knn_max_iter;
+    int m_knn_max_iter;
 
-    bool _is_projection_plane_offset_computed;
-    double _projection_plane_offset;
+    bool m_is_projection_plane_offset_computed;
+    double m_projection_plane_offset;
 
-    DigitalSurfaceModel::SurfaceNormalMode _mode_surface_normals;
+    DigitalSurfaceModel::SurfaceNormalMode m_mode_surface_normals;
 
-    SaveSettings _settings_save;
+    SaveSettings m_settings_save;
 
-    Plane _plane_reference;
+    Plane m_plane_reference;
 
-    std::deque<Frame::Ptr> _buffer;
-    std::mutex _mutex_buffer;
+    std::deque<Frame::Ptr> m_buffer;
+    std::mutex m_mutex_buffer;
 
     void reset() override;
     void initStageCallback() override;

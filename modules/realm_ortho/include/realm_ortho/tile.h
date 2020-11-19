@@ -88,16 +88,16 @@ public:
 private:
 
   /// Zoom level according to TMS standard
-  int _zoom_level;
+  int m_zoom_level;
 
   /// Tile index according to TMS standard
-  cv::Point2i _index;
+  cv::Point2i m_index;
 
   /// Multi-layered grid map container
-  CvGridMap::Ptr _data;
+  CvGridMap::Ptr m_data;
 
   /// Main mutex to prevent simultaneous access from different threads
-  std::mutex _mutex_data;
+  std::mutex m_mutex_data;
 };
 
 } // namespace realm

@@ -29,18 +29,18 @@ using namespace stages;
 
 Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
-      _utm_reference(nullptr),
-      _global_map(nullptr),
-      _mesher(nullptr),
-      _gdal_writer(nullptr),
-      _publish_mesh_nth_iter(0),
-      _publish_mesh_every_nth_kf((*stage_set)["publish_mesh_every_nth_kf"].toInt()),
-      _do_publish_mesh_at_finish((*stage_set)["publish_mesh_at_finish"].toInt() > 0),
-      _downsample_publish_mesh((*stage_set)["downsample_publish_mesh"].toDouble()),
-      _use_surface_normals(true),
-      _th_elevation_min_nobs((*stage_set)["th_elevation_min_nobs"].toInt()),
-      _th_elevation_var((*stage_set)["th_elevation_variance"].toFloat()),
-      _settings_save({(*stage_set)["split_gtiff_channels"].toInt() > 0,
+      m_utm_reference(nullptr),
+      m_global_map(nullptr),
+      m_mesher(nullptr),
+      m_gdal_writer(nullptr),
+      m_publish_mesh_nth_iter(0),
+      m_publish_mesh_every_nth_kf((*stage_set)["publish_mesh_every_nth_kf"].toInt()),
+      m_do_publish_mesh_at_finish((*stage_set)["publish_mesh_at_finish"].toInt() > 0),
+      m_downsample_publish_mesh((*stage_set)["downsample_publish_mesh"].toDouble()),
+      m_use_surface_normals(true),
+      m_th_elevation_min_nobs((*stage_set)["th_elevation_min_nobs"].toInt()),
+      m_th_elevation_var((*stage_set)["th_elevation_variance"].toFloat()),
+      m_settings_save({(*stage_set)["split_gtiff_channels"].toInt() > 0,
                       (*stage_set)["save_ortho_rgb_one"].toInt() > 0,
                       (*stage_set)["save_ortho_rgb_all"].toInt() > 0,
                       (*stage_set)["save_ortho_gtiff_one"].toInt() > 0,
@@ -51,21 +51,21 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
                       (*stage_set)["save_elevation_var_all"].toInt() > 0,
                       (*stage_set)["save_elevation_obs_angle_one"].toInt() > 0,
                       (*stage_set)["save_elevation_obs_angle_all"].toInt() > 0,
-                      (*stage_set)["save_elevation_mesh_one"].toInt() > 0,
-                      (*stage_set)["save_num_obs_one"].toInt() > 0,
-                      (*stage_set)["save_num_obs_all"].toInt() > 0,
-                      (*stage_set)["save_dense_ply"].toInt() > 0})
+                       (*stage_set)["save_elevation_mesh_one"].toInt() > 0,
+                       (*stage_set)["save_num_obs_one"].toInt() > 0,
+                       (*stage_set)["save_num_obs_all"].toInt() > 0,
+                       (*stage_set)["save_dense_ply"].toInt() > 0})
 {
-  std::cout << "Stage [" << _stage_name << "]: Created Stage with Settings: " << std::endl;
+  std::cout << "Stage [" << m_stage_name << "]: Created Stage with Settings: " << std::endl;
   stage_set->print();
 
-  if (_settings_save.save_ortho_gtiff_all)
+  if (m_settings_save.save_ortho_gtiff_all)
   {
-    _gdal_writer.reset(new io::GDALContinuousWriter("mosaicing_gtiff_writer", 100, true));
-    _gdal_writer->start();
+    m_gdal_writer.reset(new io::GDALContinuousWriter("mosaicing_gtiff_writer", 100, true));
+    m_gdal_writer->start();
   }
 
-  registerAsyncDataReadyFunctor([=]{ return !_buffer.empty(); });
+  registerAsyncDataReadyFunctor([=]{ return !m_buffer.empty(); });
 }
 
 Mosaicing::~Mosaicing()
@@ -82,19 +82,19 @@ void Mosaicing::addFrame(const Frame::Ptr &frame)
     LOG_F(INFO, "Input frame missing observed map. Dropping!");
     return;
   }
-  std::unique_lock<std::mutex> lock(_mutex_buffer);
-  _buffer.push_back(frame);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer);
+  m_buffer.push_back(frame);
 
   // Ringbuffer implementation for buffer with no pose
-  if (_buffer.size() > _queue_size)
-    _buffer.pop_front();
+  if (m_buffer.size() > m_queue_size)
+    m_buffer.pop_front();
   notify();
 }
 
 bool Mosaicing::process()
 {
   bool has_processed = false;
-  if (!_buffer.empty())
+  if (!m_buffer.empty())
   {
     // Prepare timing
     long t;
@@ -113,28 +113,28 @@ bool Mosaicing::process()
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
     // Use surface normals only if setting was set to true AND actual data has normals
-    _use_surface_normals = (_use_surface_normals && map->exists("elevation_normal"));
+    m_use_surface_normals = (m_use_surface_normals && map->exists("elevation_normal"));
 
-    if (_utm_reference == nullptr)
-      _utm_reference = std::make_shared<UTMPose>(frame->getGnssUtm());
-    if (_global_map == nullptr)
+    if (m_utm_reference == nullptr)
+      m_utm_reference = std::make_shared<UTMPose>(frame->getGnssUtm());
+    if (m_global_map == nullptr)
     {
       LOG_F(INFO, "Initializing global map...");
-      _global_map = map;
+      m_global_map = map;
 
       // Incremental update is equal to global map on initialization
-      map_update = _global_map;
+      map_update = m_global_map;
     }
     else
     {
       LOG_F(INFO, "Adding new map data to global map...");
 
       t = getCurrentTimeMilliseconds();
-      (*_global_map).add(*map, REALM_OVERWRITE_ZERO, true);
+      (*m_global_map).add(*map, REALM_OVERWRITE_ZERO, true);
       LOG_F(INFO, "Timing [Add New Map]: %lu ms", getCurrentTimeMilliseconds()-t);
 
       t = getCurrentTimeMilliseconds();
-      CvGridMap::Overlap overlap = _global_map->getOverlap(*map);
+      CvGridMap::Overlap overlap = m_global_map->getOverlap(*map);
       LOG_F(INFO, "Timing [Compute Overlap]: %lu ms", getCurrentTimeMilliseconds()-t);
 
       if (overlap.first == nullptr && overlap.second == nullptr)
@@ -147,7 +147,7 @@ bool Mosaicing::process()
 
         t = getCurrentTimeMilliseconds();
         CvGridMap overlap_blended = blend(&overlap);
-        (*_global_map).add(overlap_blended, REALM_OVERWRITE_ALL, false);
+        (*m_global_map).add(overlap_blended, REALM_OVERWRITE_ALL, false);
         LOG_F(INFO, "Timing [Blending]: %lu ms", getCurrentTimeMilliseconds()-t);
 
         cv::Rect2d roi = overlap_blended.roi();
@@ -156,14 +156,14 @@ bool Mosaicing::process()
       }
 
       LOG_F(INFO, "Extracting updated map...");
-      map_update = std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb", "elevation"}, overlap.first->roi()));
+      map_update = std::make_shared<CvGridMap>(m_global_map->getSubmap({"color_rgb", "elevation"}, overlap.first->roi()));
     }
 
     // Publishings every iteration
     LOG_F(INFO, "Publishing...");
 
     t = getCurrentTimeMilliseconds();
-    publish(frame, _global_map, map_update, frame->getTimestamp());
+    publish(frame, m_global_map, map_update, frame->getTimestamp());
     LOG_F(INFO, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
 
 
@@ -202,20 +202,20 @@ CvGridMap Mosaicing::blend(CvGridMap::Overlap *overlap)
 void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 {
   // Check NaN
-  cv::Mat valid = ((*_global_map)["elevation"] == (*_global_map)["elevation"]);
+  cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
-  if (_settings_save.save_ortho_rgb_all)
-    io::saveImage((*_global_map)["color_rgb"], io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
-  if (_settings_save.save_elevation_all)
-    io::saveImageColorMap((*_global_map)["elevation"], valid, _stage_path + "/elevation/color_map", "elevation", id, io::ColormapType::ELEVATION);
-  if (_settings_save.save_elevation_var_all)
-    io::saveImageColorMap((*_global_map)["elevation_var"], valid, _stage_path + "/variance", "variance", id,io::ColormapType::ELEVATION);
-  if (_settings_save.save_elevation_obs_angle_all)
-    io::saveImageColorMap((*_global_map)["elevation_angle"], valid, _stage_path + "/obs_angle", "angle", id, io::ColormapType::ELEVATION);
-  if (_settings_save.save_num_obs_all)
-    io::saveImageColorMap((*_global_map)["num_observations"], valid, _stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
-  if (_settings_save.save_ortho_gtiff_all && _gdal_writer != nullptr)
-    _gdal_writer->requestSaveGeoTIFF(std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb"})), _utm_reference->zone, _stage_path + "/ortho/ortho_iter.tif", true, _settings_save.split_gtiff_channels);
+  if (m_settings_save.save_ortho_rgb_all)
+    io::saveImage((*m_global_map)["color_rgb"], io::createFilename(m_stage_path + "/ortho/ortho_", id, ".png"));
+  if (m_settings_save.save_elevation_all)
+    io::saveImageColorMap((*m_global_map)["elevation"], valid, m_stage_path + "/elevation/color_map", "elevation", id, io::ColormapType::ELEVATION);
+  if (m_settings_save.save_elevation_var_all)
+    io::saveImageColorMap((*m_global_map)["elevation_var"], valid, m_stage_path + "/variance", "variance", id, io::ColormapType::ELEVATION);
+  if (m_settings_save.save_elevation_obs_angle_all)
+    io::saveImageColorMap((*m_global_map)["elevation_angle"], valid, m_stage_path + "/obs_angle", "angle", id, io::ColormapType::ELEVATION);
+  if (m_settings_save.save_num_obs_all)
+    io::saveImageColorMap((*m_global_map)["num_observations"], valid, m_stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
+  if (m_settings_save.save_ortho_gtiff_all && m_gdal_writer != nullptr)
+    m_gdal_writer->requestSaveGeoTIFF(std::make_shared<CvGridMap>(m_global_map->getSubmap({"color_rgb"})), m_utm_reference->zone, m_stage_path + "/ortho/ortho_iter.tif", true, m_settings_save.split_gtiff_channels);
 
     //io::saveGeoTIFF(*map_update, "color_rgb", _utm_reference->zone, io::createFilename(_stage_path + "/ortho/ortho_", id, ".tif"));
 }
@@ -223,28 +223,28 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 void Mosaicing::saveAll()
 {
   // Check NaN
-  cv::Mat valid = ((*_global_map)["elevation"] == (*_global_map)["elevation"]);
+  cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
   // 2D map output
-  if (_settings_save.save_ortho_rgb_one)
-    io::saveCvGridMapLayer(*_global_map, _utm_reference->zone, _utm_reference->band, "color_rgb", _stage_path + "/ortho/ortho.png");
-  if (_settings_save.save_elevation_one)
-    io::saveImageColorMap((*_global_map)["elevation"], valid, _stage_path + "/elevation/color_map", "elevation", io::ColormapType::ELEVATION);
-  if (_settings_save.save_elevation_var_one)
-    io::saveImageColorMap((*_global_map)["elevation_var"], valid, _stage_path + "/variance", "variance", io::ColormapType::ELEVATION);
-  if (_settings_save.save_elevation_obs_angle_one)
-    io::saveImageColorMap((*_global_map)["elevation_angle"], valid, _stage_path + "/obs_angle", "angle", io::ColormapType::ELEVATION);
-  if (_settings_save.save_num_obs_one)
-    io::saveImageColorMap((*_global_map)["num_observations"], valid, _stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
-  if (_settings_save.save_num_obs_one)
-    io::saveGeoTIFF(_global_map->getSubmap({"num_observations"}), _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
-  if (_settings_save.save_ortho_gtiff_one)
-    io::saveGeoTIFF(_global_map->getSubmap({"color_rgb"}), _utm_reference->zone, _stage_path + "/ortho/ortho.tif", true, _settings_save.split_gtiff_channels);
-  if (_settings_save.save_elevation_one)
-    io::saveGeoTIFF(_global_map->getSubmap({"elevation"}), _utm_reference->zone, _stage_path + "/elevation/gtiff/elevation.tif");
+  if (m_settings_save.save_ortho_rgb_one)
+    io::saveCvGridMapLayer(*m_global_map, m_utm_reference->zone, m_utm_reference->band, "color_rgb", m_stage_path + "/ortho/ortho.png");
+  if (m_settings_save.save_elevation_one)
+    io::saveImageColorMap((*m_global_map)["elevation"], valid, m_stage_path + "/elevation/color_map", "elevation", io::ColormapType::ELEVATION);
+  if (m_settings_save.save_elevation_var_one)
+    io::saveImageColorMap((*m_global_map)["elevation_var"], valid, m_stage_path + "/variance", "variance", io::ColormapType::ELEVATION);
+  if (m_settings_save.save_elevation_obs_angle_one)
+    io::saveImageColorMap((*m_global_map)["elevation_angle"], valid, m_stage_path + "/obs_angle", "angle", io::ColormapType::ELEVATION);
+  if (m_settings_save.save_num_obs_one)
+    io::saveImageColorMap((*m_global_map)["num_observations"], valid, m_stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
+  if (m_settings_save.save_num_obs_one)
+    io::saveGeoTIFF(m_global_map->getSubmap({"num_observations"}), m_utm_reference->zone, m_stage_path + "/nobs/nobs.tif");
+  if (m_settings_save.save_ortho_gtiff_one)
+    io::saveGeoTIFF(m_global_map->getSubmap({"color_rgb"}), m_utm_reference->zone, m_stage_path + "/ortho/ortho.tif", true, m_settings_save.split_gtiff_channels);
+  if (m_settings_save.save_elevation_one)
+    io::saveGeoTIFF(m_global_map->getSubmap({"elevation"}), m_utm_reference->zone, m_stage_path + "/elevation/gtiff/elevation.tif");
 
   // 3D Point cloud output
-  if (_settings_save.save_dense_ply)
+  if (m_settings_save.save_dense_ply)
   {
     //if (_global_map->exists("elevation_normal"))
     //  io::saveElevationPointsToPLY(*_global_map, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
@@ -253,7 +253,7 @@ void Mosaicing::saveAll()
   }
 
   // 3D Mesh output
-  if (_settings_save.save_elevation_mesh_one)
+  if (m_settings_save.save_elevation_mesh_one)
   {
     //std::vector<cv::Point2i> vertex_ids = _mesher->buildMesh(*_global_map, "valid");
     //if (_global_map->exists("elevation_normal"))
@@ -273,18 +273,18 @@ void Mosaicing::finishCallback()
   // First polish results
   runPostProcessing();
 
-  if (_gdal_writer != nullptr)
+  if (m_gdal_writer != nullptr)
   {
-    _gdal_writer->requestFinish();
-    _gdal_writer->join();
+    m_gdal_writer->requestFinish();
+    m_gdal_writer->join();
   }
 
   // Trigger savings
   saveAll();
 
   // Publish final mesh at the end
-  if (_do_publish_mesh_at_finish)
-    _transport_mesh(createMeshFaces(_global_map), "output/mesh");
+  if (m_do_publish_mesh_at_finish)
+    m_transport_mesh(createMeshFaces(m_global_map), "output/mesh");
 }
 
 void Mosaicing::runPostProcessing()
@@ -294,76 +294,76 @@ void Mosaicing::runPostProcessing()
 
 Frame::Ptr Mosaicing::getNewFrame()
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer);
-  Frame::Ptr frame = _buffer.front();
-  _buffer.pop_front();
+  std::unique_lock<std::mutex> lock(m_mutex_buffer);
+  Frame::Ptr frame = m_buffer.front();
+  m_buffer.pop_front();
   return (std::move(frame));
 }
 
 void Mosaicing::initStageCallback()
 {
   // Stage directory first
-  if (!io::dirExists(_stage_path))
-    io::createDir(_stage_path);
+  if (!io::dirExists(m_stage_path))
+    io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(_stage_path + "/elevation"))
-    io::createDir(_stage_path + "/elevation");
-  if (!io::dirExists(_stage_path + "/elevation/color_map"))
-    io::createDir(_stage_path + "/elevation/color_map");
-  if (!io::dirExists(_stage_path + "/elevation/ply"))
-    io::createDir(_stage_path + "/elevation/ply");
-  if (!io::dirExists(_stage_path + "/elevation/pcd"))
-    io::createDir(_stage_path + "/elevation/pcd");
-  if (!io::dirExists(_stage_path + "/elevation/mesh"))
-    io::createDir(_stage_path + "/elevation/mesh");
-  if (!io::dirExists(_stage_path + "/elevation/gtiff"))
-    io::createDir(_stage_path + "/elevation/gtiff");
-  if (!io::dirExists(_stage_path + "/obs_angle"))
-    io::createDir(_stage_path + "/obs_angle");
-  if (!io::dirExists(_stage_path + "/variance"))
-    io::createDir(_stage_path + "/variance");
-  if (!io::dirExists(_stage_path + "/ortho"))
-    io::createDir(_stage_path + "/ortho");
-  if (!io::dirExists(_stage_path + "/nobs"))
-    io::createDir(_stage_path + "/nobs");
+  if (!io::dirExists(m_stage_path + "/elevation"))
+    io::createDir(m_stage_path + "/elevation");
+  if (!io::dirExists(m_stage_path + "/elevation/color_map"))
+    io::createDir(m_stage_path + "/elevation/color_map");
+  if (!io::dirExists(m_stage_path + "/elevation/ply"))
+    io::createDir(m_stage_path + "/elevation/ply");
+  if (!io::dirExists(m_stage_path + "/elevation/pcd"))
+    io::createDir(m_stage_path + "/elevation/pcd");
+  if (!io::dirExists(m_stage_path + "/elevation/mesh"))
+    io::createDir(m_stage_path + "/elevation/mesh");
+  if (!io::dirExists(m_stage_path + "/elevation/gtiff"))
+    io::createDir(m_stage_path + "/elevation/gtiff");
+  if (!io::dirExists(m_stage_path + "/obs_angle"))
+    io::createDir(m_stage_path + "/obs_angle");
+  if (!io::dirExists(m_stage_path + "/variance"))
+    io::createDir(m_stage_path + "/variance");
+  if (!io::dirExists(m_stage_path + "/ortho"))
+    io::createDir(m_stage_path + "/ortho");
+  if (!io::dirExists(m_stage_path + "/nobs"))
+    io::createDir(m_stage_path + "/nobs");
 }
 
 void Mosaicing::printSettingsToLog()
 {
   LOG_F(INFO, "### Stage process settings ###");
-  LOG_F(INFO, "- publish_mesh_nth_iter: %i", _publish_mesh_nth_iter);
-  LOG_F(INFO, "- publish_mesh_every_nth_kf: %i", _publish_mesh_every_nth_kf);
-  LOG_F(INFO, "- do_publish_mesh_at_finish: %i", _do_publish_mesh_at_finish);
-  LOG_F(INFO, "- downsample_publish_mesh: %4.2f", _downsample_publish_mesh);
-  LOG_F(INFO, "- use_surface_normals: %i", _use_surface_normals);
-  LOG_F(INFO, "- th_elevation_min_nobs: %i", _th_elevation_min_nobs);
-  LOG_F(INFO, "- th_elevation_var: %4.2f", _th_elevation_var);
+  LOG_F(INFO, "- publish_mesh_nth_iter: %i", m_publish_mesh_nth_iter);
+  LOG_F(INFO, "- publish_mesh_every_nth_kf: %i", m_publish_mesh_every_nth_kf);
+  LOG_F(INFO, "- do_publish_mesh_at_finish: %i", m_do_publish_mesh_at_finish);
+  LOG_F(INFO, "- downsample_publish_mesh: %4.2f", m_downsample_publish_mesh);
+  LOG_F(INFO, "- use_surface_normals: %i", m_use_surface_normals);
+  LOG_F(INFO, "- th_elevation_min_nobs: %i", m_th_elevation_min_nobs);
+  LOG_F(INFO, "- th_elevation_var: %4.2f", m_th_elevation_var);
 
   LOG_F(INFO, "### Stage save settings ###");
-  LOG_F(INFO, "- save_ortho_rgb_one: %i", _settings_save.save_ortho_rgb_one);
-  LOG_F(INFO, "- save_ortho_rgb_all: %i", _settings_save.save_ortho_rgb_all);
-  LOG_F(INFO, "- save_ortho_gtiff_one: %i", _settings_save.save_ortho_gtiff_one);
-  LOG_F(INFO, "- save_ortho_gtiff_all: %i", _settings_save.save_ortho_gtiff_all);
-  LOG_F(INFO, "- save_elevation_one: %i", _settings_save.save_elevation_one);
-  LOG_F(INFO, "- save_elevation_all: %i", _settings_save.save_elevation_all);
-  LOG_F(INFO, "- save_elevation_var_one: %i", _settings_save.save_elevation_var_one);
-  LOG_F(INFO, "- save_elevation_var_all: %i", _settings_save.save_elevation_var_all);
-  LOG_F(INFO, "- save_elevation_obs_angle_one: %i", _settings_save.save_elevation_obs_angle_one);
-  LOG_F(INFO, "- save_elevation_obs_angle_all: %i", _settings_save.save_elevation_obs_angle_all);
-  LOG_F(INFO, "- save_elevation_mesh_one: %i", _settings_save.save_elevation_mesh_one);
-  LOG_F(INFO, "- save_num_obs_one: %i", _settings_save.save_num_obs_one);
-  LOG_F(INFO, "- save_num_obs_all: %i", _settings_save.save_num_obs_all);
-  LOG_F(INFO, "- save_dense_ply: %i", _settings_save.save_dense_ply);
+  LOG_F(INFO, "- save_ortho_rgb_one: %i", m_settings_save.save_ortho_rgb_one);
+  LOG_F(INFO, "- save_ortho_rgb_all: %i", m_settings_save.save_ortho_rgb_all);
+  LOG_F(INFO, "- save_ortho_gtiff_one: %i", m_settings_save.save_ortho_gtiff_one);
+  LOG_F(INFO, "- save_ortho_gtiff_all: %i", m_settings_save.save_ortho_gtiff_all);
+  LOG_F(INFO, "- save_elevation_one: %i", m_settings_save.save_elevation_one);
+  LOG_F(INFO, "- save_elevation_all: %i", m_settings_save.save_elevation_all);
+  LOG_F(INFO, "- save_elevation_var_one: %i", m_settings_save.save_elevation_var_one);
+  LOG_F(INFO, "- save_elevation_var_all: %i", m_settings_save.save_elevation_var_all);
+  LOG_F(INFO, "- save_elevation_obs_angle_one: %i", m_settings_save.save_elevation_obs_angle_one);
+  LOG_F(INFO, "- save_elevation_obs_angle_all: %i", m_settings_save.save_elevation_obs_angle_all);
+  LOG_F(INFO, "- save_elevation_mesh_one: %i", m_settings_save.save_elevation_mesh_one);
+  LOG_F(INFO, "- save_num_obs_one: %i", m_settings_save.save_num_obs_one);
+  LOG_F(INFO, "- save_num_obs_all: %i", m_settings_save.save_num_obs_all);
+  LOG_F(INFO, "- save_dense_ply: %i", m_settings_save.save_dense_ply);
 }
 
 std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
 {
   CvGridMap::Ptr mesh_sampled;
-  if (_downsample_publish_mesh > 10e-6)
+  if (m_downsample_publish_mesh > 10e-6)
   {
     // Downsampling was set by the user in settings
-    LOG_F(INFO, "Downsampling mesh publish to %4.2f [m/gridcell]...", _downsample_publish_mesh);
+    LOG_F(INFO, "Downsampling mesh publish to %4.2f [m/gridcell]...", m_downsample_publish_mesh);
     mesh_sampled = std::make_shared<CvGridMap>(map->cloneSubmap({"elevation", "color_rgb"}));
 
     cv::Mat valid = ((*mesh_sampled)["elevation"] == (*mesh_sampled)["elevation"]);
@@ -374,7 +374,7 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
     cv::Point2i min_loc, max_loc;
     cv::minMaxLoc((*mesh_sampled)["elevation"], &ele_min, &ele_max, &min_loc, &max_loc, valid);
 
-    mesh_sampled->changeResolution(_downsample_publish_mesh);
+    mesh_sampled->changeResolution(m_downsample_publish_mesh);
 
     // After resizing through bilinear interpolation there can occure bad elevation values at the border
     cv::Mat mask_low = ((*mesh_sampled)["elevation"] < ele_min);
@@ -396,27 +396,27 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
 
 void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, const CvGridMap::Ptr &update, uint64_t timestamp)
 {
-  cv::Mat valid = ((*_global_map)["elevation"] == (*_global_map)["elevation"]);
+  cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
   // First update statistics about outgoing frame rate
   updateFpsStatisticsOutgoing();
 
-  _transport_img((*_global_map)["color_rgb"], "output/rgb");
-  _transport_img(analysis::convertToColorMapFromCVFC1((*_global_map)["elevation"],
-                                                      valid,
-                                                      cv::COLORMAP_JET), "output/elevation");
-  _transport_cvgridmap(update->getSubmap({"color_rgb"}), _utm_reference->zone, _utm_reference->band, "output/update/ortho");
+  m_transport_img((*m_global_map)["color_rgb"], "output/rgb");
+  m_transport_img(analysis::convertToColorMapFromCVFC1((*m_global_map)["elevation"],
+                                                       valid,
+                                                       cv::COLORMAP_JET), "output/elevation");
+  m_transport_cvgridmap(update->getSubmap({"color_rgb"}), m_utm_reference->zone, m_utm_reference->band, "output/update/ortho");
   //_transport_cvgridmap(update->getSubmap({"elevation", "valid"}), _utm_reference->zone, _utm_reference->band, "output/update/elevation");
 
-  if (_publish_mesh_every_nth_kf > 0 && _publish_mesh_every_nth_kf == _publish_mesh_nth_iter)
+  if (m_publish_mesh_every_nth_kf > 0 && m_publish_mesh_every_nth_kf == m_publish_mesh_nth_iter)
   {
     std::vector<Face> faces = createMeshFaces(map);
-    std::thread t(_transport_mesh, faces, "output/mesh");
+    std::thread t(m_transport_mesh, faces, "output/mesh");
     t.detach();
-    _publish_mesh_nth_iter = 0;
+    m_publish_mesh_nth_iter = 0;
   }
-  else if (_publish_mesh_every_nth_kf > 0)
+  else if (m_publish_mesh_every_nth_kf > 0)
   {
-    _publish_mesh_nth_iter++;
+    m_publish_mesh_nth_iter++;
   }
 }

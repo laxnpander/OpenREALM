@@ -28,11 +28,11 @@ using namespace realm;
 
 TileCache::TileCache(const std::string &id, double sleep_time, const std::string &output_directory, bool verbose)
  : WorkerThreadBase("tile_cache_" + id, sleep_time, verbose),
-   _dir_toplevel(output_directory),
-   _has_init_directories(false),
-   _do_update(false)
+   m_dir_toplevel(output_directory),
+   m_has_init_directories(false),
+   m_do_update(false)
 {
-  m_data_ready_functor = [=]{ return (_do_update || isFinishRequested()); };
+  m_data_ready_functor = [=]{ return (m_do_update || isFinishRequested()); };
 }
 
 TileCache::~TileCache()
@@ -42,22 +42,22 @@ TileCache::~TileCache()
 
 void TileCache::setOutputFolder(const std::string &dir)
 {
-  std::lock_guard<std::mutex> lock(_mutex_settings);
-  _dir_toplevel = dir;
+  std::lock_guard<std::mutex> lock(m_mutex_settings);
+  m_dir_toplevel = dir;
 }
 
 bool TileCache::process()
 {
   bool has_processed = false;
 
-  if (_mutex_do_update.try_lock())
+  if (m_mutex_do_update.try_lock())
   {
     long t;
 
     // Give update lock free as fast as possible, so we won't block other threads from adding data
-    bool do_update = _do_update;
-    _do_update = false;
-    _mutex_do_update.unlock();
+    bool do_update = m_do_update;
+    m_do_update = false;
+    m_mutex_do_update.unlock();
 
     if (do_update)
     {
@@ -65,9 +65,9 @@ bool TileCache::process()
 
       t = getCurrentTimeMilliseconds();
 
-      for (auto &cached_elements_zoom : _cache)
+      for (auto &cached_elements_zoom : m_cache)
       {
-        cv::Rect2i roi_prediction = _roi_prediction.at(cached_elements_zoom.first);
+        cv::Rect2i roi_prediction = m_roi_prediction.at(cached_elements_zoom.first);
         for (auto &cached_elements_column : cached_elements_zoom.second)
         {
           for (auto &cached_elements : cached_elements_column.second)
@@ -107,12 +107,12 @@ bool TileCache::process()
 
 void TileCache::reset()
 {
-  _cache.clear();
+  m_cache.clear();
 }
 
 void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const cv::Rect2i &roi_idx)
 {
-  std::lock_guard<std::mutex> lock(_mutex_cache);
+  std::lock_guard<std::mutex> lock(m_mutex_cache);
 
   // Assuming all tiles are based on the same data, therefore have the same number of layers and layer names
   std::vector<std::string> layer_names = tiles[0]->data()->getAllLayerNames();
@@ -125,20 +125,20 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
     layer_meta.emplace_back(LayerMetaData{layer_name, layer.data.type(), layer.interpolation});
   }
 
-  if (!_has_init_directories)
+  if (!m_has_init_directories)
   {
-    createDirectories(_dir_toplevel + "/", layer_names, "");
-    _has_init_directories = true;
+    createDirectories(m_dir_toplevel + "/", layer_names, "");
+    m_has_init_directories = true;
   }
 
-  auto it_zoom = _cache.find(zoom_level);
+  auto it_zoom = m_cache.find(zoom_level);
 
   long timestamp = getCurrentTimeMilliseconds();
 
   long t = getCurrentTimeMilliseconds();
 
   // Cache for this zoom level already exists
-  if (it_zoom != _cache.end())
+  if (it_zoom != m_cache.end())
   {
     for (const auto &t : tiles)
     {
@@ -149,7 +149,7 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
       if (it_tile_x == it_zoom->second.end())
       {
         // Zoom level exists, but tile column is
-        createDirectories(_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
+        createDirectories(m_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
         it_zoom->second[t->x()][t->y()].reset(new CacheElement{timestamp, layer_meta, t, false});
       }
       else
@@ -173,7 +173,7 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
   // Cache for this zoom level does not yet exist
   else
   {
-    createDirectories(_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level));
+    createDirectories(m_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level));
 
     CacheElementGrid tile_grid;
     for (const auto &t : tiles)
@@ -183,27 +183,27 @@ void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const c
       t->lock();
       auto it_tile_x = it_zoom->second.find(t->x());
       if (it_tile_x == it_zoom->second.end())
-        createDirectories(_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
+        createDirectories(m_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
 
       tile_grid[t->x()][t->y()].reset(new CacheElement{timestamp, layer_meta, t, false});
       t->unlock();
     }
-    _cache[zoom_level] = tile_grid;
+    m_cache[zoom_level] = tile_grid;
   }
 
   LOG_IF_F(INFO, m_verbose, "Timing [Cache Push]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   updatePrediction(zoom_level, roi_idx);
 
-  std::lock_guard<std::mutex> lock1(_mutex_do_update);
-  _do_update = true;
+  std::lock_guard<std::mutex> lock1(m_mutex_do_update);
+  m_do_update = true;
   notify();
 }
 
 Tile::Ptr TileCache::get(int tx, int ty, int zoom_level)
 {
-  auto it_zoom = _cache.find(zoom_level);
-  if (it_zoom == _cache.end())
+  auto it_zoom = m_cache.find(zoom_level);
+  if (it_zoom == m_cache.end())
   {
     return nullptr;
   }
@@ -241,7 +241,7 @@ void TileCache::flushAll()
 
   long t = getCurrentTimeMilliseconds();
 
-  for (auto &zoom_levels : _cache)
+  for (auto &zoom_levels : m_cache)
     for (auto &cache_column : zoom_levels.second)
       for (auto &cache_element : cache_column.second)
       {
@@ -263,7 +263,7 @@ void TileCache::flushAll()
 
 void TileCache::loadAll()
 {
-  for (auto &zoom_levels : _cache)
+  for (auto &zoom_levels : m_cache)
     for (auto &cache_column : zoom_levels.second)
       for (auto &cache_element : cache_column.second)
       {
@@ -279,8 +279,8 @@ void TileCache::load(const CacheElement::Ptr &element) const
 {
   for (const auto &meta : element->layer_meta)
   {
-    std::string filename = _dir_toplevel + "/"
-                           + meta.name  + "/"
+    std::string filename = m_dir_toplevel + "/"
+                           + meta.name + "/"
                            + std::to_string(element->tile->zoom_level()) + "/"
                            + std::to_string(element->tile->x()) + "/"
                            + std::to_string(element->tile->y());
@@ -327,8 +327,8 @@ void TileCache::write(const CacheElement::Ptr &element) const
   {
     cv::Mat data = element->tile->data()->get(meta.name);
 
-    std::string filename = _dir_toplevel + "/"
-                           + meta.name  + "/"
+    std::string filename = m_dir_toplevel + "/"
+                           + meta.name + "/"
                            + std::to_string(element->tile->zoom_level()) + "/"
                            + std::to_string(element->tile->x()) + "/"
                            + std::to_string(element->tile->y());
@@ -388,21 +388,21 @@ size_t TileCache::estimateByteSize(const Tile::Ptr &tile) const
 
 void TileCache::updatePrediction(int zoom_level, const cv::Rect2i &roi_current)
 {
-  std::lock_guard<std::mutex> lock(_mutex_roi_prev_request);
-  std::lock_guard<std::mutex> lock1(_mutex_roi_prediction);
+  std::lock_guard<std::mutex> lock(m_mutex_roi_prev_request);
+  std::lock_guard<std::mutex> lock1(m_mutex_roi_prediction);
 
-  auto it_roi_prev_request = _roi_prev_request.find(zoom_level);
-  if (it_roi_prev_request == _roi_prev_request.end())
+  auto it_roi_prev_request = m_roi_prev_request.find(zoom_level);
+  if (it_roi_prev_request == m_roi_prev_request.end())
   {
     // There was no previous request, so there can be no prediction which region of tiles might be needed in the next
     // processing step. Therefore set the current roi to be the prediction for the next request.
-    _roi_prediction[zoom_level] = roi_current;
+    m_roi_prediction[zoom_level] = roi_current;
   }
   else
   {
     // We have a previous roi that was requested, therefore we can extrapolate what the next request might look like
     // utilizing our current roi
-    auto it_roi_prediction = _roi_prediction.find(zoom_level);
+    auto it_roi_prediction = m_roi_prediction.find(zoom_level);
     it_roi_prediction->second.x = roi_current.x + (roi_current.x - it_roi_prev_request->second.x);
     it_roi_prediction->second.y = roi_current.y + (roi_current.y - it_roi_prev_request->second.y);
     it_roi_prediction->second.width = roi_current.width + (roi_current.width - it_roi_prev_request->second.width);

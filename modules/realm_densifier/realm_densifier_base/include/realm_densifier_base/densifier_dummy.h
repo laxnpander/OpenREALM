@@ -69,7 +69,7 @@ class Dummy : public DensifierIF
      */
     void printSettingsToLog() override;
   private:
-    double _resizing;
+    double m_resizing;
 };
 
 } // namespace densifier

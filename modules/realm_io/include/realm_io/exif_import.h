@@ -128,7 +128,7 @@ public:
 private:
 
   //! Tags to be read from the exiv information
-  FrameTags _frame_tags;
+  FrameTags m_frame_tags;
 
   /*!
    * @brief Conversion function for angle in degree, minute, second format to decimal angle

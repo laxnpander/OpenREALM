@@ -58,10 +58,10 @@ private:
     using Ptr = std::shared_ptr<QueueElement>;
   };
 
-  int _queue_size;
+  int m_queue_size;
 
-  std::mutex _mutex_save_requests;
-  std::deque<QueueElement::Ptr> _save_requests;
+  std::mutex m_mutex_save_requests;
+  std::deque<QueueElement::Ptr> m_save_requests;
 
   bool process() override;
 

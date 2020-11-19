@@ -83,73 +83,73 @@ class PoseEstimation : public StageBase
 
   private:
     // Flag for initialization of georeference
-    bool _is_georef_initialized;
+    bool m_is_georef_initialized;
 
     // Flag to disable usage of visual slam. If Flag is set to 'false', then this stage
     // only works as image throttle according to the max overlap defined in the settings
-    bool _use_vslam;
+    bool m_use_vslam;
 
     // Flag to set all tracked frames as keyframes, consequently they are published in higher frequency for the next stage
-    bool _set_all_frames_keyframes;
+    bool m_set_all_frames_keyframes;
 
     // Flag to disable fallback solution based on lat/lon/alt/heading completely
-    bool _use_fallback;
+    bool m_use_fallback;
 
     // Flag to disable using an initial guess of the camera pose to make tracking more stable in the visual SLAM
-    bool _use_initial_guess;
+    bool m_use_initial_guess;
 
     // Flag to disable georeferencing updates after initialization. Might result in a more consistent map, but worse
     // georeferencing results
-    bool _do_update_georef;
+    bool m_do_update_georef;
 
     // Flag to suppress publish of outdated poses after initialization of georeference. Might be needed if visual pose
     // is fed to state estimation filters
-    bool _do_suppress_outdated_pose_pub;
+    bool m_do_suppress_outdated_pose_pub;
 
     // Threshold for error of georeference before initializing
-    double _th_error_georef;
+    double m_th_error_georef;
 
     // settings
-    FallbackStrategy _strategy_fallback;
-    double _overlap_max;          // [%] Maxmimum overlap for every publish to be checked, even keyframes
-    double _overlap_max_fallback; // [%] Maximum overlap for fallback publishes, e.g. GNSS only
+    FallbackStrategy m_strategy_fallback;
+    double m_overlap_max;          // [%] Maxmimum overlap for every publish to be checked, even keyframes
+    double m_overlap_max_fallback; // [%] Maximum overlap for fallback publishes, e.g. GNSS only
 
-    SaveSettings _settings_save;
+    SaveSettings m_settings_save;
 
     // Transformation from visual world to geo coordinate frame
-    std::mutex _mutex_t_w2g;
-    cv::Mat _T_w2g;
+    std::mutex m_mutex_t_w2g;
+    cv::Mat m_T_w2g;
 
     // Current debug image, gets published by PoseEstimationIO
     // Warning: As soon as published, it will get released
     // Always lock mutex when reading and check for empty()
-    std::mutex _mutex_img_debug;
-    cv::Mat _img_debug;
+    std::mutex m_mutex_img_debug;
+    cv::Mat m_img_debug;
 
     // Overlap estimation
-    Plane _plane_ref;       // Reference plane for projection, normally (0,0,0), (0,0,1)
-    cv::Rect2d _roi_prev;   // Previous published roi, used for overlap calculation
+    Plane m_plane_ref;       // Reference plane for projection, normally (0,0,0), (0,0,1)
+    cv::Rect2d m_roi_prev;   // Previous published roi, used for overlap calculation
 
     // Buffer for all frames added
-    std::deque<Frame::Ptr> _buffer_no_pose;
-    std::deque<Frame::Ptr> _buffer_pose_all;
-    std::vector<Frame::Ptr> _buffer_pose_init;
-    std::deque<Frame::Ptr> _buffer_do_publish;  // Note: Will only get cleared by user reset
+    std::deque<Frame::Ptr> m_buffer_no_pose;
+    std::deque<Frame::Ptr> m_buffer_pose_all;
+    std::vector<Frame::Ptr> m_buffer_pose_init;
+    std::deque<Frame::Ptr> m_buffer_do_publish;  // Note: Will only get cleared by user reset
     // Thread safety
-    std::mutex _mutex_buffer_no_pose;
-    std::mutex _mutex_buffer_pose_all;
-    std::mutex _mutex_buffer_pose_init;
-    std::mutex _mutex_buffer_do_publish;
+    std::mutex m_mutex_buffer_no_pose;
+    std::mutex m_mutex_buffer_pose_all;
+    std::mutex m_mutex_buffer_pose_init;
+    std::mutex m_mutex_buffer_do_publish;
 
     // handles
-    std::mutex _mutex_vslam;
-    VisualSlamIF::Ptr _vslam;
+    std::mutex m_mutex_vslam;
+    VisualSlamIF::Ptr m_vslam;
 
     // Publisher thread
-    std::unique_ptr<PoseEstimationIO> _stage_publisher;
+    std::unique_ptr<PoseEstimationIO> m_stage_publisher;
 
     // Georeferencing initializer
-    GeospatialReferencerIF::Ptr _georeferencer;
+    GeospatialReferencerIF::Ptr m_georeferencer;
 
     void track(Frame::Ptr &frame);
 
@@ -189,17 +189,17 @@ class PoseEstimationIO : public WorkerThreadBase
     void initLog(const std::string &filepath);
 
   private:
-    bool _is_time_ref_set;
-    bool _do_delay_keyframes;
-    bool _is_new_output_path_set;
+    bool m_is_time_ref_set;
+    bool m_do_delay_keyframes;
+    bool m_is_new_output_path_set;
 
-    std::string _path_output;
+    std::string m_path_output;
 
-    PoseEstimation* _stage_handle;
+    PoseEstimation* m_stage_handle;
 
-    std::mutex _mutex_schedule;
-    TimeReference _t_ref;
-    std::deque<Task> _schedule;
+    std::mutex m_mutex_schedule;
+    TimeReference m_t_ref;
+    std::deque<Task> m_schedule;
 
     // online processing
     void reset() override;

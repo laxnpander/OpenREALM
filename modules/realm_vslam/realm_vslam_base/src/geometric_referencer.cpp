@@ -26,56 +26,56 @@
 using namespace realm;
 
 GeometricReferencer::GeometricReferencer(double th_error)
-: _is_initialized(false),
-  _is_buisy(false),
-  _prev_nrof_unique(0),
-  _scale(0.0),
-  _th_error(th_error),
-  _error(0.0)
+: m_is_initialized(false),
+  m_is_buisy(false),
+  m_prev_nrof_unique(0),
+  m_scale(0.0),
+  m_th_error(th_error),
+  m_error(0.0)
 {
 
 }
 
 bool GeometricReferencer::isBuisy()
 {
-  std::unique_lock<std::mutex> lock(_mutex_is_buisy);
-  return _is_buisy;
+  std::unique_lock<std::mutex> lock(m_mutex_is_buisy);
+  return m_is_buisy;
 }
 
 bool GeometricReferencer::isInitialized()
 {
-  std::unique_lock<std::mutex> lock(_mutex_is_initialized);
-  return _is_initialized;
+  std::unique_lock<std::mutex> lock(m_mutex_is_initialized);
+  return m_is_initialized;
 }
 
 void GeometricReferencer::setBuisy()
 {
-  std::unique_lock<std::mutex> lock(_mutex_is_buisy);
-  _is_buisy = true;
+  std::unique_lock<std::mutex> lock(m_mutex_is_buisy);
+  m_is_buisy = true;
 }
 
 void GeometricReferencer::setIdle()
 {
-  std::unique_lock<std::mutex> lock(_mutex_is_buisy);
-  _is_buisy = false;
+  std::unique_lock<std::mutex> lock(m_mutex_is_buisy);
+  m_is_buisy = false;
 }
 
 void GeometricReferencer::setReference(const cv::Mat &T_c2g)
 {
-  std::unique_lock<std::mutex> lock(_mutex_t_c2g);
-  _transformation_w2g = T_c2g.clone();
+  std::unique_lock<std::mutex> lock(m_mutex_t_c2g);
+  m_transformation_w2g = T_c2g.clone();
 }
 
 void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
 {
   LOG_F(INFO, "Starting georeferencing...");
 
-  if (isBuisy() || _is_initialized)
+  if (isBuisy() || m_is_initialized)
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
     LOG_F(INFO, "Input frames: %lu", frames.size());
     LOG_IF_F(INFO, isBuisy(), "Georeferencer is buisy!");
-    LOG_IF_F(INFO, _is_initialized, "Georeferencer is initialized!");
+    LOG_IF_F(INFO, m_is_initialized, "Georeferencer is initialized!");
     return;
   }
 
@@ -132,7 +132,7 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   }
 
   // Check if enough measurements and if more scales estimates than in the iteration before were computed
-  if (unique_spatials.size() < 3 || unique_spatials.size() == _prev_nrof_unique)
+  if (unique_spatials.size() < 3 || unique_spatials.size() == m_prev_nrof_unique)
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
     LOG_F(INFO, "Unique frames: %lu", unique_spatials.size());
@@ -142,11 +142,11 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
 
   // Average scale and update member
   double scale_avr = std::accumulate(scales.begin(), scales.end(), 0.0)/scales.size();
-  double dscale = scale_avr - _scale;
-  _scale = scale_avr;
-  _prev_nrof_unique = unique_spatials.size();
+  double dscale = scale_avr - m_scale;
+  m_scale = scale_avr;
+  m_prev_nrof_unique = unique_spatials.size();
 
-  if (fabs(dscale) > _th_error)
+  if (fabs(dscale) > m_th_error)
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
     LOG_F(INFO, "Scale change: %4.2f", fabs(dscale));
@@ -164,10 +164,10 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   cv::Mat T_c2g = refineReference(unique_spatials, T_p2g, 5.0);
   setReference(T_c2g);
 
-  _spatials = unique_spatials;
+  m_spatials = unique_spatials;
 
-  std::unique_lock<std::mutex> lock(_mutex_is_initialized);
-  _is_initialized = true;
+  std::unique_lock<std::mutex> lock(m_mutex_is_initialized);
+  m_is_initialized = true;
 
   setIdle();
   LOG_F(INFO, "Finished georeference try!");
@@ -182,19 +182,19 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
   s_curr->first = frame->getDefaultPose();
   s_curr->second = frame->getVisualPose();
 
-  SpatialMeasurement::Ptr s_prev = _spatials.back();
+  SpatialMeasurement::Ptr s_prev = m_spatials.back();
 
   setBuisy();
 
   if (computeTwoPointScale(s_curr, s_prev, 0.02*frame->getMedianSceneDepth()) > 0.0)
   {
-    _spatials.push_back(s_curr);
-    cv::Mat T_c2g = refineReference(_spatials, _transformation_w2g.clone(), 3.0);
+    m_spatials.push_back(s_curr);
+    cv::Mat T_c2g = refineReference(m_spatials, m_transformation_w2g.clone(), 3.0);
     setReference(T_c2g);
 
-    double error = computeAverageReferenceError(_spatials, T_c2g);
-    double derror = fabs(error - _error);
-    _error = error;
+    double error = computeAverageReferenceError(m_spatials, T_c2g);
+    double derror = fabs(error - m_error);
+    m_error = error;
 
     double sx = cv::norm(T_c2g.col(0));
     double sy = cv::norm(T_c2g.col(1));;
@@ -215,8 +215,8 @@ void GeometricReferencer::update(const Frame::Ptr &frame)
 
 cv::Mat GeometricReferencer::getTransformation()
 {
-  std::unique_lock<std::mutex> lock(_mutex_t_c2g);
-  return _transformation_w2g.clone();
+  std::unique_lock<std::mutex> lock(m_mutex_t_c2g);
+  return m_transformation_w2g.clone();
 }
 
 double GeometricReferencer::computeTwoPointScale(const SpatialMeasurement::Ptr &s1, const SpatialMeasurement::Ptr &s2, double th_visual)

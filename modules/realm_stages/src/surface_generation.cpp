@@ -27,16 +27,16 @@ using namespace stages;
 
 SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double rate)
 : StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt()),
-  _try_use_elevation((*settings)["try_use_elevation"].toInt() > 0),
-  _knn_max_iter((*settings)["knn_max_iter"].toInt()),
-  _is_projection_plane_offset_computed(false),
-  _projection_plane_offset(0.0),
-  _mode_surface_normals(static_cast<DigitalSurfaceModel::SurfaceNormalMode>((*settings)["mode_surface_normals"].toInt())),
-  _plane_reference(Plane{(cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0), (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0)}),
-  _settings_save({(*settings)["save_elevation"].toInt() > 0,
+  m_try_use_elevation((*settings)["try_use_elevation"].toInt() > 0),
+  m_knn_max_iter((*settings)["knn_max_iter"].toInt()),
+  m_is_projection_plane_offset_computed(false),
+  m_projection_plane_offset(0.0),
+  m_mode_surface_normals(static_cast<DigitalSurfaceModel::SurfaceNormalMode>((*settings)["mode_surface_normals"].toInt())),
+  m_plane_reference(Plane{(cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0), (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0)}),
+  m_settings_save({(*settings)["save_elevation"].toInt() > 0,
                   (*settings)["save_normals"].toInt() > 0})
 {
-  registerAsyncDataReadyFunctor([=]{ return !_buffer.empty(); });
+  registerAsyncDataReadyFunctor([=]{ return !m_buffer.empty(); });
 }
 
 void SurfaceGeneration::addFrame(const Frame::Ptr &frame)
@@ -44,18 +44,18 @@ void SurfaceGeneration::addFrame(const Frame::Ptr &frame)
   // First update statistics about incoming frame rate
   updateFpsStatisticsIncoming();
 
-  std::unique_lock<std::mutex> lock(_mutex_buffer);
-  _buffer.push_back(frame);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer);
+  m_buffer.push_back(frame);
   // Ringbuffer implementation
-  if (_buffer.size() > _queue_size)
-    _buffer.pop_front();
+  if (m_buffer.size() > m_queue_size)
+    m_buffer.pop_front();
   notify();
 }
 
 bool SurfaceGeneration::process()
 {
   bool has_processed = false;
-  if (!_buffer.empty())
+  if (!m_buffer.empty())
   {
     // Prepare timing
     long t;
@@ -109,10 +109,10 @@ bool SurfaceGeneration::process()
 
 bool SurfaceGeneration::changeParam(const std::string& name, const std::string &val)
 {
-  std::unique_lock<std::mutex> lock(_mutex_params);
+  std::unique_lock<std::mutex> lock(m_mutex_params);
   if (name == "try_use_elevation")
   {
-    _try_use_elevation = (val == "true" || val == "1");
+    m_try_use_elevation = (val == "true" || val == "1");
     return true;
   }
   return false;
@@ -120,15 +120,15 @@ bool SurfaceGeneration::changeParam(const std::string& name, const std::string &
 
 void SurfaceGeneration::reset()
 {
-  _projection_plane_offset = 0.0;
-  _is_projection_plane_offset_computed = false;
+  m_projection_plane_offset = 0.0;
+  m_is_projection_plane_offset_computed = false;
 }
 
 void SurfaceGeneration::publish(const Frame::Ptr &frame)
 {
   // First update statistics about outgoing frame rate
   updateFpsStatisticsOutgoing();
-  _transport_frame(frame, "output/frame");
+  m_transport_frame(frame, "output/frame");
 }
 
 void SurfaceGeneration::saveIter(const CvGridMap &surface, uint32_t id)
@@ -136,49 +136,49 @@ void SurfaceGeneration::saveIter(const CvGridMap &surface, uint32_t id)
   // Invalid points are marked with NaN
   cv::Mat valid = (surface["elevation"] == surface["elevation"]);
 
-  if (_settings_save.save_elevation)
-    io::saveImageColorMap(surface["elevation"], valid, _stage_path + "/elevation", "elevation", id, io::ColormapType::ELEVATION);
-  if (_settings_save.save_normals && surface.exists("elevation_normal"))
-    io::saveImageColorMap(surface["elevation_normal"], valid, _stage_path + "/normals", "normal", id, io::ColormapType::NORMALS);
+  if (m_settings_save.save_elevation)
+    io::saveImageColorMap(surface["elevation"], valid, m_stage_path + "/elevation", "elevation", id, io::ColormapType::ELEVATION);
+  if (m_settings_save.save_normals && surface.exists("elevation_normal"))
+    io::saveImageColorMap(surface["elevation_normal"], valid, m_stage_path + "/normals", "normal", id, io::ColormapType::NORMALS);
 }
 
 void SurfaceGeneration::initStageCallback()
 {
   // Stage directory first
-  if (!io::dirExists(_stage_path))
-    io::createDir(_stage_path);
+  if (!io::dirExists(m_stage_path))
+    io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(_stage_path + "/elevation"))
-    io::createDir(_stage_path + "/elevation");
-  if (!io::dirExists(_stage_path + "/normals"))
-    io::createDir(_stage_path + "/normals");
+  if (!io::dirExists(m_stage_path + "/elevation"))
+    io::createDir(m_stage_path + "/elevation");
+  if (!io::dirExists(m_stage_path + "/normals"))
+    io::createDir(m_stage_path + "/normals");
 }
 
 void SurfaceGeneration::printSettingsToLog()
 {
   LOG_F(INFO, "### Stage process settings ###");
-  LOG_F(INFO, "- try_use_elevation: %i", _try_use_elevation);
-  LOG_F(INFO, "- mode_surface_normals: %i", static_cast<int>(_mode_surface_normals));
+  LOG_F(INFO, "- try_use_elevation: %i", m_try_use_elevation);
+  LOG_F(INFO, "- mode_surface_normals: %i", static_cast<int>(m_mode_surface_normals));
 
   LOG_F(INFO, "### Stage save settings ###");
-  LOG_F(INFO, "- save_elevation: %i", _settings_save.save_elevation);
-  LOG_F(INFO, "- save_normals: %i", _settings_save.save_normals);
+  LOG_F(INFO, "- save_elevation: %i", m_settings_save.save_elevation);
+  LOG_F(INFO, "- save_normals: %i", m_settings_save.save_normals);
 
 }
 
 Frame::Ptr SurfaceGeneration::getNewFrame()
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer);
-  Frame::Ptr frame = _buffer.front();
-  _buffer.pop_front();
+  std::unique_lock<std::mutex> lock(m_mutex_buffer);
+  Frame::Ptr frame = m_buffer.front();
+  m_buffer.pop_front();
   return (std::move(frame));
 }
 
 SurfaceAssumption SurfaceGeneration::computeSurfaceAssumption(const Frame::Ptr &frame)
 {
-  std::unique_lock<std::mutex> lock(_mutex_params);
-  if (_try_use_elevation && frame->isKeyframe() && frame->hasAccuratePose())
+  std::unique_lock<std::mutex> lock(m_mutex_params);
+  if (m_try_use_elevation && frame->isKeyframe() && frame->hasAccuratePose())
   {
     LOG_F(INFO, "Frame is accurate and keyframe. Checking for dense information...");
     if (frame->getDepthmap())
@@ -215,16 +215,16 @@ double SurfaceGeneration::computeProjectionPlaneOffset(const Frame::Ptr &frame)
 
 DigitalSurfaceModel::Ptr SurfaceGeneration::createPlanarSurface(const Frame::Ptr &frame)
 {
-  if (!_is_projection_plane_offset_computed)
+  if (!m_is_projection_plane_offset_computed)
   {
-    _projection_plane_offset = computeProjectionPlaneOffset(frame);
-    _is_projection_plane_offset_computed = true;
+    m_projection_plane_offset = computeProjectionPlaneOffset(frame);
+    m_is_projection_plane_offset_computed = true;
   }
 
   // Create planar surface in world frame
-  cv::Rect2d roi = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_reference.pt, _plane_reference.n);
+  cv::Rect2d roi = frame->getCamera()->projectImageBoundsToPlaneRoi(m_plane_reference.pt, m_plane_reference.n);
 
-  return std::make_shared<DigitalSurfaceModel>(roi, _projection_plane_offset);
+  return std::make_shared<DigitalSurfaceModel>(roi, m_projection_plane_offset);
 }
 
 DigitalSurfaceModel::Ptr SurfaceGeneration::createElevationSurface(const Frame::Ptr &frame)
@@ -233,7 +233,7 @@ DigitalSurfaceModel::Ptr SurfaceGeneration::createElevationSurface(const Frame::
   Depthmap::Ptr depthmap = frame->getDepthmap();
 
   // Create elevated 2.5D surface in world frame
-  cv::Rect2d roi = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_reference.pt, _plane_reference.n);
+  cv::Rect2d roi = frame->getCamera()->projectImageBoundsToPlaneRoi(m_plane_reference.pt, m_plane_reference.n);
 
   // We reproject the depthmap into a 3D point cloud first, before creating the surface model
   cv::Mat img3d = stereo::reprojectDepthMap(depthmap->getCamera(), depthmap->data());
@@ -243,5 +243,5 @@ DigitalSurfaceModel::Ptr SurfaceGeneration::createElevationSurface(const Frame::
   // 1x(cols*rows*3) matrix. But we want a new point in every row. Therefore the number of rows must be rows*cols.
   cv::Mat dense_cloud = img3d.reshape(1, img3d.rows*img3d.cols);
 
-  return std::make_shared<DigitalSurfaceModel>(roi, dense_cloud, _mode_surface_normals, _knn_max_iter);
+  return std::make_shared<DigitalSurfaceModel>(roi, dense_cloud, m_mode_surface_normals, m_knn_max_iter);
 }

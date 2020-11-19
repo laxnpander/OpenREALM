@@ -23,17 +23,17 @@
 using namespace realm;
 
 MapTiler::MapTiler(bool verbosity)
-    : _verbosity(verbosity),
-      _zoom_level_min(11),
-      _zoom_level_max(35),
-      _tile_size(256)
+    : m_verbosity(verbosity),
+      m_zoom_level_min(11),
+      m_zoom_level_max(35),
+      m_tile_size(256)
 {
-  _origin_shift = 2 * M_PI * 6378137 / 2.0;
+  m_origin_shift = 2 * M_PI * 6378137 / 2.0;
 
   // Setup lookup table for zoom level resolution
-  for (int i = 0; i < _zoom_level_max; ++i)
+  for (int i = 0; i < m_zoom_level_max; ++i)
   {
-    _lookup_nrof_tiles_from_zoom[i] = std::pow(2, i);
+    m_lookup_nrof_tiles_from_zoom[i] = std::pow(2, i);
   }
 
   computeLookupResolutionFromZoom();
@@ -41,8 +41,8 @@ MapTiler::MapTiler(bool verbosity)
 
 double MapTiler::getResolution(int zoom_level)
 {
-  auto it = _lookup_resolution_from_zoom.find(zoom_level);
-  if (it != _lookup_resolution_from_zoom.end())
+  auto it = m_lookup_resolution_from_zoom.find(zoom_level);
+  if (it != m_lookup_resolution_from_zoom.end())
     return it->second;
   else
     throw(std::invalid_argument("Error getting resolution for zoom level: Lookup table does not contain key!"));
@@ -77,7 +77,7 @@ std::map<int, MapTiler::TiledMap> MapTiler::createTiles(const CvGridMap::Ptr &ma
   {
     double zoom_resolution = getResolution(zoom_level);
 
-    LOG_IF_F(INFO, _verbosity, "Tileing map on zoom level %i, resolution = %4.4f", zoom_level, zoom_resolution);
+    LOG_IF_F(INFO, m_verbosity, "Tileing map on zoom level %i, resolution = %4.4f", zoom_level, zoom_resolution);
     map->changeResolution(zoom_resolution);
 
     // Map is now in the right coordinate frame and has the correct resolution. It's time to start tileing it
@@ -109,16 +109,16 @@ std::map<int, MapTiler::TiledMap> MapTiler::createTiles(const CvGridMap::Ptr &ma
 
 void MapTiler::computeLookupResolutionFromZoom(double latitude)
 {
-  for (int i = 0; i < _zoom_level_max; ++i)
+  for (int i = 0; i < m_zoom_level_max; ++i)
   {
-    _lookup_resolution_from_zoom[i] = computeZoomResolution(i, latitude);
+    m_lookup_resolution_from_zoom[i] = computeZoomResolution(i, latitude);
   }
 }
 
 cv::Point2i MapTiler::computeTileFromLatLon(double lat, double lon, int zoom_level) const
 {
   double lat_rad = lat * M_PI / 180.0;
-  auto n = static_cast<double>(_lookup_nrof_tiles_from_zoom.at(zoom_level));
+  auto n = static_cast<double>(m_lookup_nrof_tiles_from_zoom.at(zoom_level));
 
   cv::Point2i pos;
   pos.x = static_cast<int>(std::floor((lon + 180.0) / 360.0 * n));
@@ -129,26 +129,26 @@ cv::Point2i MapTiler::computeTileFromLatLon(double lat, double lon, int zoom_lev
 cv::Point2d MapTiler::computeMetersFromPixels(int px, int py, int zoom_level)
 {
   cv::Point2d meters;
-  double resolution = _lookup_resolution_from_zoom.at(zoom_level);
-  meters.x = px * resolution - _origin_shift;
-  meters.y = py * resolution - _origin_shift;
+  double resolution = m_lookup_resolution_from_zoom.at(zoom_level);
+  meters.x = px * resolution - m_origin_shift;
+  meters.y = py * resolution - m_origin_shift;
   return meters;
 }
 
 cv::Point2i MapTiler::computePixelsFromMeters(double mx, double my, int zoom_level)
 {
   cv::Point2i pixels;
-  double resolution = _lookup_resolution_from_zoom.at(zoom_level);
-  pixels.x = (mx + _origin_shift) / resolution;
-  pixels.y = (my + _origin_shift) / resolution;
+  double resolution = m_lookup_resolution_from_zoom.at(zoom_level);
+  pixels.x = (mx + m_origin_shift) / resolution;
+  pixels.y = (my + m_origin_shift) / resolution;
   return pixels;
 }
 
 cv::Point2i MapTiler::computeTileFromPixels(int px, int py, int zoom_level)
 {
   cv::Point2i tile;
-  tile.x = int(std::ceil(px / (double)(_tile_size)) - 1);
-  tile.y = int(std::ceil(py / (double)(_tile_size)) - 1);
+  tile.x = int(std::ceil(px / (double)(m_tile_size)) - 1);
+  tile.y = int(std::ceil(py / (double)(m_tile_size)) - 1);
   return tile;
 }
 
@@ -168,8 +168,8 @@ cv::Rect2i MapTiler::computeTileBounds(const cv::Rect2d &roi, int zoom_level)
 
 cv::Rect2d MapTiler::computeTileBoundsMeters(int tx, int ty, int zoom_level)
 {
-  cv::Point2d p_min = computeMetersFromPixels(tx * _tile_size, ty * _tile_size, zoom_level);
-  cv::Point2d p_max = computeMetersFromPixels((tx + 1) * _tile_size, (ty + 1) * _tile_size, zoom_level);
+  cv::Point2d p_min = computeMetersFromPixels(tx * m_tile_size, ty * m_tile_size, zoom_level);
+  cv::Point2d p_max = computeMetersFromPixels((tx + 1) * m_tile_size, (ty + 1) * m_tile_size, zoom_level);
   return cv::Rect2d(p_min.x, p_min.y, p_max.x - p_min.x, p_max.y - p_min.y);
 }
 
@@ -182,7 +182,7 @@ cv::Rect2d MapTiler::computeTileBoundsMeters(const cv::Rect2i &idx_roi, int zoom
 
 WGSPose MapTiler::computeLatLonForTile(int x, int y, int zoom_level) const
 {
-  auto n = static_cast<double>(_lookup_nrof_tiles_from_zoom.at(zoom_level));
+  auto n = static_cast<double>(m_lookup_nrof_tiles_from_zoom.at(zoom_level));
   double k = M_PI - 2.0 * M_PI * y / n;
 
   WGSPose wgs{};
@@ -194,9 +194,9 @@ WGSPose MapTiler::computeLatLonForTile(int x, int y, int zoom_level) const
 
 int MapTiler::computeZoomForPixelSize(double GSD, bool do_upscale) const
 {
-  for (int i = 0; i < _zoom_level_max; ++i)
+  for (int i = 0; i < m_zoom_level_max; ++i)
   {
-    if (GSD >= _lookup_resolution_from_zoom.at(i) + 10e-3)
+    if (GSD >= m_lookup_resolution_from_zoom.at(i) + 10e-3)
     {
       if (do_upscale)
         return std::max(0, i);
@@ -204,13 +204,13 @@ int MapTiler::computeZoomForPixelSize(double GSD, bool do_upscale) const
         return std::max(0, i - 1);
     }
   }
-  return _zoom_level_max-1;
+  return m_zoom_level_max - 1;
 }
 
 double MapTiler::computeZoomResolution(int zoom_level, double latitude) const
 {
   if (fabs(latitude) < 10e-3)
-    return (2 * M_PI * 6378137 / _tile_size) / _lookup_nrof_tiles_from_zoom.at(zoom_level);
+    return (2 * M_PI * 6378137 / m_tile_size) / m_lookup_nrof_tiles_from_zoom.at(zoom_level);
   else
-    return 156543.03 * cos(latitude*M_PI/180) / _lookup_nrof_tiles_from_zoom.at(zoom_level);
+    return 156543.03 * cos(latitude*M_PI/180) / m_lookup_nrof_tiles_from_zoom.at(zoom_level);
 }

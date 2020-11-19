@@ -26,19 +26,19 @@ namespace realm
 {
 
 io::Exiv2FrameReader::Exiv2FrameReader(const FrameTags &tags)
-: _frame_tags(tags)
+: m_frame_tags(tags)
 {
 }
 
 std::map<std::string, bool> io::Exiv2FrameReader::probeImage(const std::string &filepath)
 {
   std::map<std::string, bool> tag_existence;
-  tag_existence[_frame_tags.camera_id] = false;
-  tag_existence[_frame_tags.timestamp] = false;
-  tag_existence[_frame_tags.latitude] = false;
-  tag_existence[_frame_tags.longitude] = false;
-  tag_existence[_frame_tags.altitude] = false;
-  tag_existence[_frame_tags.heading] = false;
+  tag_existence[m_frame_tags.camera_id] = false;
+  tag_existence[m_frame_tags.timestamp] = false;
+  tag_existence[m_frame_tags.latitude] = false;
+  tag_existence[m_frame_tags.longitude] = false;
+  tag_existence[m_frame_tags.altitude] = false;
+  tag_existence[m_frame_tags.heading] = false;
 
   Exiv2ImagePointer exif_img = Exiv2::ImageFactory::open(filepath);
   if (exif_img.get())
@@ -47,12 +47,12 @@ std::map<std::string, bool> io::Exiv2FrameReader::probeImage(const std::string &
     Exiv2::ExifData &exif_data = exif_img->exifData();
     Exiv2::XmpData &xmp_data = exif_img->xmpData();
 
-    tag_existence[_frame_tags.camera_id] = probeTag(_frame_tags.camera_id, exif_data, xmp_data);
-    tag_existence[_frame_tags.timestamp] = probeTag(_frame_tags.timestamp, exif_data, xmp_data);
-    tag_existence[_frame_tags.latitude] = probeTag(_frame_tags.latitude, exif_data, xmp_data);
-    tag_existence[_frame_tags.longitude] = probeTag(_frame_tags.longitude, exif_data, xmp_data);
-    tag_existence[_frame_tags.altitude] = probeTag(_frame_tags.altitude, exif_data, xmp_data);
-    tag_existence[_frame_tags.heading] = probeTag(_frame_tags.heading, exif_data, xmp_data);
+    tag_existence[m_frame_tags.camera_id] = probeTag(m_frame_tags.camera_id, exif_data, xmp_data);
+    tag_existence[m_frame_tags.timestamp] = probeTag(m_frame_tags.timestamp, exif_data, xmp_data);
+    tag_existence[m_frame_tags.latitude] = probeTag(m_frame_tags.latitude, exif_data, xmp_data);
+    tag_existence[m_frame_tags.longitude] = probeTag(m_frame_tags.longitude, exif_data, xmp_data);
+    tag_existence[m_frame_tags.altitude] = probeTag(m_frame_tags.altitude, exif_data, xmp_data);
+    tag_existence[m_frame_tags.heading] = probeTag(m_frame_tags.heading, exif_data, xmp_data);
   }
 
   return tag_existence;
@@ -108,19 +108,19 @@ Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id
 
 bool io::Exiv2FrameReader::readMetaTagCameraId(Exiv2::ExifData &exif_data, Exiv2::XmpData &xmp_data, std::string* camera_id)
 {
-  if (isXmpTag(_frame_tags.camera_id))
+  if (isXmpTag(m_frame_tags.camera_id))
   {
-    if (xmp_data.findKey(Exiv2::XmpKey(_frame_tags.camera_id)) != xmp_data.end())
+    if (xmp_data.findKey(Exiv2::XmpKey(m_frame_tags.camera_id)) != xmp_data.end())
     {
-      *camera_id = xmp_data[_frame_tags.camera_id].toString();
+      *camera_id = xmp_data[m_frame_tags.camera_id].toString();
       return true;
     }
   }
   else
   {
-    if (exif_data.findKey(Exiv2::ExifKey(_frame_tags.camera_id)) != exif_data.end())
+    if (exif_data.findKey(Exiv2::ExifKey(m_frame_tags.camera_id)) != exif_data.end())
     {
-      *camera_id = exif_data[_frame_tags.camera_id].toString();
+      *camera_id = exif_data[m_frame_tags.camera_id].toString();
       return true;
     }
   }
@@ -129,19 +129,19 @@ bool io::Exiv2FrameReader::readMetaTagCameraId(Exiv2::ExifData &exif_data, Exiv2
 
 bool io::Exiv2FrameReader::readMetaTagTimestamp(Exiv2::ExifData &exif_data, Exiv2::XmpData &xmp_data, uint64_t* timestamp)
 {
-  if (isXmpTag(_frame_tags.timestamp))
+  if (isXmpTag(m_frame_tags.timestamp))
   {
-    if (xmp_data.findKey(Exiv2::XmpKey(_frame_tags.timestamp)) != xmp_data.end())
+    if (xmp_data.findKey(Exiv2::XmpKey(m_frame_tags.timestamp)) != xmp_data.end())
     {
-      *timestamp = std::stoul(xmp_data[_frame_tags.timestamp].toString());
+      *timestamp = std::stoul(xmp_data[m_frame_tags.timestamp].toString());
       return true;
     }
   }
   else
   {
-    if (exif_data.findKey(Exiv2::ExifKey(_frame_tags.timestamp)) != exif_data.end())
+    if (exif_data.findKey(Exiv2::ExifKey(m_frame_tags.timestamp)) != exif_data.end())
     {
-      *timestamp = std::stoul(exif_data[_frame_tags.timestamp].toString());
+      *timestamp = std::stoul(exif_data[m_frame_tags.timestamp].toString());
       return true;
     }
   }
@@ -151,24 +151,24 @@ bool io::Exiv2FrameReader::readMetaTagTimestamp(Exiv2::ExifData &exif_data, Exiv
 bool io::Exiv2FrameReader::readMetaTagLatitude(Exiv2::ExifData &exif_data, Exiv2::XmpData &xmp_data, double* latitude)
 {
   double latitude_dms[3];
-  if (isXmpTag(_frame_tags.latitude))
+  if (isXmpTag(m_frame_tags.latitude))
   {
-    if (xmp_data.findKey(Exiv2::XmpKey(_frame_tags.latitude)) != xmp_data.end())
+    if (xmp_data.findKey(Exiv2::XmpKey(m_frame_tags.latitude)) != xmp_data.end())
     {
-      latitude_dms[0] = xmp_data[_frame_tags.latitude].toFloat(0);
-      latitude_dms[1] = xmp_data[_frame_tags.latitude].toFloat(1);
-      latitude_dms[2] = xmp_data[_frame_tags.latitude].toFloat(2);
+      latitude_dms[0] = xmp_data[m_frame_tags.latitude].toFloat(0);
+      latitude_dms[1] = xmp_data[m_frame_tags.latitude].toFloat(1);
+      latitude_dms[2] = xmp_data[m_frame_tags.latitude].toFloat(2);
       *latitude = cvtAngleDegMinSecToDecimal(latitude_dms);
       return true;
     }
   }
   else
   {
-    if (exif_data.findKey(Exiv2::ExifKey(_frame_tags.latitude)) != exif_data.end())
+    if (exif_data.findKey(Exiv2::ExifKey(m_frame_tags.latitude)) != exif_data.end())
     {
-      latitude_dms[0] = exif_data[_frame_tags.latitude].toFloat(0);
-      latitude_dms[1] = exif_data[_frame_tags.latitude].toFloat(1);
-      latitude_dms[2] = exif_data[_frame_tags.latitude].toFloat(2);
+      latitude_dms[0] = exif_data[m_frame_tags.latitude].toFloat(0);
+      latitude_dms[1] = exif_data[m_frame_tags.latitude].toFloat(1);
+      latitude_dms[2] = exif_data[m_frame_tags.latitude].toFloat(2);
       *latitude = cvtAngleDegMinSecToDecimal(latitude_dms);
       return true;
     }
@@ -179,24 +179,24 @@ bool io::Exiv2FrameReader::readMetaTagLatitude(Exiv2::ExifData &exif_data, Exiv2
 bool io::Exiv2FrameReader::readMetaTagLongitude(Exiv2::ExifData &exif_data, Exiv2::XmpData &xmp_data, double* longitude)
 {
   double longitude_dms[3];
-  if (isXmpTag(_frame_tags.longitude))
+  if (isXmpTag(m_frame_tags.longitude))
   {
-    if (xmp_data.findKey(Exiv2::XmpKey(_frame_tags.longitude)) != xmp_data.end())
+    if (xmp_data.findKey(Exiv2::XmpKey(m_frame_tags.longitude)) != xmp_data.end())
     {
-      longitude_dms[0] = xmp_data[_frame_tags.longitude].toFloat(0);
-      longitude_dms[1] = xmp_data[_frame_tags.longitude].toFloat(1);
-      longitude_dms[2] = xmp_data[_frame_tags.longitude].toFloat(2);
+      longitude_dms[0] = xmp_data[m_frame_tags.longitude].toFloat(0);
+      longitude_dms[1] = xmp_data[m_frame_tags.longitude].toFloat(1);
+      longitude_dms[2] = xmp_data[m_frame_tags.longitude].toFloat(2);
       *longitude = cvtAngleDegMinSecToDecimal(longitude_dms);
       return true;
     }
   }
   else
   {
-    if (exif_data.findKey(Exiv2::ExifKey(_frame_tags.longitude)) != exif_data.end())
+    if (exif_data.findKey(Exiv2::ExifKey(m_frame_tags.longitude)) != exif_data.end())
     {
-      longitude_dms[0] = exif_data[_frame_tags.longitude].toFloat(0);
-      longitude_dms[1] = exif_data[_frame_tags.longitude].toFloat(1);
-      longitude_dms[2] = exif_data[_frame_tags.longitude].toFloat(2);
+      longitude_dms[0] = exif_data[m_frame_tags.longitude].toFloat(0);
+      longitude_dms[1] = exif_data[m_frame_tags.longitude].toFloat(1);
+      longitude_dms[2] = exif_data[m_frame_tags.longitude].toFloat(2);
       *longitude = cvtAngleDegMinSecToDecimal(longitude_dms);
       return true;
     }
@@ -206,19 +206,19 @@ bool io::Exiv2FrameReader::readMetaTagLongitude(Exiv2::ExifData &exif_data, Exiv
 
 bool io::Exiv2FrameReader::readMetaTagAltitude(Exiv2::ExifData &exif_data, Exiv2::XmpData &xmp_data, double* altitude)
 {
-  if (isXmpTag(_frame_tags.latitude))
+  if (isXmpTag(m_frame_tags.latitude))
   {
-    if (xmp_data.findKey(Exiv2::XmpKey(_frame_tags.latitude)) != xmp_data.end())
+    if (xmp_data.findKey(Exiv2::XmpKey(m_frame_tags.latitude)) != xmp_data.end())
     {
-      *altitude = static_cast<double>(xmp_data[_frame_tags.altitude].toFloat());
+      *altitude = static_cast<double>(xmp_data[m_frame_tags.altitude].toFloat());
       return true;
     }
   }
   else
   {
-    if (exif_data.findKey(Exiv2::ExifKey(_frame_tags.latitude)) != exif_data.end())
+    if (exif_data.findKey(Exiv2::ExifKey(m_frame_tags.latitude)) != exif_data.end())
     {
-      *altitude = static_cast<double>(exif_data[_frame_tags.altitude].toFloat());
+      *altitude = static_cast<double>(exif_data[m_frame_tags.altitude].toFloat());
       return true;
     }
   }
@@ -227,19 +227,19 @@ bool io::Exiv2FrameReader::readMetaTagAltitude(Exiv2::ExifData &exif_data, Exiv2
 
 bool io::Exiv2FrameReader::readMetaTagHeading(Exiv2::ExifData &exif_data, Exiv2::XmpData &xmp_data, double* heading)
 {
-  if (isXmpTag(_frame_tags.heading))
+  if (isXmpTag(m_frame_tags.heading))
   {
-    if (xmp_data.findKey(Exiv2::XmpKey(_frame_tags.heading)) != xmp_data.end())
+    if (xmp_data.findKey(Exiv2::XmpKey(m_frame_tags.heading)) != xmp_data.end())
     {
-      *heading = static_cast<double>(xmp_data[_frame_tags.heading].toFloat());
+      *heading = static_cast<double>(xmp_data[m_frame_tags.heading].toFloat());
       return true;
     }
   }
   else
   {
-    if (exif_data.findKey(Exiv2::ExifKey(_frame_tags.heading)) != exif_data.end())
+    if (exif_data.findKey(Exiv2::ExifKey(m_frame_tags.heading)) != exif_data.end())
     {
-      *heading = static_cast<double>(exif_data[_frame_tags.heading].toFloat());
+      *heading = static_cast<double>(exif_data[m_frame_tags.heading].toFloat());
       return true;
     }
   }

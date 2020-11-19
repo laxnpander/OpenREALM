@@ -24,7 +24,7 @@ using namespace realm;
 
 io::GDALContinuousWriter::GDALContinuousWriter(const std::string &thread_name, int64_t sleep_time, bool verbose)
  : WorkerThreadBase(thread_name, sleep_time, verbose),
-   _queue_size(1)
+   m_queue_size(1)
 {
 }
 
@@ -40,23 +40,23 @@ bool io::GDALContinuousWriter::requestSaveGeoTIFF(const CvGridMap::Ptr &map,
   queue_element.reset(new QueueElement{map, zone, filename, do_build_overview, do_split_save, gdal_profile});
 
   // Push it to the processing queue
-  _mutex_save_requests.lock();
-  _save_requests.push_back(queue_element);
-  if (_save_requests.size() > _queue_size)
+  m_mutex_save_requests.lock();
+  m_save_requests.push_back(queue_element);
+  if (m_save_requests.size() > m_queue_size)
   {
-    _save_requests.pop_front();
+    m_save_requests.pop_front();
   }
-  _mutex_save_requests.unlock();
+  m_mutex_save_requests.unlock();
 }
 
 bool io::GDALContinuousWriter::process()
 {
-  _mutex_save_requests.lock();
-  if (!_save_requests.empty())
+  m_mutex_save_requests.lock();
+  if (!m_save_requests.empty())
   {
-    QueueElement::Ptr queue_element = _save_requests.back();
-    _save_requests.pop_back();
-    _mutex_save_requests.unlock();
+    QueueElement::Ptr queue_element = m_save_requests.back();
+    m_save_requests.pop_back();
+    m_mutex_save_requests.unlock();
 
     io::saveGeoTIFF(
       *queue_element->map,
@@ -70,7 +70,7 @@ bool io::GDALContinuousWriter::process()
     return true;
   }
 
-  _mutex_save_requests.unlock();
+  m_mutex_save_requests.unlock();
   return false;
 }
 

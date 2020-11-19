@@ -82,25 +82,25 @@ public:
 private:
 
   /// Flag to set verbose output
-  int _verbosity;
+  int m_verbosity;
 
   /// Global minimum zoom level
-  int _zoom_level_min;
+  int m_zoom_level_min;
 
   /// Global maximum zoom level
-  int _zoom_level_max;
+  int m_zoom_level_max;
 
   /// Shift of the coordinate frame origin
-  double _origin_shift;
+  double m_origin_shift;
 
   /// Size of the tiles in [pix], usually this is 256
-  int _tile_size;
+  int m_tile_size;
 
   /// Lookup table to map zoom levels to a specific resolution in [m/pix]
-  std::map<int, double> _lookup_resolution_from_zoom;
+  std::map<int, double> m_lookup_resolution_from_zoom;
 
   /// Lookup table to map zoom levels to an absolute number of tiles
-  std::map<int, long>   _lookup_nrof_tiles_from_zoom;
+  std::map<int, long>   m_lookup_nrof_tiles_from_zoom;
 
   /*!
    * @brief Computes the slippy tile index for a given zoom level that contains the requested coordinate in WGS84. The

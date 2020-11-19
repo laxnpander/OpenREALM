@@ -27,26 +27,26 @@ using namespace stages;
 
 Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("tileing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
-      _utm_reference(nullptr),
-      _map_tiler(nullptr),
-      _tile_cache(nullptr),
-      _settings_save({})
+      m_utm_reference(nullptr),
+      m_map_tiler(nullptr),
+      m_tile_cache(nullptr),
+      m_settings_save({})
 {
-  std::cout << "Stage [" << _stage_name << "]: Created Stage with Settings: " << std::endl;
+  std::cout << "Stage [" << m_stage_name << "]: Created Stage with Settings: " << std::endl;
   stage_set->print();
 
-  _warper.setTargetEPSG(3857);
-  _warper.setNrofThreads(4);
+  m_warper.setTargetEPSG(3857);
+  m_warper.setNrofThreads(4);
 
-  registerAsyncDataReadyFunctor([=]{ return !_buffer.empty(); });
+  registerAsyncDataReadyFunctor([=]{ return !m_buffer.empty(); });
 }
 
 Tileing::~Tileing()
 {
-  if (_tile_cache)
+  if (m_tile_cache)
   {
-    _tile_cache->requestFinish();
-    _tile_cache->join();
+    m_tile_cache->requestFinish();
+    m_tile_cache->join();
   }
 }
 
@@ -60,19 +60,19 @@ void Tileing::addFrame(const Frame::Ptr &frame)
     LOG_F(INFO, "Input frame is missing data. Dropping!");
     return;
   }
-  std::unique_lock<std::mutex> lock(_mutex_buffer);
-  _buffer.push_back(frame);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer);
+  m_buffer.push_back(frame);
 
   // Ringbuffer implementation for buffer with no pose
-  if (_buffer.size() > _queue_size)
-    _buffer.pop_front();
+  if (m_buffer.size() > m_queue_size)
+    m_buffer.pop_front();
   notify();
 }
 
 bool Tileing::process()
 {
   bool has_processed = false;
-  if (!_buffer.empty() && _map_tiler && _tile_cache)
+  if (!m_buffer.empty() && m_map_tiler && m_tile_cache)
   {
     // Prepare timing
     long t;
@@ -84,8 +84,8 @@ bool Tileing::process()
 
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
 
-    if (_utm_reference == nullptr)
-      _utm_reference = std::make_shared<UTMPose>(frame->getGnssUtm());
+    if (m_utm_reference == nullptr)
+      m_utm_reference = std::make_shared<UTMPose>(frame->getGnssUtm());
 
     //=======================================//
     //
@@ -108,7 +108,7 @@ bool Tileing::process()
     std::vector<CvGridMap::Ptr> maps_3857;
     for (const auto &layer_name : map->getAllLayerNames())
     {
-      maps_3857.emplace_back(_warper.warpRaster(map->getSubmap({layer_name}), _utm_reference->zone));
+      maps_3857.emplace_back(m_warper.warpRaster(map->getSubmap({layer_name}), m_utm_reference->zone));
     }
 
     // Recombine to one single map
@@ -131,7 +131,7 @@ bool Tileing::process()
 
     t = getCurrentTimeMilliseconds();
 
-    std::map<int, MapTiler::TiledMap> tiled_map_max_zoom = _map_tiler->createTiles(map_3857);
+    std::map<int, MapTiler::TiledMap> tiled_map_max_zoom = m_map_tiler->createTiles(map_3857);
 
     LOG_F(INFO, "Timing [Tileing]: %lu ms", getCurrentTimeMilliseconds()-t);
 
@@ -151,7 +151,7 @@ bool Tileing::process()
 
     for (const auto &tile : tiles_current)
     {
-      Tile::Ptr tile_cached = _tile_cache->get(tile->x(), tile->y(), zoom_level_max);
+      Tile::Ptr tile_cached = m_tile_cache->get(tile->x(), tile->y(), zoom_level_max);
 
       Tile::Ptr tile_blended;
       if (tile_cached)
@@ -170,7 +170,7 @@ bool Tileing::process()
     LOG_F(INFO, "Timing [Blending]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     t = getCurrentTimeMilliseconds();
-    _tile_cache->add(zoom_level_max, tiles_blended, tiled_map_max_zoom.begin()->second.roi);
+    m_tile_cache->add(zoom_level_max, tiles_blended, tiled_map_max_zoom.begin()->second.roi);
     LOG_F(INFO, "Timing [Cache Push]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     //=======================================//
@@ -186,7 +186,7 @@ bool Tileing::process()
     // They can be required for the blending for example though, which is why we computed them on maximum resolution
     map_3857->remove("elevated");
 
-    std::map<int, MapTiler::TiledMap> tiled_map_range = _map_tiler->createTiles(map_3857, 11, zoom_level_max - 1);
+    std::map<int, MapTiler::TiledMap> tiled_map_range = m_map_tiler->createTiles(map_3857, 11, zoom_level_max - 1);
 
     for (const auto& tiled_map : tiled_map_range)
     {
@@ -195,7 +195,7 @@ bool Tileing::process()
       std::vector<Tile::Ptr> tiles_merged;
       for (const auto & tile : tiled_map.second.tiles)
       {
-        Tile::Ptr tile_cached = _tile_cache->get(tile->x(), tile->y(), zoom_level);
+        Tile::Ptr tile_cached = m_tile_cache->get(tile->x(), tile->y(), zoom_level);
 
         Tile::Ptr tile_merged;
         if (tile_cached)
@@ -211,7 +211,7 @@ bool Tileing::process()
         tiles_merged.push_back(tile_merged);
       }
 
-      _tile_cache->add(zoom_level, tiles_merged, tiled_map.second.roi);
+      m_tile_cache->add(zoom_level, tiles_merged, tiled_map.second.roi);
     }
 
     LOG_F(INFO, "Timing [Downscaling]: %lu ms", getCurrentTimeMilliseconds()-t);
@@ -351,9 +351,9 @@ void Tileing::finishCallback()
 
 Frame::Ptr Tileing::getNewFrame()
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer);
-  Frame::Ptr frame = _buffer.front();
-  _buffer.pop_front();
+  std::unique_lock<std::mutex> lock(m_mutex_buffer);
+  Frame::Ptr frame = m_buffer.front();
+  m_buffer.pop_front();
   return (std::move(frame));
 }
 
@@ -361,20 +361,20 @@ Frame::Ptr Tileing::getNewFrame()
 void Tileing::initStageCallback()
 {
   // Stage directory first
-  if (!io::dirExists(_stage_path))
-    io::createDir(_stage_path);
+  if (!io::dirExists(m_stage_path))
+    io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(_stage_path + "/tiles"))
-    io::createDir(_stage_path + "/tiles");
+  if (!io::dirExists(m_stage_path + "/tiles"))
+    io::createDir(m_stage_path + "/tiles");
 
   // We can only create the map tiler,  when we have the final initialized stage path, which might be synchronized
   // across different devies. Consequently it is not created in the constructor but here.
-  if (!_map_tiler)
+  if (!m_map_tiler)
   {
-    _map_tiler = std::make_shared<MapTiler>(true);
-    _tile_cache = std::make_shared<TileCache>("tile_cache", 500, _stage_path + "/tiles", false);
-    _tile_cache->start();
+    m_map_tiler = std::make_shared<MapTiler>(true);
+    m_tile_cache = std::make_shared<TileCache>("tile_cache", 500, m_stage_path + "/tiles", false);
+    m_tile_cache->start();
   }
 }
 

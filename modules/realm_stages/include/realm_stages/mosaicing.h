@@ -74,27 +74,28 @@ class Mosaicing : public StageBase
     bool process() override;
     void runPostProcessing();
     void saveAll();
+
   private:
-    std::deque<Frame::Ptr> _buffer;
-    std::mutex _mutex_buffer;
+    std::deque<Frame::Ptr> m_buffer;
+    std::mutex m_mutex_buffer;
 
     //! Publish of mesh is optional. Set >0 if should be published. Additionally it can be downsampled.
-    int _publish_mesh_nth_iter;
-    int _publish_mesh_every_nth_kf;
-    bool _do_publish_mesh_at_finish;
-    double _downsample_publish_mesh; // [m/pix]
+    int m_publish_mesh_nth_iter;
+    int m_publish_mesh_every_nth_kf;
+    bool m_do_publish_mesh_at_finish;
+    double m_downsample_publish_mesh; // [m/pix]
 
-    bool _use_surface_normals;
+    bool m_use_surface_normals;
 
-    int _th_elevation_min_nobs;
-    float _th_elevation_var;
+    int m_th_elevation_min_nobs;
+    float m_th_elevation_var;
 
-    SaveSettings _settings_save;
+    SaveSettings m_settings_save;
 
-    UTMPose::Ptr _utm_reference;
-    CvGridMap::Ptr _global_map;
-    Delaunay2D::Ptr _mesher;
-    io::GDALContinuousWriter::Ptr _gdal_writer;
+    UTMPose::Ptr m_utm_reference;
+    CvGridMap::Ptr m_global_map;
+    Delaunay2D::Ptr m_mesher;
+    io::GDALContinuousWriter::Ptr m_gdal_writer;
 
     void finishCallback() override;
     void printSettingsToLog() override;

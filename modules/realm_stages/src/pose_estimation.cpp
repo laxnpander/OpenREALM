@@ -30,61 +30,61 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                                const CameraSettings::Ptr &cam_set,
                                double rate)
     : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
-      _is_georef_initialized(false),
-      _use_vslam((*stage_set)["use_vslam"].toInt() > 0),
-      _set_all_frames_keyframes((*stage_set)["set_all_frames_keyframes"].toInt() > 0),
-      _strategy_fallback(PoseEstimation::FallbackStrategy((*stage_set)["fallback_strategy"].toInt())),
-      _use_fallback(false),
-      _use_initial_guess((*stage_set)["use_initial_guess"].toInt() > 0),
-      _do_update_georef((*stage_set)["update_georef"].toInt() > 0),
-      _do_suppress_outdated_pose_pub((*stage_set)["suppress_outdated_pose_pub"].toInt() > 0),
-      _th_error_georef((*stage_set)["th_error_georef"].toDouble()),
-      _overlap_max((*stage_set)["overlap_max"].toDouble()),
-      _overlap_max_fallback((*stage_set)["overlap_max_fallback"].toDouble()),
-      _settings_save({(*stage_set)["save_trajectory_gnss"].toInt() > 0,
+      m_is_georef_initialized(false),
+      m_use_vslam((*stage_set)["use_vslam"].toInt() > 0),
+      m_set_all_frames_keyframes((*stage_set)["set_all_frames_keyframes"].toInt() > 0),
+      m_strategy_fallback(PoseEstimation::FallbackStrategy((*stage_set)["fallback_strategy"].toInt())),
+      m_use_fallback(false),
+      m_use_initial_guess((*stage_set)["use_initial_guess"].toInt() > 0),
+      m_do_update_georef((*stage_set)["update_georef"].toInt() > 0),
+      m_do_suppress_outdated_pose_pub((*stage_set)["suppress_outdated_pose_pub"].toInt() > 0),
+      m_th_error_georef((*stage_set)["th_error_georef"].toDouble()),
+      m_overlap_max((*stage_set)["overlap_max"].toDouble()),
+      m_overlap_max_fallback((*stage_set)["overlap_max_fallback"].toDouble()),
+      m_settings_save({(*stage_set)["save_trajectory_gnss"].toInt() > 0,
                       (*stage_set)["save_trajectory_visual"].toInt() > 0,
                       (*stage_set)["save_frames"].toInt() > 0,
                       (*stage_set)["save_keyframes"].toInt() > 0,
                       (*stage_set)["save_keyframes_full"].toInt() > 0})
 {
-  registerAsyncDataReadyFunctor([=]{ return !_buffer_no_pose.empty(); });
+  registerAsyncDataReadyFunctor([=]{ return !m_buffer_no_pose.empty(); });
 
-  if (_use_vslam)
+  if (m_use_vslam)
   {
-    _vslam = VisualSlamFactory::create(vslam_set, cam_set);
+    m_vslam = VisualSlamFactory::create(vslam_set, cam_set);
 
     // Set reset callback from vSLAM to this node
     // therefore if SLAM resets itself, node is being informed
     std::function<void(void)> reset_func = std::bind(&PoseEstimation::reset, this);
-    _vslam->registerResetCallback(reset_func);
+    m_vslam->registerResetCallback(reset_func);
 
     // Set pose update callback
     namespace ph = std::placeholders;
     VisualSlamIF::PoseUpdateFuncCb update_func = std::bind(&PoseEstimation::updateKeyframeCb, this, ph::_1, ph::_2, ph::_3);
-    _vslam->registerUpdateTransport(update_func);
+    m_vslam->registerUpdateTransport(update_func);
 
     // Create geo reference initializer
-    _georeferencer = std::make_shared<GeometricReferencer>(_th_error_georef);
+    m_georeferencer = std::make_shared<GeometricReferencer>(m_th_error_georef);
   }
 
-  evaluateFallbackStrategy(_strategy_fallback);
+  evaluateFallbackStrategy(m_strategy_fallback);
 
   // Create Pose Estimation publisher
-  _stage_publisher.reset(new PoseEstimationIO(this, rate, true));
-  _stage_publisher->start();
+  m_stage_publisher.reset(new PoseEstimationIO(this, rate, true));
+  m_stage_publisher->start();
 
   // Creation of reference plane, currently only the one below is supported
-  _plane_ref.pt = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0);
-  _plane_ref.n = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0);
+  m_plane_ref.pt = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0);
+  m_plane_ref.n = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0);
 
   // Previous roi initialization
-  _roi_prev = cv::Rect2d(0.0, 0.0, 0.0, 0.0);
+  m_roi_prev = cv::Rect2d(0.0, 0.0, 0.0, 0.0);
 }
 
 PoseEstimation::~PoseEstimation()
 {
-  _stage_publisher->requestFinish();
-  _stage_publisher->join();
+  m_stage_publisher->requestFinish();
+  m_stage_publisher->join();
 }
 
 void PoseEstimation::evaluateFallbackStrategy(PoseEstimation::FallbackStrategy strategy)
@@ -95,10 +95,10 @@ void PoseEstimation::evaluateFallbackStrategy(PoseEstimation::FallbackStrategy s
   {
     case FallbackStrategy::ALWAYS:
       LOG_F(INFO, "Selected: ALWAYS - Images will be projected whenever tracking is lost.");
-      _use_fallback = true;
+      m_use_fallback = true;
       break;
     case FallbackStrategy::NEVER:
-      _use_fallback = false;
+      m_use_fallback = false;
       LOG_F(INFO, "Selected: NEVER - Image projection will not be used.");
       break;
     default:
@@ -112,27 +112,27 @@ void PoseEstimation::addFrame(const Frame::Ptr &frame)
   updateFpsStatisticsIncoming();
 
   // The user can provide a-priori georeferencing. Check if this is the case
-  if (!_is_georef_initialized && frame->isGeoreferenced())
+  if (!m_is_georef_initialized && frame->isGeoreferenced())
   {
     LOG_F(INFO, "Detected a-priori georeference for frame %u. Assuming all frames are georeferenced.", frame->getFrameId());
-    _georeferencer = std::make_shared<DummyReferencer>(frame->getGeoreference());
+    m_georeferencer = std::make_shared<DummyReferencer>(frame->getGeoreference());
   }
 
   // Push to buffer for visual tracking
-  if (_use_vslam)
+  if (m_use_vslam)
     pushToBufferNoPose(frame);
   else
     pushToBufferPublish(frame);
   notify();
 
   // Ringbuffer implementation for buffer with no pose
-  if (_buffer_no_pose.size() > 5)
+  if (m_buffer_no_pose.size() > 5)
   {
-    std::unique_lock<std::mutex> lock(_mutex_buffer_no_pose);
-    _buffer_no_pose.pop_front();
+    std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
+    m_buffer_no_pose.pop_front();
   }
 
-  _transport_pose(frame->getDefaultPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose/gnss");
+  m_transport_pose(frame->getDefaultPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose/gnss");
 }
 
 bool PoseEstimation::process()
@@ -144,11 +144,11 @@ bool PoseEstimation::process()
   long t;
 
   // Grab georeference flag once at the beginning, to avoid multithreading problems
-  if (_use_vslam)
-    _is_georef_initialized = _georeferencer->isInitialized();
+  if (m_use_vslam)
+    m_is_georef_initialized = m_georeferencer->isInitialized();
 
   // Process new frames without a visual pose currently
-  if (!_buffer_no_pose.empty())
+  if (!m_buffer_no_pose.empty())
   {
     // Grab frame from buffer with no poses
     Frame::Ptr frame = getNewFrameTracking();
@@ -164,17 +164,17 @@ bool PoseEstimation::process()
     if (frame->hasAccuratePose())
     {
       // Branch accurate pose and georef initialized
-      if (_is_georef_initialized)
+      if (m_is_georef_initialized)
       {
-        if (_do_update_georef && !_georeferencer->isBuisy())
+        if (m_do_update_georef && !m_georeferencer->isBuisy())
         {
-          std::thread t(std::bind(&GeospatialReferencerIF::update, _georeferencer, frame));
+          std::thread t(std::bind(&GeospatialReferencerIF::update, m_georeferencer, frame));
           t.detach();
         }
         pushToBufferAll(frame);
       }
     }
-    if (frame->isKeyframe() && !_is_georef_initialized)
+    if (frame->isKeyframe() && !m_is_georef_initialized)
     {
       pushToBufferAll(frame);
       pushToBufferInit(frame);
@@ -186,22 +186,22 @@ bool PoseEstimation::process()
 
   // Handles georeference initialization and georeferencing of frame poses
   // but only starts, if a new frame was processed during this loop
-  if (_use_vslam && has_processed)
+  if (m_use_vslam && has_processed)
   {
-    if (!_is_georef_initialized && !_buffer_pose_init.empty() && !_georeferencer->isBuisy())
+    if (!m_is_georef_initialized && !m_buffer_pose_init.empty() && !m_georeferencer->isBuisy())
     {
       // Branch: Georef is not calculated yet
-      LOG_F(INFO, "Size of init buffer: %lu", _buffer_pose_init.size());
-      std::thread t(std::bind(&GeospatialReferencerIF::init, _georeferencer, _buffer_pose_init));
+      LOG_F(INFO, "Size of init buffer: %lu", m_buffer_pose_init.size());
+      std::thread t(std::bind(&GeospatialReferencerIF::init, m_georeferencer, m_buffer_pose_init));
       t.detach();
       has_processed = true;
     }
-    else if (_is_georef_initialized && !_buffer_pose_all.empty())
+    else if (m_is_georef_initialized && !m_buffer_pose_all.empty())
     {
       // Branch: Georef was successfully initialized and data waits to be georeferenced
       // Process all measurements in seperate thread
-      if (!_buffer_pose_init.empty())
-        _buffer_pose_init.clear();
+      if (!m_buffer_pose_init.empty())
+        m_buffer_pose_init.clear();
 
       std::thread t(std::bind(&PoseEstimation::applyGeoreferenceToBuffer, this));
       t.detach();
@@ -217,18 +217,18 @@ void PoseEstimation::track(Frame::Ptr &frame)
 
   // Check if initial guess should be computed
   cv::Mat T_c2w_initial;
-  if (_use_initial_guess && _georeferencer->isInitialized())
+  if (m_use_initial_guess && m_georeferencer->isInitialized())
   {
     LOG_F(INFO, "Computing initial guess of current pose...");
     T_c2w_initial = computeInitialPoseGuess(frame);
   }
 
   // Compute visual pose
-  _mutex_vslam.lock();
-  VisualSlamIF::State state = _vslam->track(frame, T_c2w_initial);
-  _mutex_vslam.unlock();
+  m_mutex_vslam.lock();
+  VisualSlamIF::State state = m_vslam->track(frame, T_c2w_initial);
+  m_mutex_vslam.unlock();
 
-  if (_set_all_frames_keyframes && (state == VisualSlamIF::State::FRAME_INSERT))
+  if (m_set_all_frames_keyframes && (state == VisualSlamIF::State::FRAME_INSERT))
   {
     state = VisualSlamIF::State::KEYFRAME_INSERT;
   }
@@ -237,7 +237,7 @@ void PoseEstimation::track(Frame::Ptr &frame)
   switch (state)
   {
     case VisualSlamIF::State::LOST:
-      if (estimatePercOverlap(frame) < _overlap_max_fallback)
+      if (estimatePercOverlap(frame) < m_overlap_max_fallback)
         pushToBufferPublish(frame);
       LOG_F(WARNING, "No tracking.");
       break;
@@ -253,30 +253,30 @@ void PoseEstimation::track(Frame::Ptr &frame)
       break;
   }
   // Save tracked img with features in member
-  std::unique_lock<std::mutex> lock(_mutex_img_debug);
-  _vslam->drawTrackedImage(_img_debug);
+  std::unique_lock<std::mutex> lock(m_mutex_img_debug);
+  m_vslam->drawTrackedImage(m_img_debug);
 }
 
 void PoseEstimation::reset()
 {
   std::unique_lock<std::mutex> lock(m_mutex_reset_requested);
-  std::unique_lock<std::mutex> lock1(_mutex_buffer_no_pose);
-  std::unique_lock<std::mutex> lock2(_mutex_buffer_pose_init);
-  std::unique_lock<std::mutex> lock3(_mutex_buffer_pose_all);
+  std::unique_lock<std::mutex> lock1(m_mutex_buffer_no_pose);
+  std::unique_lock<std::mutex> lock2(m_mutex_buffer_pose_init);
+  std::unique_lock<std::mutex> lock3(m_mutex_buffer_pose_all);
   if (m_reset_requested)  // User reset
   {
     LOG_F(INFO, "Reset has been requested!");
     // reset visual slam
-    _mutex_vslam.lock();
-    _vslam->reset();
-    _mutex_vslam.unlock();
+    m_mutex_vslam.lock();
+    m_vslam->reset();
+    m_mutex_vslam.unlock();
   }
   else  // visual slam reset
   {
     LOG_F(INFO, "Visual SLAM has triggered reset!");
     // In case of reset by vslam, publish all images in buffer with
     // default pose if overlap is less than defined
-    for (auto const &frame : _buffer_pose_all)
+    for (auto const &frame : m_buffer_pose_all)
     {
       frame->setPoseAccurate(false);
       frame->setKeyframe(false);
@@ -284,21 +284,21 @@ void PoseEstimation::reset()
     }
   }
   // Clear all buffers except the publisher buffer
-  _buffer_pose_all.clear();
-  _buffer_no_pose.clear();
-  _buffer_pose_init.clear();
+  m_buffer_pose_all.clear();
+  m_buffer_no_pose.clear();
+  m_buffer_pose_init.clear();
 
   // Reset georeferencing
-  if (_use_vslam)
-    _georeferencer.reset(new GeometricReferencer(_th_error_georef));
-  _stage_publisher->requestReset();
-  _is_georef_initialized = false;
+  if (m_use_vslam)
+    m_georeferencer.reset(new GeometricReferencer(m_th_error_georef));
+  m_stage_publisher->requestReset();
+  m_is_georef_initialized = false;
   m_reset_requested = false;
 }
 
 void PoseEstimation::queueImuData(const VisualSlamIF::ImuData &imu) const
 {
-  _vslam->queueImuData(imu);
+  m_vslam->queueImuData(imu);
 }
 
 bool PoseEstimation::changeParam(const std::string& name, const std::string &val)
@@ -306,7 +306,7 @@ bool PoseEstimation::changeParam(const std::string& name, const std::string &val
   std::unique_lock<std::mutex> lock;
   if (name == "use_vslam")
   {
-    _use_vslam = (val == "true" || val == "1");
+    m_use_vslam = (val == "true" || val == "1");
     return true;
   }
   return false;
@@ -315,79 +315,79 @@ bool PoseEstimation::changeParam(const std::string& name, const std::string &val
 void PoseEstimation::initStageCallback()
 {
   // Stage directory first
-  if (!io::dirExists(_stage_path))
-    io::createDir(_stage_path);
+  if (!io::dirExists(m_stage_path))
+    io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(_stage_path + "/trajectory"))
-    io::createDir(_stage_path + "/trajectory");
-  if (!io::dirExists(_stage_path + "/keyframes"))
-    io::createDir(_stage_path + "/keyframes");
-  if (!io::dirExists(_stage_path + "/keyframes_full"))
-    io::createDir(_stage_path + "/keyframes_full");
-  if (!io::dirExists(_stage_path + "/frames"))
-    io::createDir(_stage_path + "/frames");
+  if (!io::dirExists(m_stage_path + "/trajectory"))
+    io::createDir(m_stage_path + "/trajectory");
+  if (!io::dirExists(m_stage_path + "/keyframes"))
+    io::createDir(m_stage_path + "/keyframes");
+  if (!io::dirExists(m_stage_path + "/keyframes_full"))
+    io::createDir(m_stage_path + "/keyframes_full");
+  if (!io::dirExists(m_stage_path + "/frames"))
+    io::createDir(m_stage_path + "/frames");
 
-  _stage_publisher->setOutputPath(_stage_path);
+  m_stage_publisher->setOutputPath(m_stage_path);
 }
 
 void PoseEstimation::printSettingsToLog()
 {
   LOG_F(INFO, "### Stage process settings ###");
-  LOG_F(INFO, "- use_vslam: %i", _use_vslam);
-  LOG_F(INFO, "- use_fallback: %i", _use_fallback);
-  LOG_F(INFO, "- do_update_georef: %i", _do_update_georef);
-  LOG_F(INFO, "- do_suppress_outdated_pose_pub: %i", _do_suppress_outdated_pose_pub);
-  LOG_F(INFO, "- th_error_georef: %4.2f", _th_error_georef);
-  LOG_F(INFO, "- overlap_max: %4.2f", _overlap_max);
-  LOG_F(INFO, "- overlap_max_fallback: %4.2f", _overlap_max_fallback);
+  LOG_F(INFO, "- use_vslam: %i", m_use_vslam);
+  LOG_F(INFO, "- use_fallback: %i", m_use_fallback);
+  LOG_F(INFO, "- do_update_georef: %i", m_do_update_georef);
+  LOG_F(INFO, "- do_suppress_outdated_pose_pub: %i", m_do_suppress_outdated_pose_pub);
+  LOG_F(INFO, "- th_error_georef: %4.2f", m_th_error_georef);
+  LOG_F(INFO, "- overlap_max: %4.2f", m_overlap_max);
+  LOG_F(INFO, "- overlap_max_fallback: %4.2f", m_overlap_max_fallback);
 
   LOG_F(INFO, "### Stage save settings ###");
-  LOG_F(INFO, "- save_trajectory_gnss: %i", _settings_save.save_trajectory_gnss);
-  LOG_F(INFO, "- save_trajectory_visual: %i", _settings_save.save_trajectory_visual);
-  LOG_F(INFO, "- save_frames: %i", _settings_save.save_frames);
-  LOG_F(INFO, "- save_keyframes: %i", _settings_save.save_keyframes);
-  LOG_F(INFO, "- save_keyframes_full: %i", _settings_save.save_keyframes_full);
+  LOG_F(INFO, "- save_trajectory_gnss: %i", m_settings_save.save_trajectory_gnss);
+  LOG_F(INFO, "- save_trajectory_visual: %i", m_settings_save.save_trajectory_visual);
+  LOG_F(INFO, "- save_frames: %i", m_settings_save.save_frames);
+  LOG_F(INFO, "- save_keyframes: %i", m_settings_save.save_keyframes);
+  LOG_F(INFO, "- save_keyframes_full: %i", m_settings_save.save_keyframes_full);
 
-  if (_use_vslam)
-    _vslam->printSettingsToLog();
+  if (m_use_vslam)
+    m_vslam->printSettingsToLog();
 }
 
 void PoseEstimation::pushToBufferNoPose(const Frame::Ptr &frame)
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_no_pose);
-  _buffer_no_pose.push_back(frame);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
+  m_buffer_no_pose.push_back(frame);
 }
 
 void PoseEstimation::pushToBufferInit(const Frame::Ptr &frame)
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_pose_init);
-  _buffer_pose_init.push_back(frame);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_pose_init);
+  m_buffer_pose_init.push_back(frame);
 }
 
 void PoseEstimation::pushToBufferAll(const Frame::Ptr &frame)
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_pose_all);
-  _buffer_pose_all.push_back(frame);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_pose_all);
+  m_buffer_pose_all.push_back(frame);
 }
 
 void PoseEstimation::pushToBufferPublish(const Frame::Ptr &frame)
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_do_publish);
-  _buffer_do_publish.push_back(frame);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_do_publish);
+  m_buffer_do_publish.push_back(frame);
 }
 
 void PoseEstimation::updatePreviousRoi(const Frame::Ptr &frame)
 {
-  _roi_prev = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
+  m_roi_prev = frame->getCamera()->projectImageBoundsToPlaneRoi(m_plane_ref.pt, m_plane_ref.n);
 }
 
 void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat &points)
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_pose_all);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_pose_all);
 
   // Find frame in "all" buffer for updating
-  for (auto &frame : _buffer_pose_all)
+  for (auto &frame : m_buffer_pose_all)
     if (frame->getFrameId() == (uint32_t)id)
     {
       if (!pose.empty())
@@ -397,7 +397,7 @@ void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat
       frame->setKeyframe(true);
     }
 
-  for (auto &frame : _buffer_do_publish)
+  for (auto &frame : m_buffer_do_publish)
     if (frame->getFrameId() == (uint32_t)id)
     {
       if (!pose.empty())
@@ -410,46 +410,46 @@ void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat
 
 double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
 {
-  cv::Rect2d roi_curr = frame->getCamera()->projectImageBoundsToPlaneRoi(_plane_ref.pt, _plane_ref.n);
-  return ((roi_curr & _roi_prev).area() / roi_curr.area())*100;
+  cv::Rect2d roi_curr = frame->getCamera()->projectImageBoundsToPlaneRoi(m_plane_ref.pt, m_plane_ref.n);
+  return ((roi_curr & m_roi_prev).area() / roi_curr.area()) * 100;
 }
 
 Frame::Ptr PoseEstimation::getNewFrameTracking()
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_no_pose);
-  Frame::Ptr frame = _buffer_no_pose.front();
-  _buffer_no_pose.pop_front();
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
+  Frame::Ptr frame = m_buffer_no_pose.front();
+  m_buffer_no_pose.pop_front();
   return std::move(frame);
 }
 
 Frame::Ptr PoseEstimation::getNewFramePublish()
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_do_publish);
-  Frame::Ptr frame = _buffer_do_publish.front();
-  _buffer_do_publish.pop_front();
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_do_publish);
+  Frame::Ptr frame = m_buffer_do_publish.front();
+  m_buffer_do_publish.pop_front();
   return std::move(frame);
 }
 
 void PoseEstimation::applyGeoreferenceToBuffer()
 {
   // Grab estimated georeference
-  _mutex_t_w2g.lock();
-  _T_w2g = _georeferencer->getTransformation();
-  _mutex_t_w2g.unlock();
+  m_mutex_t_w2g.lock();
+  m_T_w2g = m_georeferencer->getTransformation();
+  m_mutex_t_w2g.unlock();
 
   // Apply estimated georeference to all measurements in the buffer
-  while(!_buffer_pose_all.empty())
+  while(!m_buffer_pose_all.empty())
   {
-    _mutex_buffer_pose_all.lock();
-    Frame::Ptr frame = _buffer_pose_all.front();
-    _buffer_pose_all.pop_front();
-    _mutex_buffer_pose_all.unlock();
+    m_mutex_buffer_pose_all.lock();
+    Frame::Ptr frame = m_buffer_pose_all.front();
+    m_buffer_pose_all.pop_front();
+    m_mutex_buffer_pose_all.unlock();
 
     // But check first, if frame has actually a visually estimated pose information
     // In case of default GNSS pose generated from lat/lon/alt/heading, pose is already in world frame
     if (frame->hasAccuratePose())
     {
-      frame->initGeoreference(_T_w2g);
+      frame->initGeoreference(m_T_w2g);
     }
 
     pushToBufferPublish(frame);
@@ -459,7 +459,7 @@ void PoseEstimation::applyGeoreferenceToBuffer()
 cv::Mat PoseEstimation::computeInitialPoseGuess(const Frame::Ptr &frame)
 {
   cv::Mat default_pose = frame->getDefaultPose();
-  cv::Mat T_w2g = _georeferencer->getTransformation();
+  cv::Mat T_w2g = m_georeferencer->getTransformation();
   T_w2g.pop_back();
 
   // Compute scale of georeference
@@ -507,64 +507,64 @@ void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
 
 PoseEstimationIO::PoseEstimationIO(PoseEstimation* stage, double rate, bool do_delay_keyframes)
     : WorkerThreadBase("Publisher [pose_estimation]", static_cast<int64_t>(1/rate*1000.0), true),
-      _is_time_ref_set(false),
-      _is_new_output_path_set(false),
-      _do_delay_keyframes(do_delay_keyframes),
-      _t_ref({0, 0}),
-      _stage_handle(stage)
+      m_is_time_ref_set(false),
+      m_is_new_output_path_set(false),
+      m_do_delay_keyframes(do_delay_keyframes),
+      m_t_ref({0, 0}),
+      m_stage_handle(stage)
 {
-  if (!_stage_handle)
+  if (!m_stage_handle)
     throw(std::invalid_argument("Error: Could not create PoseEstimationIO. Stage handle points to NULL."));
 }
 
 void PoseEstimationIO::setOutputPath(const std::string &path)
 {
-  _path_output = path;
-  _is_new_output_path_set = true;
+  m_path_output = path;
+  m_is_new_output_path_set = true;
 }
 
 void PoseEstimationIO::initLog(const std::string &filepath)
 {
   loguru::add_file((filepath + "/publisher.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
 
-  LOG_F(INFO, "Successfully initialized %s publisher!", _stage_handle->_stage_name.c_str());
+  LOG_F(INFO, "Successfully initialized %s publisher!", m_stage_handle->m_stage_name.c_str());
 }
 
 bool PoseEstimationIO::process()
 {
-  if (_is_new_output_path_set)
+  if (m_is_new_output_path_set)
   {
-    initLog(_path_output);
-    _is_new_output_path_set = false;
+    initLog(m_path_output);
+    m_is_new_output_path_set = false;
   }
 
-  if (!_stage_handle->_buffer_do_publish.empty())
+  if (!m_stage_handle->m_buffer_do_publish.empty())
   {
     // Grab frame from pose estimation geoereferenced mmts
-    Frame::Ptr frame = _stage_handle->getNewFramePublish();
+    Frame::Ptr frame = m_stage_handle->getNewFramePublish();
 
     // Data to be published for every georeferenced frame (usually small data packages).
     // Poses get only published, if suppress flag was not set (old poses might crash state estimate filter)
-    if (!(_stage_handle->_do_suppress_outdated_pose_pub && _stage_handle->_buffer_do_publish.size() > 1))
+    if (!(m_stage_handle->m_do_suppress_outdated_pose_pub && m_stage_handle->m_buffer_do_publish.size() > 1))
       publishPose(frame);
 
     // Keyframes to be published (big data packages -> publish only if needed)
-    if ((_stage_handle->_use_fallback && !frame->hasAccuratePose() && _stage_handle->estimatePercOverlap(frame) < _stage_handle->_overlap_max_fallback)
-         ||(!_stage_handle->_use_vslam && _stage_handle->estimatePercOverlap(frame) < _stage_handle->_overlap_max_fallback)
-         || (frame->isKeyframe() && _stage_handle->estimatePercOverlap(frame) < _stage_handle->_overlap_max))
+    if ((m_stage_handle->m_use_fallback && !frame->hasAccuratePose() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback)
+         ||(!m_stage_handle->m_use_vslam && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback)
+         || (frame->isKeyframe() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max))
     {
-      _stage_handle->updatePreviousRoi(frame);
-      if (_do_delay_keyframes)
+      m_stage_handle->updatePreviousRoi(frame);
+      if (m_do_delay_keyframes)
         scheduleFrame(frame);
       else
         publishFrame(frame);
     }
   }
-  if (!_stage_handle->_img_debug.empty())
+  if (!m_stage_handle->m_img_debug.empty())
   {
-    std::unique_lock<std::mutex> lock(_stage_handle->_mutex_img_debug);
-    _stage_handle->_transport_img(_stage_handle->_img_debug, "debug/tracked");
-    _stage_handle->_img_debug.release();
+    std::unique_lock<std::mutex> lock(m_stage_handle->m_mutex_img_debug);
+    m_stage_handle->m_transport_img(m_stage_handle->m_img_debug, "debug/tracked");
+    m_stage_handle->m_img_debug.release();
   }
   publishScheduled();
   return false;
@@ -573,8 +573,8 @@ bool PoseEstimationIO::process()
 void PoseEstimationIO::reset()
 {
   std::unique_lock<std::mutex> lock(m_mutex_reset_requested);
-  _is_time_ref_set = false;
-  _t_ref = TimeReference{0, 0};
+  m_is_time_ref_set = false;
+  m_t_ref = TimeReference{0, 0};
   m_reset_requested = false;
 }
 
@@ -583,29 +583,29 @@ void PoseEstimationIO::publishPose(const Frame::Ptr &frame)
   LOG_F(INFO, "Publishing pose of frame #%u...", frame->getFrameId());
 
   // Save trajectories
-  if (_stage_handle->_settings_save.save_trajectory_gnss || _stage_handle->_settings_save.save_trajectory_visual)
-    io::saveTimestamp(frame->getTimestamp(), frame->getFrameId(), _stage_handle->_stage_path + "/trajectory/timestamps.txt");
-  if (_stage_handle->_settings_save.save_trajectory_gnss)
-    io::saveTrajectory(frame->getTimestamp(), frame->getDefaultPose(), _stage_handle->_stage_path + "/trajectory/gnss_traj_TUM.txt");
-  if (_stage_handle->_settings_save.save_trajectory_visual && frame->hasAccuratePose())
-    io::saveTrajectory(frame->getTimestamp(), frame->getPose(), _stage_handle->_stage_path + "/trajectory/f_traj_TUM.txt");
-  if (_stage_handle->_settings_save.save_trajectory_visual && frame->isKeyframe())
-    io::saveTrajectory(frame->getTimestamp(), frame->getPose(), _stage_handle->_stage_path + "/trajectory/kf_traj_TUM.txt");
+  if (m_stage_handle->m_settings_save.save_trajectory_gnss || m_stage_handle->m_settings_save.save_trajectory_visual)
+    io::saveTimestamp(frame->getTimestamp(), frame->getFrameId(), m_stage_handle->m_stage_path + "/trajectory/timestamps.txt");
+  if (m_stage_handle->m_settings_save.save_trajectory_gnss)
+    io::saveTrajectory(frame->getTimestamp(), frame->getDefaultPose(), m_stage_handle->m_stage_path + "/trajectory/gnss_traj_TUM.txt");
+  if (m_stage_handle->m_settings_save.save_trajectory_visual && frame->hasAccuratePose())
+    io::saveTrajectory(frame->getTimestamp(), frame->getPose(), m_stage_handle->m_stage_path + "/trajectory/f_traj_TUM.txt");
+  if (m_stage_handle->m_settings_save.save_trajectory_visual && frame->isKeyframe())
+    io::saveTrajectory(frame->getTimestamp(), frame->getPose(), m_stage_handle->m_stage_path + "/trajectory/kf_traj_TUM.txt");
 
-  _stage_handle->_transport_pose(frame->getPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose/visual");
+  m_stage_handle->m_transport_pose(frame->getPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose/visual");
 }
 
 void PoseEstimationIO::publishSparseCloud(const Frame::Ptr &frame)
 {
   cv::Mat sparse_cloud = frame->getSparseCloud();
   if (!sparse_cloud.empty())
-    _stage_handle->_transport_pointcloud(sparse_cloud, "output/pointcloud");
+    m_stage_handle->m_transport_pointcloud(sparse_cloud, "output/pointcloud");
 }
 
 void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 {
   // First update statistics about outgoing frame rate
-  _stage_handle->updateFpsStatisticsOutgoing();
+  m_stage_handle->updateFpsStatisticsOutgoing();
 
   // Two situation can occure, when publishing a frame is triggered
   // 1) Frame is marked as keyframe by the SLAM -> publish directly
@@ -615,16 +615,16 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 
   publishSparseCloud(frame);
 
-  _stage_handle->_transport_frame(frame, "output/frame");
-  _stage_handle->printGeoReferenceInfo(frame);
+  m_stage_handle->m_transport_frame(frame, "output/frame");
+  m_stage_handle->printGeoReferenceInfo(frame);
 
   // Save image related data
-  if (_stage_handle->_settings_save.save_frames && !frame->isKeyframe())
-    io::saveExifImage(frame, _stage_handle->_stage_path + "/frames", "frames", frame->getFrameId(), true);
-  if (_stage_handle->_settings_save.save_keyframes && frame->isKeyframe())
-    io::saveExifImage(frame, _stage_handle->_stage_path + "/keyframes", "keyframe", frame->getFrameId(), true);
-  if (_stage_handle->_settings_save.save_keyframes_full && frame->isKeyframe())
-    io::saveExifImage(frame, _stage_handle->_stage_path + "/keyframes_full", "keyframe_full", frame->getFrameId(), false);
+  if (m_stage_handle->m_settings_save.save_frames && !frame->isKeyframe())
+    io::saveExifImage(frame, m_stage_handle->m_stage_path + "/frames", "frames", frame->getFrameId(), true);
+  if (m_stage_handle->m_settings_save.save_keyframes && frame->isKeyframe())
+    io::saveExifImage(frame, m_stage_handle->m_stage_path + "/keyframes", "keyframe", frame->getFrameId(), true);
+  if (m_stage_handle->m_settings_save.save_keyframes_full && frame->isKeyframe())
+    io::saveExifImage(frame, m_stage_handle->m_stage_path + "/keyframes_full", "keyframe_full", frame->getFrameId(), false);
 }
 
 void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
@@ -634,46 +634,46 @@ void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
 
   // Check if either first measurement ever (does not have to be keyframe)
   // Or if first keyframe
-  if ((frame->isKeyframe() && !_is_time_ref_set)
-      || (_t_ref.first == 0 && _t_ref.second == 0))
+  if ((frame->isKeyframe() && !m_is_time_ref_set)
+      || (m_t_ref.first == 0 && m_t_ref.second == 0))
   {
-    _t_ref.first = t_world;
-    _t_ref.second = t_frame;
+    m_t_ref.first = t_world;
+    m_t_ref.second = t_frame;
     if (frame->isKeyframe())
-      _is_time_ref_set = true;
+      m_is_time_ref_set = true;
   }
 
   // Create task for publish
-  uint64_t dt = (t_frame - _t_ref.second);
-  std::unique_lock<std::mutex> lock(_mutex_schedule);
-  _schedule.emplace_back(Task{(long)dt, frame});
+  uint64_t dt = (t_frame - m_t_ref.second);
+  std::unique_lock<std::mutex> lock(m_mutex_schedule);
+  m_schedule.emplace_back(Task{(long)dt, frame});
 
   // Time until schedule
-  long t_remain = ((long)dt) - (getCurrentTimeMilliseconds()-_t_ref.first);
+  long t_remain = ((long)dt) - (getCurrentTimeMilliseconds() - m_t_ref.first);
   LOG_F(INFO, "Scheduled publish frame #%u in %4.2fs", frame->getFrameId(), (double)t_remain/1000);
 }
 
 void PoseEstimationIO::publishScheduled()
 {
-  if (_schedule.empty())
+  if (m_schedule.empty())
     return;
-  Task task = _schedule.front();
-  if (task.first < (getCurrentTimeMilliseconds() - _t_ref.first))
+  Task task = m_schedule.front();
+  if (task.first < (getCurrentTimeMilliseconds() - m_t_ref.first))
   {
-    _mutex_schedule.lock();
-    _schedule.pop_front();
-    _mutex_schedule.unlock();
+    m_mutex_schedule.lock();
+    m_schedule.pop_front();
+    m_mutex_schedule.unlock();
     publishFrame(task.second);
   }
 }
 
 void PoseEstimationIO::publishAll()
 {
-  _mutex_schedule.lock();
-  for (const auto &task : _schedule)
+  m_mutex_schedule.lock();
+  for (const auto &task : m_schedule)
   {
     publishFrame(task.second);
   }
-  _schedule.clear();
-  _mutex_schedule.unlock();
+  m_schedule.clear();
+  m_mutex_schedule.unlock();
 }

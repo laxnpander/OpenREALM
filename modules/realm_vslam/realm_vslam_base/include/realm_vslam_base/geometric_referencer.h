@@ -58,21 +58,21 @@ namespace realm
 
   private:
 
-    std::mutex _mutex_is_initialized;
-    bool _is_initialized;
+    std::mutex m_mutex_is_initialized;
+    bool m_is_initialized;
 
-    std::mutex _mutex_is_buisy;
-    bool _is_buisy;
+    std::mutex m_mutex_is_buisy;
+    bool m_is_buisy;
 
-    size_t _prev_nrof_unique;
-    double _scale;
-    double _th_error;
-    double _error;
+    size_t m_prev_nrof_unique;
+    double m_scale;
+    double m_th_error;
+    double m_error;
 
-    std::mutex _mutex_t_c2g;
-    cv::Mat _transformation_w2g;
+    std::mutex m_mutex_t_c2g;
+    cv::Mat m_transformation_w2g;
 
-    std::vector<SpatialMeasurement::Ptr> _spatials;
+    std::vector<SpatialMeasurement::Ptr> m_spatials;
 
     void setBuisy();
 

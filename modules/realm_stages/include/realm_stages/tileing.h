@@ -60,18 +60,18 @@ class Tileing : public StageBase
     void saveAll();
 
   private:
-    std::deque<Frame::Ptr> _buffer;
-    std::mutex _mutex_buffer;
+    std::deque<Frame::Ptr> m_buffer;
+    std::mutex m_mutex_buffer;
 
-    SaveSettings _settings_save;
+    SaveSettings m_settings_save;
 
-    UTMPose::Ptr _utm_reference;
+    UTMPose::Ptr m_utm_reference;
 
     /// Warper to transform incoming grid maps from UTM coordinates to Web Mercator (EPSG:3857)
-    gis::GdalWarper _warper;
+    gis::GdalWarper m_warper;
 
-    MapTiler::Ptr _map_tiler;
-    TileCache::Ptr _tile_cache;
+    MapTiler::Ptr m_map_tiler;
+    TileCache::Ptr m_tile_cache;
 
     Tile::Ptr merge(const Tile::Ptr &t1, const Tile::Ptr &t2);
     Tile::Ptr blend(const Tile::Ptr &t1, const Tile::Ptr &t2);

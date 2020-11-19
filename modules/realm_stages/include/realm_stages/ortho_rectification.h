@@ -58,13 +58,13 @@ class OrthoRectification : public StageBase
     bool process() override;
   private:
 
-    bool _do_publish_pointcloud;
+    bool m_do_publish_pointcloud;
 
-    double _GSD;
-    SaveSettings _settings_save;
+    double m_GSD;
+    SaveSettings m_settings_save;
 
-    std::deque<Frame::Ptr> _buffer;
-    std::mutex _mutex_buffer;
+    std::deque<Frame::Ptr> m_buffer;
+    std::mutex m_mutex_buffer;
 
     void reset() override;
     void initStageCallback() override;

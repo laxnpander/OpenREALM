@@ -25,23 +25,23 @@
 using namespace realm;
 
 gis::GdalWarper::GdalWarper()
- : _epsg_target(0),
-   _nrof_threads(-1)
+ : m_epsg_target(0),
+   m_nrof_threads(-1)
 {
   GDALAllRegister();
 
   // Warping is done in RAM and no data needs to be saved to the disk for now
-  _driver = GetGDALDriverManager()->GetDriverByName("MEM");
+  m_driver = GetGDALDriverManager()->GetDriverByName("MEM");
 }
 
 void gis::GdalWarper::setTargetEPSG(int epsg_code)
 {
-  _epsg_target = epsg_code;
+  m_epsg_target = epsg_code;
 }
 
 void gis::GdalWarper::setNrofThreads(int nrof_threads)
 {
-  _nrof_threads = nrof_threads;
+  m_nrof_threads = nrof_threads;
 }
 
 CvGridMap::Ptr gis::GdalWarper::warpRaster(const CvGridMap &map, uint8_t zone)
@@ -52,7 +52,7 @@ CvGridMap::Ptr gis::GdalWarper::warpRaster(const CvGridMap &map, uint8_t zone)
   //
   //=======================================//
 
-  if (_epsg_target == 0)
+  if (m_epsg_target == 0)
     throw(std::runtime_error("Error warping map: Target EPSG was not set!"));
 
   std::vector<std::string> layer_names = map.getAllLayerNames();
@@ -80,7 +80,7 @@ CvGridMap::Ptr gis::GdalWarper::warpRaster(const CvGridMap &map, uint8_t zone)
   // Set target coordinate system
   char *gdal_proj_dst = nullptr;
   OGRSpatialReference oSRS;
-  oSRS.importFromEPSG(_epsg_target);
+  oSRS.importFromEPSG(m_epsg_target);
   oSRS.exportToWkt(&gdal_proj_dst);
   CPLAssert(gdal_proj_dst != NULL && strlen(gdal_proj_dst) > 0);
 
@@ -99,7 +99,7 @@ CvGridMap::Ptr gis::GdalWarper::warpRaster(const CvGridMap &map, uint8_t zone)
   GDALDestroyGenImgProjTransformer(projector);
 
   // Create the output object.
-  GDALDataset* dataset_mem_dst = _driver->Create("", warped_cols , warped_rows , data.channels(), meta->datatype, nullptr );
+  GDALDataset* dataset_mem_dst = m_driver->Create("", warped_cols , warped_rows , data.channels(), meta->datatype, nullptr );
   CPLAssert( hDstDS != NULL );
 
   // Write out the projection definition.
@@ -147,10 +147,10 @@ CvGridMap::Ptr gis::GdalWarper::warpRaster(const CvGridMap &map, uint8_t zone)
   char** warper_system_options = nullptr;
   warper_system_options = CSLSetNameValue(warper_system_options, "INIT_DEST", "NO_DATA");
 
-  if (_nrof_threads <= 0)
+  if (m_nrof_threads <= 0)
     warper_system_options = CSLSetNameValue(warper_system_options, "NUM_THREADS", "ALL_CPUS");
   else
-    warper_system_options = CSLSetNameValue(warper_system_options, "NUM_THREADS", std::to_string(_nrof_threads).c_str());
+    warper_system_options = CSLSetNameValue(warper_system_options, "NUM_THREADS", std::to_string(m_nrof_threads).c_str());
 
   // Setup warp options.
   GDALWarpOptions *warper_options = GDALCreateWarpOptions();

@@ -83,13 +83,13 @@ public:
 private:
 
   /// EPSG Code, e.g. 3857 for EPSG:3857
-  int _epsg_target;
+  int m_epsg_target;
 
   /// Number of threads used for projection
-  int _nrof_threads;
+  int m_nrof_threads;
 
   /// Internal GDAL memory driver to create a dataset from the layer input
-  GDALDriver* _driver;
+  GDALDriver* m_driver;
 
   /*!
    * @brief For some reason GDAL sets the no data value to 0.0 for floating point matrices, even though all options

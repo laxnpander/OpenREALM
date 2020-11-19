@@ -39,8 +39,8 @@ public:
 
 private:
 
-  std::mutex _mutex_t_c2g;
-  cv::Mat _transformation_c2g;
+  std::mutex m_mutex_t_c2g;
+  cv::Mat m_transformation_c2g;
 };
 
 } // namespace realm

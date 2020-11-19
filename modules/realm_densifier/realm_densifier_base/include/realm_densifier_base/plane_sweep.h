@@ -100,13 +100,13 @@ class PlaneSweep : public DensifierIF
   private:
 
     //! Number of frames for SFM
-    uint8_t _nrof_frames;
+    uint8_t m_nrof_frames;
 
     //! Resize factor for input images
-    double _resizing;
+    double m_resizing;
 
     //! Struct of the plane sweep settings
-    Settings _settings;
+    Settings m_settings;
 
     /*!
      * @brief Function to fix the input image type to a PSL conform type. Depends on the arguments se (use rgb or not)

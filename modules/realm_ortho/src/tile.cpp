@@ -23,38 +23,38 @@
 using namespace realm;
 
 Tile::Tile(int zoom_level, int tx, int ty, const CvGridMap &map)
- : _zoom_level(zoom_level),
-   _index(tx, ty),
-   _data(std::make_shared<CvGridMap>(map))
+ : m_zoom_level(zoom_level),
+   m_index(tx, ty),
+   m_data(std::make_shared<CvGridMap>(map))
 {
 }
 
 void Tile::lock()
 {
-  _mutex_data.lock();
+  m_mutex_data.lock();
 }
 
 void Tile::unlock()
 {
-  _mutex_data.unlock();
+  m_mutex_data.unlock();
 }
 
 int Tile::zoom_level() const
 {
-  return _zoom_level;
+  return m_zoom_level;
 }
 
 int Tile::x() const
 {
-  return _index.x;
+  return m_index.x;
 }
 
 int Tile::y() const
 {
-  return _index.y;
+  return m_index.y;
 }
 
 CvGridMap::Ptr& Tile::data()
 {
-  return _data;
+  return m_data;
 }

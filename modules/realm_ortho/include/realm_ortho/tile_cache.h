@@ -75,22 +75,22 @@ public:
 
 private:
 
-  bool _has_init_directories;
+  bool m_has_init_directories;
 
-  std::mutex _mutex_settings;
-  std::string _dir_toplevel;
+  std::mutex m_mutex_settings;
+  std::string m_dir_toplevel;
 
-  std::mutex _mutex_cache;
-  std::map<int, CacheElementGrid> _cache;
+  std::mutex m_mutex_cache;
+  std::map<int, CacheElementGrid> m_cache;
 
-  std::mutex _mutex_do_update;
-  bool _do_update;
+  std::mutex m_mutex_do_update;
+  bool m_do_update;
 
-  std::mutex _mutex_roi_prev_request;
-  std::map<int, cv::Rect2i> _roi_prev_request;
+  std::mutex m_mutex_roi_prev_request;
+  std::map<int, cv::Rect2i> m_roi_prev_request;
 
-  std::mutex _mutex_roi_prediction;
-  std::map<int, cv::Rect2i> _roi_prediction;
+  std::mutex m_mutex_roi_prediction;
+  std::map<int, cv::Rect2i> m_roi_prediction;
 
   bool process() override;
 
