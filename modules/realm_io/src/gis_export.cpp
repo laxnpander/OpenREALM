@@ -43,9 +43,9 @@ void io::saveGeoTIFF(const CvGridMap &map,
 
   cv::Mat img_converted;
   if (img_converted.channels() == 3)
-    cv::cvtColor(img, img_converted, CV_BGR2RGB);
+    cv::cvtColor(img, img_converted, cv::ColorConversionCodes::COLOR_BGR2RGB);
   else if (img.channels() == 4)
-    cv::cvtColor(img, img_converted, CV_BGRA2RGBA);
+    cv::cvtColor(img, img_converted, cv::ColorConversionCodes::COLOR_BGRA2RGBA);
   else
     img_converted = img;
 
@@ -179,7 +179,12 @@ GDALDataset* io::generateMemoryDataset(const cv::Mat &data, const io::GDALDatase
   GDALDriver* driver = nullptr;
   GDALDataset* dataset = nullptr;
   OGRSpatialReference oSRS;
-
+  // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
+  if (GDAL_VERSION_MAJOR >= 3)
+  {
+    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+  }
+  
   char **options = nullptr;
 
   driver = GetGDALDriverManager()->GetDriverByName("MEM");

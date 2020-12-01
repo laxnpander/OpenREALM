@@ -80,6 +80,12 @@ CvGridMap::Ptr gis::GdalWarper::warpRaster(const CvGridMap &map, uint8_t zone)
   // Set target coordinate system
   char *gdal_proj_dst = nullptr;
   OGRSpatialReference oSRS;
+  // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
+  if (GDAL_VERSION_MAJOR >= 3)
+  {
+    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+  }
+
   oSRS.importFromEPSG(_epsg_target);
   oSRS.exportToWkt(&gdal_proj_dst);
   CPLAssert(gdal_proj_dst != NULL && strlen(gdal_proj_dst) > 0);
