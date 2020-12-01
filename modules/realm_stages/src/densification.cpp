@@ -306,7 +306,7 @@ void Densification::publish(const Frame::Ptr &frame, const cv::Mat &depthmap)
   _transport_pointcloud(frame->getSparseCloud(), "output/pointcloud");
 
   cv::Mat depthmap_display;
-  cv::normalize(depthmap, depthmap_display, 0, 65535, CV_MINMAX, CV_16UC1, (depthmap > 0));
+  cv::normalize(depthmap, depthmap_display, 0, 65535, cv::NormTypes::NORM_MINMAX, CV_16UC1, (depthmap > 0));
   _transport_img(depthmap_display, "output/depth_display");
 }
 

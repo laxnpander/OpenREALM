@@ -186,9 +186,11 @@ CvGridMap Mosaicing::blend(CvGridMap::Overlap *overlap)
   cv::Mat ref_not_elevated;
   cv::bitwise_not(ref["elevated"], ref_not_elevated);
 
-  cv::Mat mask_1 = (src["elevation_angle"] > ref["elevation_angle"]) & src["elevated"];
-  cv::Mat mask_2 = (src["elevation_angle"] > ref["elevation_angle"]) & ref_not_elevated;
-  cv::Mat mask = (mask_1 | mask_2);
+  // There are aparently a number of issues with NaN comparisons breaking in various ways.  See:
+  // https://github.com/opencv/opencv/issues/16465
+  // To avoid these, use patchNaNs before using boolean comparisons
+  cv::patchNaNs(ref["elevation_angle"],0);
+  cv::Mat mask = (src["elevation_angle"] > ref["elevation_angle"]);
 
   src["color_rgb"].copyTo(ref["color_rgb"], mask);
   src["elevation"].copyTo(ref["elevation"], mask);

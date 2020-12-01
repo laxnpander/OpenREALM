@@ -100,7 +100,7 @@ class CvGridMap
      * @param interpolation interpolation flag for opencv, e.g. CV_INTER_LINEAR
      * @return
      */
-    void add(const std::string &layer_name, const cv::Mat &layer_data, int interpolation = CV_INTER_LINEAR);
+    void add(const std::string &layer_name, const cv::Mat &layer_data, int interpolation = cv::InterpolationFlags::INTER_LINEAR);
 
     /*!
      * @brief Adds a submap to the existing grid map

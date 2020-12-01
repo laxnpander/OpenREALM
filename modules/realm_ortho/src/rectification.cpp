@@ -71,9 +71,9 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
   double t[3] = {t_pose.at<double>(0), t_pose.at<double>(1), t_pose.at<double>(2)};
 
   uchar is_elevated_val    = (is_elevated ? (uchar)0 : (uchar)255);
-  cv::Mat valid            = (surface == surface);                           // Check for NaN values in the elevation
+  cv::Mat valid            = (surface == surface);                      // Check for NaN values in the elevation
   cv::Mat color_data       = cv::Mat::zeros(surface.size(), CV_8UC4);   // contains BGRA color data
-  cv::Mat elevation_angle  = cv::Mat::zeros(surface.size(), CV_32F);         // contains the observed elevation angle
+  cv::Mat elevation_angle  = cv::Mat::zeros(surface.size(), CV_32FC1);  // contains the observed elevation angle
   cv::Mat elevated         = cv::Mat::zeros(surface.size(), CV_8UC1);   // flag to set wether the surface has elevation info or not
   cv::Mat num_observations = cv::Mat::zeros(surface.size(), CV_16UC1);  // number of observations, should be one if it's a valid surface point
 
