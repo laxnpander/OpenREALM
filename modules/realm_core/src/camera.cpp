@@ -22,6 +22,9 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
+// TODO: Update this to be conditional on OpenCV4
+#include <opencv2/calib3d.hpp>
+
 #include <realm_core/camera.h>
 
 namespace realm

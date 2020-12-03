@@ -138,8 +138,9 @@ cv::Mat Frame::getImageUndistorted() const
 {
   std::lock_guard<std::mutex> lock(m_mutex_cam);
   cv::Mat img_undistorted;
+
   if(m_camera_model->hasDistortion())
-    img_undistorted = m_camera_model->undistort(m_img, CV_INTER_LINEAR);
+    img_undistorted = m_camera_model->undistort(m_img, cv::InterpolationFlags::INTER_LINEAR);
   else
     img_undistorted = m_img;
   return std::move(img_undistorted);
@@ -175,8 +176,13 @@ cv::Mat Frame::getResizedImageUndistorted() const
   // - No deep copy
   if (isImageResizeSet())
   {
+<<<<<<< HEAD
     camera::Pinhole cam_resized = m_camera_model->resize(m_img_resize_factor);
     return cam_resized.undistort(m_img_resized, CV_INTER_LINEAR);
+=======
+    camera::Pinhole cam_resized = _camera_model->resize(_img_resize_factor);
+    return cam_resized.undistort(_img_resized, cv::InterpolationFlags::INTER_LINEAR);
+>>>>>>> f207fb18782b3431872f407cfeaa286c851af619
   }
   else
     throw(std::invalid_argument("Error: Image resize factor not set!"));

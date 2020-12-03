@@ -96,6 +96,9 @@ Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id
 
     UTMPose utm = gis::convertToUTM(wgs);
 
+    //LOG_F(INFO, "WGS: %f %f", wgs.latitude, wgs.longitude);
+    //LOG_F(INFO, "UTM: %d %c %f %f", utm.zone, utm.band, utm.easting, utm.northing);
+
     /*========== OPTIONAL KEYS ==========*/
     uint64_t timestamp_val;
     if (!readMetaTagTimestamp(exif_data, xmp_data, &timestamp_val))

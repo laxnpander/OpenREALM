@@ -31,7 +31,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3 REQUIRED)
+    find_package(OpenCV 3 QUIET)
+endif()
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 4 REQUIRED)
+    message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
 endif()
 
 find_package(CGAL REQUIRED)
@@ -122,7 +126,6 @@ target_link_libraries(${LIBRARY_NAME}
             realm_core
             realm_io
             ${CGAL_LIBRARIES}
-            -lCGAL
         PRIVATE
             ${OpenCV_LIBRARIES}
 )
