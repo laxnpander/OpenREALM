@@ -46,19 +46,21 @@ UTMPose gis::convertToUTM(const WGSPose &wgs)
 
   OGRSpatialReference ogr_wgs;
   // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-  if (GDAL_VERSION_MAJOR >= 3)
+#if GDAL_VERSION_MAJOR >= 3
   {
-    ogr_wgs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
   }
+#endif
 
   ogr_wgs.SetWellKnownGeogCS("WGS84");
 
   OGRSpatialReference ogr_utm;
   // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-  if (GDAL_VERSION_MAJOR >= 3)
+#if GDAL_VERSION_MAJOR >= 3
   {
-    ogr_utm.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
   }
+#endif
 
   ogr_utm.SetWellKnownGeogCS("WGS84");
   ogr_utm.SetUTM(zone, is_northern);
@@ -77,20 +79,22 @@ WGSPose gis::convertToWGS84(const UTMPose &utm)
 {
   OGRSpatialReference ogr_utm;
   // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-  if (GDAL_VERSION_MAJOR >= 3)
+#if GDAL_VERSION_MAJOR >= 3
   {
-    ogr_utm.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
   }
+#endif
 
   ogr_utm.SetWellKnownGeogCS("WGS84");
   ogr_utm.SetUTM(utm.zone, TRUE);
 
   OGRSpatialReference ogr_wgs;
   // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-  if (GDAL_VERSION_MAJOR >= 3)
+#if GDAL_VERSION_MAJOR >= 3
   {
-    ogr_wgs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
   }
+#endif
   ogr_wgs.SetWellKnownGeogCS("WGS84");
 
 
