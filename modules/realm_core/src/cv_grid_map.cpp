@@ -375,7 +375,8 @@ void CvGridMap::extendToInclude(const cv::Rect2d &roi)
           cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<double>::quiet_NaN());
           break;
         default:
-          cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT);
+          LOG_F(WARNING, "*********************** DEFAULT!!!!!!!!!!!!!!!!!!!! %d ************************", layer.data.type());
+          cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT,0);
       }
     }
 }

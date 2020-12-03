@@ -34,8 +34,8 @@ namespace realm
 namespace io
 {
 
-// Exiv2 changed the image pointer definition in version 0.27 and higher
-#if EXIV2_MINOR_VERSION >= 27
+// Exiv2 changed the image pointer definition in master, maybe unreleased version 0.28 and higher
+#if EXIV2_MINOR_VERSION >= 28
   using Exiv2ImagePointer = Exiv2::Image::UniquePtr;
 #else
   using Exiv2ImagePointer = Exiv2::Image::AutoPtr;

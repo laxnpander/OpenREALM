@@ -80,7 +80,7 @@ void saveElevationPointsRGB(const CvGridMap &map,
   cv::Mat mask = map[mask_layer_name];
   cv::Mat color = map[color_layer_name];
   if (color.type() == CV_8UC4)
-    cv::cvtColor(color, color, CV_BGRA2BGR);
+    cv::cvtColor(color, color, cv::ColorConversionCodes::COLOR_BGRA2BGR);
 
   // Fill in the cloud data
   pcl::PointCloud<pcl::PointXYZRGB> cloud;
@@ -136,7 +136,7 @@ void saveElevationPointsRGBNormal(const CvGridMap &map,
   cv::Mat mask = map[mask_layer_name];
   cv::Mat color = map[color_layer_name];
   if (color.type() == CV_8UC4)
-    cv::cvtColor(color, color, CV_BGRA2BGR);
+    cv::cvtColor(color, color, cv::ColorConversionCodes::COLOR_BGRA2BGR);
 
   // Fill in the cloud data
   pcl::PointCloud<pcl::PointXYZRGBNormal> cloud;
@@ -209,7 +209,7 @@ void saveElevationMeshToPLY(const CvGridMap &map,
   cv::Mat mask = map[mask_layer_name];
   cv::Mat color = map[color_layer_name];
   if (color.type() == CV_8UC4)
-    cv::cvtColor(color, color, CV_BGRA2BGR);
+    cv::cvtColor(color, color, cv::ColorConversionCodes::COLOR_BGRA2BGR);
 
   // Fill in the cloud data
   pcl::PointCloud<pcl::PointXYZRGBNormal> cloud;
