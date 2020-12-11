@@ -366,7 +366,7 @@ void CvGridMap::extendToInclude(const cv::Rect2d &roi)
   for (auto &layer : m_layers)
     if (!layer.data.empty())
     {
-      switch(layer.data.type())
+      switch(layer.data.type() & CV_MAT_DEPTH_MASK)
       {
         case CV_32F:
           cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<float>::quiet_NaN());
@@ -375,7 +375,6 @@ void CvGridMap::extendToInclude(const cv::Rect2d &roi)
           cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT, std::numeric_limits<double>::quiet_NaN());
           break;
         default:
-          LOG_F(WARNING, "*********************** DEFAULT!!!!!!!!!!!!!!!!!!!! %d ************************", layer.data.type());
           cv::copyMakeBorder(layer.data, layer.data, size_y_top, size_y_bottom, size_x_left, size_x_right, cv::BORDER_CONSTANT,0);
       }
     }
