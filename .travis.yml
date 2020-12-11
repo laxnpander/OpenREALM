@@ -7,6 +7,8 @@ jobs:
       dist: bionic
     - os: linux
       dist: xenial
+    - os: linux
+      dist: focal
 services:
   - docker
 

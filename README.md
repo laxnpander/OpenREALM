@@ -88,6 +88,7 @@ solution in the close future.
 |:----------:|:------------:|
 |Ubuntu 16.04| [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
 |Ubuntu 18.04| [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
+|Ubuntu 20.04| [![Build Status](https://travis-ci.org/laxnpander/OpenREALM.svg?branch=master)](https://travis-ci.org/laxnpander/OpenREALM) |
 
 ## Optional Dependencies
 
