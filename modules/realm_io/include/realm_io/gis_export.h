@@ -32,6 +32,7 @@
 
 #include <realm_core/cv_grid_map.h>
 #include <realm_core/wgs84.h>
+#include <realm_core/conversions.h>
 #include <realm_io/utilities.h>
 
 namespace realm

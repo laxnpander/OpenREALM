@@ -179,12 +179,7 @@ GDALDataset* io::generateMemoryDataset(const cv::Mat &data, const io::GDALDatase
   GDALDriver* driver = nullptr;
   GDALDataset* dataset = nullptr;
   OGRSpatialReference oSRS;
-  // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-#if GDAL_VERSION_MAJOR >= 3
-  {
-    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
-  }
-#endif
+  gis::initAxisMappingStrategy(&oSRS);
   
   char **options = nullptr;
 

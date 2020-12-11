@@ -21,6 +21,7 @@
 #ifndef GENERAL_TESTBED_GDAL_WARPER_H
 #define GENERAL_TESTBED_GDAL_WARPER_H
 
+#include <realm_core/conversions.h>
 #include <realm_io/gis_export.h>
 
 #include <gdal/gdal_priv.h>

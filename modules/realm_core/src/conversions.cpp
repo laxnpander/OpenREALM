@@ -18,8 +18,6 @@
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <gdal/ogr_spatialref.h>
-
 #include <realm_core/conversions.h>
 
 using namespace realm;
@@ -45,22 +43,12 @@ UTMPose gis::convertToUTM(const WGSPose &wgs)
   int is_northern = (wgs.latitude < 0.0 ? 0 : 1);
 
   OGRSpatialReference ogr_wgs;
-  // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-#if GDAL_VERSION_MAJOR >= 3
-  {
-    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
-  }
-#endif
+  gis::initAxisMappingStrategy(&ogr_wgs);
 
   ogr_wgs.SetWellKnownGeogCS("WGS84");
 
   OGRSpatialReference ogr_utm;
-  // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-#if GDAL_VERSION_MAJOR >= 3
-  {
-    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
-  }
-#endif
+  gis::initAxisMappingStrategy(&ogr_utm);
 
   ogr_utm.SetWellKnownGeogCS("WGS84");
   ogr_utm.SetUTM(zone, is_northern);
@@ -78,25 +66,14 @@ UTMPose gis::convertToUTM(const WGSPose &wgs)
 WGSPose gis::convertToWGS84(const UTMPose &utm)
 {
   OGRSpatialReference ogr_utm;
-  // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-#if GDAL_VERSION_MAJOR >= 3
-  {
-    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
-  }
-#endif
+  gis::initAxisMappingStrategy(&ogr_utm);
 
   ogr_utm.SetWellKnownGeogCS("WGS84");
   ogr_utm.SetUTM(utm.zone, TRUE);
 
   OGRSpatialReference ogr_wgs;
-  // GDAL 3 changes axis order: https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT
-#if GDAL_VERSION_MAJOR >= 3
-  {
-    oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
-  }
-#endif
+  gis::initAxisMappingStrategy(&ogr_wgs);
   ogr_wgs.SetWellKnownGeogCS("WGS84");
-
 
   OGRCoordinateTransformation* coord_trans = OGRCreateCoordinateTransformation(&ogr_utm, &ogr_wgs);
 
@@ -106,4 +83,13 @@ WGSPose gis::convertToWGS84(const UTMPose &utm)
     throw(std::runtime_error("Error converting utm coordinates to wgs84: Transformation failed"));
 
   return WGSPose{y, x, utm.altitude, utm.heading};
+}
+
+void gis::initAxisMappingStrategy(OGRSpatialReference *oSRS)
+{
+#if GDAL_VERSION_MAJOR >= 3
+  {
+    oSRS->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+  }
+#endif
 }
