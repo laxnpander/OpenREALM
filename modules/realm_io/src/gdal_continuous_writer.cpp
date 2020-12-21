@@ -28,7 +28,7 @@ io::GDALContinuousWriter::GDALContinuousWriter(const std::string &thread_name, i
 {
 }
 
-bool io::GDALContinuousWriter::requestSaveGeoTIFF(const CvGridMap::Ptr &map,
+void io::GDALContinuousWriter::requestSaveGeoTIFF(const CvGridMap::Ptr &map,
                                                   const uint8_t &zone,
                                                   const std::string &filename,
                                                   bool do_build_overview,

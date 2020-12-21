@@ -394,6 +394,8 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
   //std::vector<cv::Point2i> vertex_ids = _mesher->buildMesh(*mesh_sampled, "valid");
   //std::vector<Face> faces = cvtToMesh((*mesh_sampled), "elevation", "color_rgb", vertex_ids);
   //return faces;
+  // Placeholder return, there are a few calls that try to use this
+  return std::vector<Face>();
 }
 
 void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, const CvGridMap::Ptr &update, uint64_t timestamp)
