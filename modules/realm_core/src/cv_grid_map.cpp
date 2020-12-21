@@ -221,6 +221,7 @@ CvGridMap::Layer CvGridMap::getLayer(const std::string& layer_name) const
   for (const auto& layer : m_layers)
     if (layer.name == layer_name)
       return layer;
+  throw std::out_of_range("No layer with name '" + layer_name + "' available.");
 }
 
 std::vector<std::string> CvGridMap::getAllLayerNames() const

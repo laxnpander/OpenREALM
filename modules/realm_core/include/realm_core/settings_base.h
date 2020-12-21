@@ -89,6 +89,7 @@ class SettingsBase
         if (m_type == VariantType::INT) return m_int_container.value;
         if (m_type == VariantType::DOUBLE) return static_cast<int>(m_double_container.value);
         if (m_type == VariantType::STRING) throw(std::bad_cast());
+        throw(std::bad_cast());
       }
 
       float toFloat() const
@@ -96,6 +97,7 @@ class SettingsBase
         if (m_type == VariantType::INT) return static_cast<float>(m_int_container.value);
         if (m_type == VariantType::DOUBLE) return static_cast<float>(m_double_container.value);
         if (m_type == VariantType::STRING) throw(std::bad_cast());
+        throw(std::bad_cast());
       }
 
       double toDouble() const
@@ -103,6 +105,7 @@ class SettingsBase
         if (m_type == VariantType::INT) return static_cast<double>(m_int_container.value);
         if (m_type == VariantType::DOUBLE) return m_double_container.value;
         if (m_type == VariantType::STRING) throw(std::bad_cast());
+        throw(std::bad_cast());
       }
 
       std::string toString() const
@@ -110,6 +113,7 @@ class SettingsBase
         if (m_type == VariantType::INT) return std::to_string(m_int_container.value);
         if (m_type == VariantType::DOUBLE) return std::to_string(m_double_container.value);
         if (m_type == VariantType::STRING) return m_string_container.value;
+        return m_string_container.value;
       }
 
       std::string help() const
@@ -117,6 +121,7 @@ class SettingsBase
         if (m_type == VariantType::INT) return m_int_container.help;
         if (m_type == VariantType::DOUBLE) return m_double_container.help;
         if (m_type == VariantType::STRING) return m_string_container.help;
+        return m_string_container.help;
       }
 
     private:

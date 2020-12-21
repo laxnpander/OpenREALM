@@ -43,6 +43,7 @@ StageSettings::Ptr StageSettingsFactory::load(const std::string &stage_type_set,
     return loadDefault<MosaicingSettings>(stage_type_set, filepath);
   if (stage_type_set == "tileing")
     return loadDefault<TileingSettings>(stage_type_set, filepath);
+  throw(std::invalid_argument("Error: Could not load stage settings. Did not recognize stage type: " + stage_type_set));
 }
 
 template <typename T>
