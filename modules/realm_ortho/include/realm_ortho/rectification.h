@@ -49,7 +49,6 @@ CvGridMap::Ptr rectify(const Frame::Ptr &frame);
  * @param img Image data that is corrected from lens distortion
  * @param cam Underlying camera model, currently only pinhole camera is supported
  * @param surface Surface structure as matrix with each element resembling the elevation to a reference plane
- * @param valid_surface Not each cell of the surface has actual data, this is the mask to identify regions that are
  * @param roi Region of interest in geographic coordinates with (x, y) = lower left corner
  * @param GSD Ground sampling distance, therefore the resolution of the surface cells
  * @param is_elevated Flag to set whether the surface is planar or has elevation
@@ -57,8 +56,7 @@ CvGridMap::Ptr rectify(const Frame::Ptr &frame);
 CvGridMap::Ptr backprojectFromGrid(
     const cv::Mat &img,
     const camera::Pinhole &cam,
-    const cv::Mat &surface,
-    const cv::Mat &valid_surface,
+    cv::Mat &surface,
     const cv::Rect2d &roi,
     double GSD,
     bool is_elevated,

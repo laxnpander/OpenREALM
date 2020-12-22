@@ -30,8 +30,6 @@ CvGridMap::Ptr ortho::rectify(const Frame::Ptr &frame)
 
   if (!surface_model->exists("elevation") || (*surface_model)["elevation"].type() != CV_32F)
     throw(std::invalid_argument("Error: Layer 'elevation' does not exist or type is wrong."));
-  if (!surface_model->exists("valid") || (*surface_model)["valid"].type() != CV_8UC1)
-    throw(std::invalid_argument("Error: Layer 'valid' does not exist or type is wrong"));
 
   // Apply rectification using the backprojection from grid
   CvGridMap::Ptr rectification =
@@ -39,7 +37,6 @@ CvGridMap::Ptr ortho::rectify(const Frame::Ptr &frame)
           frame->getImageUndistorted(),
           *frame->getCamera(),
           surface_model->get("elevation"),
-          surface_model->get("valid"),
           surface_model->roi(),
           surface_model->resolution(),
           frame->getSurfaceAssumption() == SurfaceAssumption::ELEVATION
@@ -51,8 +48,7 @@ CvGridMap::Ptr ortho::rectify(const Frame::Ptr &frame)
 CvGridMap::Ptr ortho::backprojectFromGrid(
     const cv::Mat &img,
     const camera::Pinhole &cam,
-    const cv::Mat &surface,
-    const cv::Mat &valid_surface,
+    cv::Mat &surface,
     const cv::Rect2d &roi,
     double GSD,
     bool is_elevated,
@@ -75,11 +71,11 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
   double t[3] = {t_pose.at<double>(0), t_pose.at<double>(1), t_pose.at<double>(2)};
 
   uchar is_elevated_val    = (is_elevated ? (uchar)0 : (uchar)255);
+  cv::Mat valid            = (surface == surface);                      // Check for NaN values in the elevation
   cv::Mat color_data       = cv::Mat::zeros(surface.size(), CV_8UC4);   // contains BGRA color data
-  cv::Mat elevation_angle  = cv::Mat::zeros(surface.size(), CV_32F);         // contains the observed elevation angle
+  cv::Mat elevation_angle  = cv::Mat::zeros(surface.size(), CV_32FC1);  // contains the observed elevation angle
   cv::Mat elevated         = cv::Mat::zeros(surface.size(), CV_8UC1);   // flag to set wether the surface has elevation info or not
   cv::Mat num_observations = cv::Mat::zeros(surface.size(), CV_16UC1);  // number of observations, should be one if it's a valid surface point
-  cv::Mat valid_rect       = cv::Mat::zeros(surface.size(), CV_8UC1);   // mask to set valid elements of the rectification process
 
   LOG_IF_F(INFO, verbose, "Processing rectification:");
   LOG_IF_F(INFO, verbose, "- ROI (%f, %f, %f, %f)", roi.x, roi.y, roi.width, roi.height);
@@ -89,7 +85,7 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
   for (uint32_t r = 0; r < surface.rows; ++r)
     for (uint32_t c = 0; c < surface.cols; ++c)
     {
-      if (!valid_surface.at<uchar>(r, c))
+      if (!valid.at<uchar>(r, c))
       {
         continue;
       }
@@ -107,7 +103,10 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
         elevation_angle.at<float>(r, c)     = static_cast<float>(ortho::internal::computeElevationAngle(t, pt));
         elevated.at<uchar>(r, c)            = is_elevated_val;
         num_observations.at<uint16_t>(r, c) = 1;
-        valid_rect.at<uchar>(r, c)          = 255;
+      }
+      else
+      {
+        surface.at<float>(r, c)             = std::numeric_limits<float>::quiet_NaN();
       }
     }
 
@@ -118,7 +117,6 @@ CvGridMap::Ptr ortho::backprojectFromGrid(
   rectification->add("elevation_angle", elevation_angle);
   rectification->add("elevated", elevated);
   rectification->add("num_observations", num_observations);
-  rectification->add("valid", valid_rect);
   return rectification;
 }
 

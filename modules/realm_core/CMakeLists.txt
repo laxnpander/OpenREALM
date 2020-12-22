@@ -31,7 +31,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3 REQUIRED)
+    find_package(OpenCV 3 QUIET)
+endif()
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 4 REQUIRED)
+    message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
 endif()
 
 # Solution to find Eigen3 with Saucy.
@@ -180,6 +184,7 @@ if(TESTS_ENABLED)
             test/test_helper.cpp
             test/conversion_test.cpp
             test/cvgridmap_test.cpp
+            test/depthmap_test.cpp
             test/frame_test.cpp
             test/pinhole_test.cpp
             test/plane_fitter_test.cpp
@@ -193,6 +198,10 @@ if(TESTS_ENABLED)
 
     # Extra linking for the project.
     target_link_libraries(run_realm_core_tests ${LIBRARY_NAME})
+
+    add_custom_command(TARGET run_realm_core_tests PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/test/data $<TARGET_FILE_DIR:run_realm_core_tests>
+            )
 
     # This is so you can do 'make test' to see all your tests run, instead of
     # manually running the executable run_unit_tests to see those specific tests.

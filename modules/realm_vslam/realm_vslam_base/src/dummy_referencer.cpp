@@ -25,7 +25,7 @@
 using namespace realm;
 
 DummyReferencer::DummyReferencer(const cv::Mat &T_c2g)
-  : _transformation_c2g(T_c2g)
+  : m_transformation_c2g(T_c2g)
 {
 }
 
@@ -37,8 +37,8 @@ void DummyReferencer::init(const std::vector<Frame::Ptr> &frames)
 
 cv::Mat DummyReferencer::getTransformation()
 {
-  std::unique_lock<std::mutex> lock(_mutex_t_c2g);
-  return _transformation_c2g;
+  std::unique_lock<std::mutex> lock(m_mutex_t_c2g);
+  return m_transformation_c2g;
 }
 
 void DummyReferencer::update(const Frame::Ptr &frame)

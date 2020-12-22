@@ -31,7 +31,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3 REQUIRED)
+    find_package(OpenCV 3 QUIET)
+endif()
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 4 REQUIRED)
+    message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
 endif()
 
 
@@ -52,6 +56,7 @@ set(HEADER_FILES
         include/realm_stages/stage_settings.h
         include/realm_stages/stage_settings_factory.h
         include/realm_stages/surface_generation.h
+        include/realm_stages/tileing.h
 )
 
 set(SOURCE_FILES
@@ -63,6 +68,7 @@ set(SOURCE_FILES
         src/stage_base.cpp
         src/stage_settings_factory.cpp
         src/surface_generation.cpp
+        src/tileing.cpp
 )
 
 # Organize the source and header files into groups

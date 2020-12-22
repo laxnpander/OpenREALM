@@ -45,29 +45,31 @@ public:
   void reset() override;
   void printSettingsToLog() override;
 
+  void queueImuData(const VisualSlamIF::ImuData &imu) override;
+
   bool drawTrackedImage(cv::Mat &img) const override;
 
   cv::Mat getTrackedMapPoints() const override;
 
 private:
 
-  unsigned int _nrof_keyframes;
+  unsigned int m_nrof_keyframes;
 
-  double _resizing;
+  double m_resizing;
 
-  std::string _path_vocabulary;
+  std::string m_path_vocabulary;
 
-  mutable std::mutex _mutex_last_drawn_frame;
-  cv::Mat _last_drawn_frame;
+  mutable std::mutex m_mutex_last_drawn_frame;
+  cv::Mat m_last_drawn_frame;
 
-  mutable std::mutex _mutex_last_keyframe;
-  openvslam::data::keyframe* _last_keyframe;
+  mutable std::mutex m_mutex_last_keyframe;
+  openvslam::data::keyframe* m_last_keyframe;
 
-  std::shared_ptr<openvslam::system> _vslam;
-  std::shared_ptr<openvslam::config> _config;
-  std::shared_ptr<openvslam::publish::frame_publisher> _frame_publisher;
-  std::shared_ptr<openvslam::publish::map_publisher> _map_publisher;
-  std::unique_ptr<OpenVslamKeyframeUpdater> _keyframe_updater;
+  std::shared_ptr<openvslam::system> m_vslam;
+  std::shared_ptr<openvslam::config> m_config;
+  std::shared_ptr<openvslam::publish::frame_publisher> m_frame_publisher;
+  std::shared_ptr<openvslam::publish::map_publisher> m_map_publisher;
+  std::unique_ptr<OpenVslamKeyframeUpdater> m_keyframe_updater;
 
   cv::Mat getLastDrawnFrame() const;
   cv::Mat invertPose(const cv::Mat &pose) const;
@@ -84,7 +86,7 @@ public:
 private:
 
   /// Container for OpenREALM frames to corresponding OpenVSLAM keyframe
-  std::list<std::pair<std::weak_ptr<Frame>, openvslam::data::keyframe*>> _keyframe_links;
+  std::list<std::pair<std::weak_ptr<Frame>, openvslam::data::keyframe*>> m_keyframe_links;
 
   bool process() override;
 

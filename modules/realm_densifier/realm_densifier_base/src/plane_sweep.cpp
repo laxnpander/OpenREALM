@@ -26,29 +26,29 @@ using namespace realm;
 using namespace densifier;
 
 PlaneSweep::PlaneSweep(const DensifierSettings::Ptr &settings)
-: _nrof_frames((uint8_t)(*settings)["n_cams"].toInt()), _resizing((*settings)["resizing"].toDouble())
+: m_nrof_frames((uint8_t)(*settings)["n_cams"].toInt()), m_resizing((*settings)["resizing"].toDouble())
 {
-  assert(_nrof_frames > 1);
+  assert(m_nrof_frames > 1);
   settings->print();
-  _settings.enable_subpix            =  (*settings)["enable_subpix"].toInt() > 0;
-  _settings.enable_color_match       =  (*settings)["enable_color_match"].toInt() > 0;
-  _settings.enable_out_best_depth    =  (*settings)["enable_out_best_depth"].toInt() > 0;
-  _settings.enable_out_best_cost     =  (*settings)["enable_out_best_cost"].toInt() > 0;
-  _settings.enable_out_cost_vol      =  (*settings)["enable_out_cost_vol"].toInt() > 0;
-  _settings.enable_out_uniq_ratio    =  (*settings)["enable_out_uniq_ratio"].toInt() > 0;
-  _settings.nrof_planes              =  (*settings)["nrof_planes"].toInt();
-  _settings.scale                    =  (*settings)["scale"].toDouble();
-  _settings.match_window_size.width  =  (*settings)["match_window_size_x"].toInt();
-  _settings.match_window_size.height =  (*settings)["match_window_size_y"].toInt();
-  _settings.occlusion_mode           = (PSL::PlaneSweepOcclusionMode)       (*settings)["occlusion_mode"].toInt();
-  _settings.plane_gen_mode           = (PSL::PlaneSweepPlaneGenerationMode) (*settings)["plane_gen_mode"].toInt();
-  _settings.match_cost               = (PSL::PlaneSweepMatchingCosts)       (*settings)["match_cost"].toInt();
-  _settings.subpx_interp_mode        = (PSL::PlaneSweepSubPixelInterpMode)  (*settings)["subpx_interp_mode"].toInt();
+  m_settings.enable_subpix            = (*settings)["enable_subpix"].toInt() > 0;
+  m_settings.enable_color_match       = (*settings)["enable_color_match"].toInt() > 0;
+  m_settings.enable_out_best_depth    = (*settings)["enable_out_best_depth"].toInt() > 0;
+  m_settings.enable_out_best_cost     = (*settings)["enable_out_best_cost"].toInt() > 0;
+  m_settings.enable_out_cost_vol      = (*settings)["enable_out_cost_vol"].toInt() > 0;
+  m_settings.enable_out_uniq_ratio    = (*settings)["enable_out_uniq_ratio"].toInt() > 0;
+  m_settings.nrof_planes              =  (*settings)["nrof_planes"].toInt();
+  m_settings.scale                    =  (*settings)["scale"].toDouble();
+  m_settings.match_window_size.width  =  (*settings)["match_window_size_x"].toInt();
+  m_settings.match_window_size.height =  (*settings)["match_window_size_y"].toInt();
+  m_settings.occlusion_mode           = (PSL::PlaneSweepOcclusionMode)       (*settings)["occlusion_mode"].toInt();
+  m_settings.plane_gen_mode           = (PSL::PlaneSweepPlaneGenerationMode) (*settings)["plane_gen_mode"].toInt();
+  m_settings.match_cost               = (PSL::PlaneSweepMatchingCosts)       (*settings)["match_cost"].toInt();
+  m_settings.subpx_interp_mode        = (PSL::PlaneSweepSubPixelInterpMode)  (*settings)["subpx_interp_mode"].toInt();
 }
 
 Depthmap::Ptr PlaneSweep::densify(const std::deque<Frame::Ptr> &frames, uint8_t ref_idx)
 {
-  assert(frames.size() == _nrof_frames);
+  assert(frames.size() == m_nrof_frames);
 
   // Get min and max scene depth for reference frame (middle frame)
   Frame::Ptr frame_ref = frames[ref_idx];
@@ -56,23 +56,23 @@ Depthmap::Ptr PlaneSweep::densify(const std::deque<Frame::Ptr> &frames, uint8_t 
   auto max_depth = (float) frame_ref->getMaxSceneDepth();
 
   PSL::CudaPlaneSweep cps;
-  cps.setScale(_settings.scale);
-  cps.setMatchWindowSize(_settings.match_window_size.width, _settings.match_window_size.height);
-  cps.setNumPlanes(_settings.nrof_planes);
-  cps.setOcclusionMode(_settings.occlusion_mode);
-  cps.setPlaneGenerationMode(_settings.plane_gen_mode);
-  cps.setMatchingCosts(_settings.match_cost);
-  cps.setSubPixelInterpolationMode(_settings.subpx_interp_mode);
-  cps.enableOutputBestCosts(_settings.enable_out_best_cost);
-  cps.enableOuputUniquenessRatio(_settings.enable_out_uniq_ratio);
-  cps.enableOutputCostVolume(_settings.enable_out_cost_vol);
+  cps.setScale(m_settings.scale);
+  cps.setMatchWindowSize(m_settings.match_window_size.width, m_settings.match_window_size.height);
+  cps.setNumPlanes(m_settings.nrof_planes);
+  cps.setOcclusionMode(m_settings.occlusion_mode);
+  cps.setPlaneGenerationMode(m_settings.plane_gen_mode);
+  cps.setMatchingCosts(m_settings.match_cost);
+  cps.setSubPixelInterpolationMode(m_settings.subpx_interp_mode);
+  cps.enableOutputBestCosts(m_settings.enable_out_best_cost);
+  cps.enableOuputUniquenessRatio(m_settings.enable_out_uniq_ratio);
+  cps.enableOutputCostVolume(m_settings.enable_out_cost_vol);
   cps.setZRange(min_depth, max_depth);
 
-  if (_settings.enable_out_best_cost)
+  if (m_settings.enable_out_best_cost)
     cps.enableOutputBestDepth();
-  if (_settings.enable_color_match)
+  if (m_settings.enable_color_match)
     cps.enableColorMatching();
-  if (_settings.enable_color_match)
+  if (m_settings.enable_color_match)
     cps.enableSubPixel();
 
   // Create psl cameras for densification and feed to plane sweep handle
@@ -81,7 +81,7 @@ Depthmap::Ptr PlaneSweep::densify(const std::deque<Frame::Ptr> &frames, uint8_t 
   {
     // Get frame from container and prepare
     Frame::Ptr frame = frames[i];
-    frame->setImageResizeFactor(_resizing);
+    frame->setImageResizeFactor(m_resizing);
 
     // Use resized image grayscale
     cv::Mat img = frame->getResizedImageUndistorted();
@@ -118,12 +118,12 @@ Depthmap::Ptr PlaneSweep::densify(const std::deque<Frame::Ptr> &frames, uint8_t 
 
 uint8_t PlaneSweep::getNrofInputFrames()
 {
-  return _nrof_frames;
+  return m_nrof_frames;
 }
 
 double PlaneSweep::getResizeFactor()
 {
-  return _resizing;
+  return m_resizing;
 }
 
 cv::Mat PlaneSweep::convertToCvMat(PSL::DepthMap<float, double> &depth_map_psl)
@@ -138,7 +138,7 @@ cv::Mat PlaneSweep::convertToCvMat(PSL::DepthMap<float, double> &depth_map_psl)
 cv::Mat PlaneSweep::fixImageType(const cv::Mat &img)
 {
   cv::Mat img_fixed;
-  if (_settings.enable_color_match)
+  if (m_settings.enable_color_match)
   {
     if (img.channels() == 1)
       throw(std::invalid_argument("Error fixing image type: Image has only one channel, no color matching possible!"));
@@ -186,21 +186,21 @@ PSL::CameraMatrix<double> PlaneSweep::convertToPslCamera(const camera::Pinhole::
 void PlaneSweep::printSettingsToLog()
 {
   LOG_F(INFO, "### PlaneSweep settings ###");
-  LOG_F(INFO, "- nframes: %i", _nrof_frames);
-  LOG_F(INFO, "- enable_subpix: %i", _settings.enable_subpix);
-  LOG_F(INFO, "- enable_color_match: %i", _settings.enable_color_match);
-  LOG_F(INFO, "- enable_out_best_depth: %i", _settings.enable_out_best_depth);
-  LOG_F(INFO, "- enable_out_best_cost: %i", _settings.enable_out_best_cost);
-  LOG_F(INFO, "- enable_out_cost_vol: %i", _settings.enable_out_cost_vol);
-  LOG_F(INFO, "- enable_out_uniq_ratio: %i", _settings.enable_out_uniq_ratio);
-  LOG_F(INFO, "- nrof_planes: %i", _settings.nrof_planes);
-  LOG_F(INFO, "- scale: %2.2f", _settings.scale);
-  LOG_F(INFO, "- match_window_size_width: %i", _settings.match_window_size.width);
-  LOG_F(INFO, "- match_window_size_height: %i", _settings.match_window_size.height);
-  LOG_F(INFO, "- occlusion_mode: %i", static_cast<int>(_settings.occlusion_mode));
-  LOG_F(INFO, "- plane_gen_mode: %i", static_cast<int>(_settings.plane_gen_mode));
-  LOG_F(INFO, "- match_cost: %i", static_cast<int>(_settings.match_cost));
-  LOG_F(INFO, "- subpx_interp_mode: %i", static_cast<int>(_settings.subpx_interp_mode));
+  LOG_F(INFO, "- nframes: %i", m_nrof_frames);
+  LOG_F(INFO, "- enable_subpix: %i", m_settings.enable_subpix);
+  LOG_F(INFO, "- enable_color_match: %i", m_settings.enable_color_match);
+  LOG_F(INFO, "- enable_out_best_depth: %i", m_settings.enable_out_best_depth);
+  LOG_F(INFO, "- enable_out_best_cost: %i", m_settings.enable_out_best_cost);
+  LOG_F(INFO, "- enable_out_cost_vol: %i", m_settings.enable_out_cost_vol);
+  LOG_F(INFO, "- enable_out_uniq_ratio: %i", m_settings.enable_out_uniq_ratio);
+  LOG_F(INFO, "- nrof_planes: %i", m_settings.nrof_planes);
+  LOG_F(INFO, "- scale: %2.2f", m_settings.scale);
+  LOG_F(INFO, "- match_window_size_width: %i", m_settings.match_window_size.width);
+  LOG_F(INFO, "- match_window_size_height: %i", m_settings.match_window_size.height);
+  LOG_F(INFO, "- occlusion_mode: %i", static_cast<int>(m_settings.occlusion_mode));
+  LOG_F(INFO, "- plane_gen_mode: %i", static_cast<int>(m_settings.plane_gen_mode));
+  LOG_F(INFO, "- match_cost: %i", static_cast<int>(m_settings.match_cost));
+  LOG_F(INFO, "- subpx_interp_mode: %i", static_cast<int>(m_settings.subpx_interp_mode));
 
 
 }

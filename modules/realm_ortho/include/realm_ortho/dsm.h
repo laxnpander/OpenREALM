@@ -78,28 +78,28 @@ class DigitalSurfaceModel
   private:
 
     //! Flag to identify if prior normals should be used
-    bool _use_prior_normals;
+    bool m_use_prior_normals;
 
     //! Maximum iterations per grid cell to find the next nearest neigbour in the dense clouds.
-    int _knn_max_iter;
+    int m_knn_max_iter;
 
     //! Assumption of the DSM. Either planar or elevation
-    SurfaceAssumption _assumption;
+    SurfaceAssumption m_assumption;
 
     //! Mode of the surface normal computation
-    SurfaceNormalMode _surface_normal_mode;
+    SurfaceNormalMode m_surface_normal_mode;
 
     //! Digital surface model of the input information
-    CvGridMap::Ptr _surface;
+    CvGridMap::Ptr m_surface;
 
     //! Input point cloud (only for elevation surface)
-    PointCloud<double> _point_cloud;
+    PointCloud<double> m_point_cloud;
 
     //! Adapter for point cloud k-d tree and NN search (only for elevation surface)
-    std::unique_ptr<PointCloudAdaptor_t> _point_cloud_adaptor;
+    std::unique_ptr<PointCloudAdaptor_t> m_point_cloud_adaptor;
 
     //! Binary k-d tree for NN search. Only in xy-direction (only for elevation surface)
-    std::unique_ptr<KdTree_t> _kd_tree;
+    std::unique_ptr<KdTree_t> m_kd_tree;
 
     /*!
      * @brief Initializes a k-d tree from the input point cloud. Important: k-d tree has 2 dimensions due to search in

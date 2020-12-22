@@ -32,6 +32,7 @@
 
 #include <realm_core/cv_grid_map.h>
 #include <realm_core/wgs84.h>
+#include <realm_core/conversions.h>
 #include <realm_io/utilities.h>
 
 namespace realm
@@ -92,6 +93,18 @@ void saveGeoTIFFtoFile(const cv::Mat &data,
  */
 GDALDatasetMeta* computeGDALDatasetMeta(const CvGridMap &map, uint8_t zone);
 
+/*!
+ * @brief
+ *    OpenCV          GDAL
+ * --------------------------
+ *    CV_8U         GDT_Byte
+ *    CV_16U        GDT_Int16
+ *    CV_32F        GDT_Float32
+ *    CV_64F        GDT_Float64
+ * @param data
+ * @param meta
+ * @return
+ */
 GDALDataset* generateMemoryDataset(const cv::Mat &data, const GDALDatasetMeta &meta);
 
 /*!

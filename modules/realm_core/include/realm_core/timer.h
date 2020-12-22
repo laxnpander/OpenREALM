@@ -41,10 +41,10 @@ namespace realm {
         static long getCurrentTimeMilliseconds();
 
     private:
-        std::chrono::milliseconds _period;
-        std::function<void()> _func;
-        std::atomic<bool> _in_flight;
-        std::thread _thread;
+        std::chrono::milliseconds m_period;
+        std::function<void()> m_func;
+        std::atomic<bool> m_in_flight;
+        std::thread m_thread;
     };
 
 } // namespace realm

@@ -27,13 +27,13 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
                              const DensifierSettings::Ptr &densifier_set,
                              double rate)
 : StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
-  _use_filter_bilat((*stage_set)["use_filter_bilat"].toInt() > 0),
-  _use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),
-  _depth_min_current(0.0),
-  _depth_max_current(0.0),
-  _compute_normals((*stage_set)["compute_normals"].toInt() > 0),
-  _rcvd_frames(0),
-  _settings_save({(*stage_set)["save_bilat"].toInt() > 0,
+  m_use_filter_bilat((*stage_set)["use_filter_bilat"].toInt() > 0),
+  m_use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),
+  m_depth_min_current(0.0),
+  m_depth_max_current(0.0),
+  m_compute_normals((*stage_set)["compute_normals"].toInt() > 0),
+  m_rcvd_frames(0),
+  m_settings_save({(*stage_set)["save_bilat"].toInt() > 0,
                   (*stage_set)["save_dense"].toInt() > 0,
                   (*stage_set)["save_guided"].toInt() > 0,
                   (*stage_set)["save_imgs"].toInt() > 0,
@@ -41,12 +41,14 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
                   (*stage_set)["save_thumb"].toInt() > 0,
                   (*stage_set)["save_normals"].toInt() > 0})
 {
-  _densifier = densifier::DensifierFactory::create(densifier_set);
-  _n_frames = _densifier->getNrofInputFrames();
+  registerAsyncDataReadyFunctor([=]{ return !m_buffer_reco.empty(); });
+
+  m_densifier = densifier::DensifierFactory::create(densifier_set);
+  m_n_frames = m_densifier->getNrofInputFrames();
 
   // Creation of reference plane, currently only the one below is supported
-  _plane_ref.pt = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0);
-  _plane_ref.n = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0);
+  m_plane_ref.pt = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 0.0);
+  m_plane_ref.n = (cv::Mat_<double>(3, 1) << 0.0, 0.0, 1.0);
 }
 
 void Densification::addFrame(const Frame::Ptr &frame)
@@ -55,7 +57,7 @@ void Densification::addFrame(const Frame::Ptr &frame)
   updateFpsStatisticsIncoming();
 
   // Increment received valid frames
-  _rcvd_frames++;
+  m_rcvd_frames++;
 
   // Check if frame and settings are fulfilled to process/densify incoming frames
   // if not, redirect to next stage
@@ -69,11 +71,12 @@ void Densification::addFrame(const Frame::Ptr &frame)
     LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud().rows);
 
     LOG_F(INFO, "Frame #%u not suited for dense reconstruction. Passing through...", frame->getFrameId());
-    _transport_frame(frame, "output/frame");
+    m_transport_frame(frame, "output/frame");
     return;
   }
 
   pushToBufferReco(frame);
+  notify();
 }
 
 bool Densification::process()
@@ -81,7 +84,7 @@ bool Densification::process()
   // NOTE: All depthmap maps are CV_32F except they are explicitly casted
 
   // First check if buffer has enough frames already, else don't do anything
-  if (_buffer_reco.size() < _n_frames)
+  if (m_buffer_reco.size() < m_n_frames)
   {
     return false;
   }
@@ -89,16 +92,18 @@ bool Densification::process()
   // Densification step using stereo
   long t = getCurrentTimeMilliseconds();
   Frame::Ptr frame_processed;
-  Depthmap::Ptr depthmap = processStereoReconstruction(_buffer_reco, frame_processed);
+  Depthmap::Ptr depthmap = processStereoReconstruction(m_buffer_reco, frame_processed);
   popFromBufferReco();
-  LOG_IF_F(INFO, _verbose, "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds() - t);
+  if (!depthmap)
+    return true;
 
   // Compute normals if desired
   t = getCurrentTimeMilliseconds();
   cv::Mat normals;
-  if (_compute_normals)
+  if (m_compute_normals)
     normals = stereo::computeNormalsFromDepthMap(depthmap->data());
-  LOG_IF_F(INFO, _verbose, "Timing [Computing Normals]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Computing Normals]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   // Remove outliers
   double depth_min = frame_processed->getMedianSceneDepth()*0.25;
@@ -109,7 +114,7 @@ bool Densification::process()
   // Set data in the frame
   t = getCurrentTimeMilliseconds();
   frame_processed->setDepthmap(depthmap);
-  LOG_IF_F(INFO, _verbose, "Timing [Setting]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Setting]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   // Creating dense cloud
   cv::Mat img3d = stereo::reprojectDepthMap(depthmap->getCamera(), depthmap->data());
@@ -117,18 +122,18 @@ bool Densification::process()
 
   // Denoising
   t = getCurrentTimeMilliseconds();
-  _buffer_consistency.emplace_back(std::make_pair(frame_processed, dense_cloud));
-  if (_buffer_consistency.size() >= 4)
+  m_buffer_consistency.emplace_back(std::make_pair(frame_processed, dense_cloud));
+  if (m_buffer_consistency.size() >= 4)
   {
-    frame_processed = consistencyFilter(&_buffer_consistency);
-    _buffer_consistency.pop_front();
+    frame_processed = consistencyFilter(&m_buffer_consistency);
+    m_buffer_consistency.pop_front();
   }
   else
   {
-    LOG_IF_F(INFO, _verbose, "Consistency filter is activated. Waiting for more frames for denoising...");
+    LOG_IF_F(INFO, m_verbose, "Consistency filter is activated. Waiting for more frames for denoising...");
     return true;
   }
-  LOG_IF_F(INFO, _verbose, "Timing [Denoising]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Denoising]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   // Last check if frame still has valid depthmap
   if (!frame_processed->getDepthmap())
@@ -143,12 +148,12 @@ bool Densification::process()
   // Savings
   t = getCurrentTimeMilliseconds();
   saveIter(frame_processed, normals);
-  LOG_IF_F(INFO, _verbose, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   // Republish frame to next stage
   t = getCurrentTimeMilliseconds();
   publish(frame_processed, depthmap->data());
-  LOG_IF_F(INFO, _verbose, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
+  LOG_IF_F(INFO, m_verbose, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds() - t);
 
   return true;
 }
@@ -196,7 +201,7 @@ Frame::Ptr Densification::consistencyFilter(std::deque<std::pair<Frame::Ptr, cv:
 
   if (perc_coverage < 30.0)
   {
-    LOG_IF_F(WARNING, _verbose, "Depthmap coverage too low (%3.1f%%). Assuming plane surface.");
+    LOG_IF_F(WARNING, m_verbose, "Depthmap coverage too low (%3.1f%%). Assuming plane surface.");
     frame->setDepthmap(nullptr);
 
     for (auto it = buffer_denoise->begin(); it != buffer_denoise->end(); ) {
@@ -211,7 +216,7 @@ Frame::Ptr Densification::consistencyFilter(std::deque<std::pair<Frame::Ptr, cv:
   }
   else
   {
-    LOG_IF_F(INFO, _verbose, "Depthmap coverage left after denoising: %3.1f%%", perc_coverage);
+    LOG_IF_F(INFO, m_verbose, "Depthmap coverage left after denoising: %3.1f%%", perc_coverage);
   }
 
   return frame;
@@ -241,7 +246,7 @@ Depthmap::Ptr Densification::processStereoReconstruction(const std::deque<Frame:
   LOG_F(INFO, "Baselines to reference frame: %s", stringbuffer.c_str());
 
   LOG_F(INFO, "Reconstructing frame #%u...", frame_processed->getFrameId());
-  Depthmap::Ptr depthmap = _densifier->densify(buffer, (uint8_t)ref_idx);
+  Depthmap::Ptr depthmap = m_densifier->densify(buffer, (uint8_t)ref_idx);
 
   LOG_IF_F(INFO, depthmap != nullptr, "Successfully reconstructed frame!");
   LOG_IF_F(WARNING, depthmap == nullptr, "Reconstruction failed!");
@@ -265,7 +270,7 @@ Depthmap::Ptr Densification::forceInRange(const Depthmap::Ptr &depthmap, double 
 cv::Mat Densification::applyDepthMapPostProcessing(const cv::Mat &depthmap)
 {
   cv::Mat depthmap_filtered;
-  if (_use_filter_bilat)
+  if (m_use_filter_bilat)
       cv::bilateralFilter(depthmap, depthmap_filtered, 5, 25, 25);
 
   /*if (_settings_save.save_bilat)
@@ -294,97 +299,97 @@ void Densification::publish(const Frame::Ptr &frame, const cv::Mat &depthmap)
   // First update statistics about outgoing frame rate
   updateFpsStatisticsOutgoing();
 
-  _transport_frame(frame, "output/frame");
-  _transport_pose(frame->getPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose");
-  _transport_img(frame->getResizedImageUndistorted(), "output/img_rectified");
-  _transport_depth_map(depthmap, "output/depth");
-  _transport_pointcloud(frame->getSparseCloud(), "output/pointcloud");
+  m_transport_frame(frame, "output/frame");
+  m_transport_pose(frame->getPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose");
+  m_transport_img(frame->getResizedImageUndistorted(), "output/img_rectified");
+  m_transport_depth_map(depthmap, "output/depth");
+  m_transport_pointcloud(frame->getSparseCloud(), "output/pointcloud");
 
   cv::Mat depthmap_display;
-  cv::normalize(depthmap, depthmap_display, 0, 65535, CV_MINMAX, CV_16UC1, (depthmap > 0));
-  _transport_img(depthmap_display, "output/depth_display");
+  cv::normalize(depthmap, depthmap_display, 0, 65535, cv::NormTypes::NORM_MINMAX, CV_16UC1, (depthmap > 0));
+  m_transport_img(depthmap_display, "output/depth_display");
 }
 
 void Densification::saveIter(const Frame::Ptr &frame, const cv::Mat &normals)
 {
   cv::Mat depthmap_data = frame->getDepthmap()->data();
 
-  if (_settings_save.save_imgs)
-    io::saveImage(frame->getResizedImageUndistorted(), io::createFilename(_stage_path + "/imgs/imgs_", frame->getFrameId(), ".png"));
-  if (_settings_save.save_normals && _compute_normals && !normals.empty())
-    io::saveImageColorMap(normals, (depthmap_data > 0), _stage_path + "/normals", "normals", frame->getFrameId(), io::ColormapType::NORMALS);
-  if (_settings_save.save_sparse)
+  if (m_settings_save.save_imgs)
+    io::saveImage(frame->getResizedImageUndistorted(), io::createFilename(m_stage_path + "/imgs/imgs_", frame->getFrameId(), ".png"));
+  if (m_settings_save.save_normals && m_compute_normals && !normals.empty())
+    io::saveImageColorMap(normals, (depthmap_data > 0), m_stage_path + "/normals", "normals", frame->getFrameId(), io::ColormapType::NORMALS);
+  if (m_settings_save.save_sparse)
   {
     cv::Mat depthmap_sparse = stereo::computeDepthMapFromPointCloud(frame->getResizedCamera(), frame->getSparseCloud().colRange(0, 3));
-    io::saveDepthMap(depthmap_sparse,_stage_path + "/sparse/sparse_%06i.tif", frame->getFrameId());
+    io::saveDepthMap(depthmap_sparse, m_stage_path + "/sparse/sparse_%06i.tif", frame->getFrameId());
   }
-  if (_settings_save.save_dense)
-    io::saveDepthMap(depthmap_data, _stage_path + "/dense/dense_%06i.tif", frame->getFrameId());
+  if (m_settings_save.save_dense)
+    io::saveDepthMap(depthmap_data, m_stage_path + "/dense/dense_%06i.tif", frame->getFrameId());
 }
 
 void Densification::pushToBufferReco(const Frame::Ptr &frame)
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_reco);
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_reco);
 
-  _buffer_reco.push_back(frame);
+  m_buffer_reco.push_back(frame);
 
-  if (_buffer_reco.size() > _queue_size)
+  if (m_buffer_reco.size() > m_queue_size)
   {
-    _buffer_reco.pop_front();
+    m_buffer_reco.pop_front();
   }
 }
 
 void Densification::popFromBufferReco()
 {
-  std::unique_lock<std::mutex> lock(_mutex_buffer_reco);
-  _buffer_reco.pop_front();
+  std::unique_lock<std::mutex> lock(m_mutex_buffer_reco);
+  m_buffer_reco.pop_front();
 }
 
 void Densification::reset()
 {
   // TODO: Reset in _densifier
-  _rcvd_frames = 0;
+  m_rcvd_frames = 0;
   LOG_F(INFO, "Densification Stage: RESETED!");
 }
 
 void Densification::initStageCallback()
 {
   // Stage directory first
-  if (!io::dirExists(_stage_path))
-    io::createDir(_stage_path);
+  if (!io::dirExists(m_stage_path))
+    io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(_stage_path + "/sparse"))
-    io::createDir(_stage_path + "/sparse");
-  if (!io::dirExists(_stage_path + "/dense"))
-    io::createDir(_stage_path + "/dense");
-  if (!io::dirExists(_stage_path + "/bilat"))
-    io::createDir(_stage_path + "/bilat");
-  if (!io::dirExists(_stage_path + "/guided"))
-    io::createDir(_stage_path + "/guided");
-  if (!io::dirExists(_stage_path + "/normals"))
-    io::createDir(_stage_path + "/normals");
-  if (!io::dirExists(_stage_path + "/imgs"))
-    io::createDir(_stage_path + "/imgs");
-  if (!io::dirExists(_stage_path + "/thumb"))
-    io::createDir(_stage_path + "/thumb");
+  if (!io::dirExists(m_stage_path + "/sparse"))
+    io::createDir(m_stage_path + "/sparse");
+  if (!io::dirExists(m_stage_path + "/dense"))
+    io::createDir(m_stage_path + "/dense");
+  if (!io::dirExists(m_stage_path + "/bilat"))
+    io::createDir(m_stage_path + "/bilat");
+  if (!io::dirExists(m_stage_path + "/guided"))
+    io::createDir(m_stage_path + "/guided");
+  if (!io::dirExists(m_stage_path + "/normals"))
+    io::createDir(m_stage_path + "/normals");
+  if (!io::dirExists(m_stage_path + "/imgs"))
+    io::createDir(m_stage_path + "/imgs");
+  if (!io::dirExists(m_stage_path + "/thumb"))
+    io::createDir(m_stage_path + "/thumb");
 }
 
 void Densification::printSettingsToLog()
 {
   LOG_F(INFO, "### Stage process settings ###");
-  LOG_F(INFO, "- use_filter_bilat: %i", _use_filter_bilat);
-  LOG_F(INFO, "- use_filter_guided: %i", _use_filter_guided);
-  LOG_F(INFO, "- compute_normals: %i", _compute_normals);
+  LOG_F(INFO, "- use_filter_bilat: %i", m_use_filter_bilat);
+  LOG_F(INFO, "- use_filter_guided: %i", m_use_filter_guided);
+  LOG_F(INFO, "- compute_normals: %i", m_compute_normals);
 
   LOG_F(INFO, "### Stage save settings ###");
-  LOG_F(INFO, "- save_bilat: %i", _settings_save.save_bilat);
-  LOG_F(INFO, "- save_dense: %i", _settings_save.save_dense);
-  LOG_F(INFO, "- save_guided: %i", _settings_save.save_guided);
-  LOG_F(INFO, "- save_imgs: %i", _settings_save.save_imgs);
-  LOG_F(INFO, "- save_normals: %i", _settings_save.save_normals);
-  LOG_F(INFO, "- save_sparse: %i", _settings_save.save_sparse);
-  LOG_F(INFO, "- save_thumb: %i", _settings_save.save_thumb);
+  LOG_F(INFO, "- save_bilat: %i", m_settings_save.save_bilat);
+  LOG_F(INFO, "- save_dense: %i", m_settings_save.save_dense);
+  LOG_F(INFO, "- save_guided: %i", m_settings_save.save_guided);
+  LOG_F(INFO, "- save_imgs: %i", m_settings_save.save_imgs);
+  LOG_F(INFO, "- save_normals: %i", m_settings_save.save_normals);
+  LOG_F(INFO, "- save_sparse: %i", m_settings_save.save_sparse);
+  LOG_F(INFO, "- save_thumb: %i", m_settings_save.save_thumb);
 
-  _densifier->printSettingsToLog();
+  m_densifier->printSettingsToLog();
 }

@@ -51,7 +51,6 @@ class Mosaicing : public StageBase
     struct SaveSettings
     {
         bool split_gtiff_channels;
-        bool save_valid;
         bool save_ortho_rgb_one;
         bool save_ortho_rgb_all;
         bool save_ortho_gtiff_one;
@@ -68,36 +67,6 @@ class Mosaicing : public StageBase
         bool save_dense_ply;
     };
 
-    struct GridQuickAccess
-    {
-      public:
-        using Ptr = std::shared_ptr<GridQuickAccess>;
-        using ConstPtr = std::shared_ptr<const GridQuickAccess>;
-      public:
-        GridQuickAccess(const std::vector<std::string> &layer_names, const CvGridMap &map);
-        void move(int row, int col);
-
-        float* ele;         // elevation at row, col
-        float* var;         // elevation variance at row, col
-        float* hyp;         // elevation hypothesis at row, col
-        float* angle;       // elevation observation angle at row, col
-        uint16_t* nobs;     // number of observations at row, col
-        cv::Vec3f* normal;  // surface normal
-        cv::Vec4b* rgb;     // color at row, col
-        uchar* elevated;    // elevation computed at row, col
-        uchar* valid;       // valid at row, col
-      private:
-        cv::Mat _elevation;
-        cv::Mat _elevation_normal;
-        cv::Mat _elevation_var;
-        cv::Mat _elevation_hyp;
-        cv::Mat _elevation_angle;
-        cv::Mat _elevated;
-        cv::Mat _num_observations;
-        cv::Mat _color_rgb;
-        cv::Mat _valid;
-    };
-
   public:
     explicit Mosaicing(const StageSettings::Ptr &stage_set, double rate);
     ~Mosaicing();
@@ -105,35 +74,33 @@ class Mosaicing : public StageBase
     bool process() override;
     void runPostProcessing();
     void saveAll();
+
   private:
-    std::deque<Frame::Ptr> _buffer;
-    std::mutex _mutex_buffer;
+    std::deque<Frame::Ptr> m_buffer;
+    std::mutex m_mutex_buffer;
 
     //! Publish of mesh is optional. Set >0 if should be published. Additionally it can be downsampled.
-    int _publish_mesh_nth_iter;
-    int _publish_mesh_every_nth_kf;
-    bool _do_publish_mesh_at_finish;
-    double _downsample_publish_mesh; // [m/pix]
+    int m_publish_mesh_nth_iter;
+    int m_publish_mesh_every_nth_kf;
+    bool m_do_publish_mesh_at_finish;
+    double m_downsample_publish_mesh; // [m/pix]
 
-    bool _use_surface_normals;
+    bool m_use_surface_normals;
 
-    int _th_elevation_min_nobs;
-    float _th_elevation_var;
+    int m_th_elevation_min_nobs;
+    float m_th_elevation_var;
 
-    SaveSettings _settings_save;
+    SaveSettings m_settings_save;
 
-    UTMPose::Ptr _utm_reference;
-    CvGridMap::Ptr _global_map;
-    Delaunay2D::Ptr _mesher;
-    io::GDALContinuousWriter::Ptr _gdal_writer;
+    UTMPose::Ptr m_utm_reference;
+    CvGridMap::Ptr m_global_map;
+    Delaunay2D::Ptr m_mesher;
+    io::GDALContinuousWriter::Ptr m_gdal_writer;
 
     void finishCallback() override;
     void printSettingsToLog() override;
 
     CvGridMap blend(CvGridMap::Overlap *overlap);
-
-    void setGridElement(const GridQuickAccess::Ptr &ref, const GridQuickAccess::Ptr &inp);
-    void updateGridElement(const GridQuickAccess::Ptr &ref, const GridQuickAccess::Ptr &inp);
 
     void reset() override;
     void initStageCallback() override;

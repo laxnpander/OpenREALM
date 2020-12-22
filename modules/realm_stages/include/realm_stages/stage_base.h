@@ -166,75 +166,83 @@ class StageBase : public WorkerThreadBase
 
   protected:
 
-    bool _is_output_dir_initialized;
+    bool m_is_output_dir_initialized;
 
     /*!
      * @brief The counter are used to compute the incoming and outgoing frame frequency. They will be evaluated and
      * reseted by the timer every X seconds.
      */
-    uint32_t _counter_frames_in;
-    uint32_t _counter_frames_out;
-    uint32_t _t_statistics_period; // [seconds]
-    Timer::Ptr _timer_statistics_fps;
-    std::mutex _mutex_statistics_fps;
+    uint32_t m_counter_frames_in;
+    uint32_t m_counter_frames_out;
+    uint32_t m_t_statistics_period; // [seconds]
+    Timer::Ptr m_timer_statistics_fps;
+    std::mutex m_mutex_statistics_fps;
 
     /*!
      * @brief Queue size of the added frames. Usually implemented as ringbuffer / fifo
      */
-    int _queue_size;
+    int m_queue_size;
 
     /*!
      * @brief Short name of the implemented stage. Should be written by derived classes
      */
-    std::string _stage_name;
+    std::string m_stage_name;
 
     /*!
      * @brief Path of the stage package. Is used for output writing.
      */
-    std::string _stage_path;
+    std::string m_stage_path;
 
     /*!
      * @brief This function consists of a result frame, a defined topic as description for the data (for example:
      * "output/result_frame". ll be set through "registerFrameTransport".
      */
-    FrameTransportFunc _transport_frame;
+    FrameTransportFunc m_transport_frame;
 
     /*!
      * @brief This function consists of a result pose, a defined topic as description for the data (for example:
      * "output/result_pose". one and band can also be set, to make sure the x/y are interpreted
      * correctly (normally utm coordinates). Will be set through "registerPoseTransport".
      */
-    PoseTransportFunc _transport_pose;
+    PoseTransportFunc m_transport_pose;
 
     /*!
      * @brief This function consists of a result pointcloud as cv::Mat with (x_i, y_i, z_i), a defined topic as
      * description for the data (for example: "output/result_pcl". Will be set through "registerFrameTransport".
      */
-    PointCloudTransportFunc _transport_pointcloud;
+    PointCloudTransportFunc m_transport_pointcloud;
 
     /*!
      * @brief This function consists of a result depth map as cv::Mat of type CV_32F and a defined topic as
      * description for the data (for example: "output/depth"). Will be set through "registerFrameTransport".
      */
-    DepthMapTransportFunc _transport_depth_map;
+    DepthMapTransportFunc m_transport_depth_map;
 
     /*!
      * @brief This function consists of a result img, a defined topic as description for the data (for example:
      * "output/result_img". Will be set through "registerFrameTransport".
      */
-    ImageTransportFunc _transport_img;
+    ImageTransportFunc m_transport_img;
 
     /*!
      * @brief This function consists of a vector of faces, a defined topic as description for the data (for example:
      * "output/result_frame". ll be set through "registerMeshTransport".
      */
-    MeshTransportFunc _transport_mesh;
+    MeshTransportFunc m_transport_mesh;
 
     /*!
      * @brief This function consists of a CvGridMap, a defined topic as description for the data (for example:
      * "output/result_gridmap".  be set through "registerCvGridMapTransport".
      */
-    CvGridMapTransportFunc _transport_cvgridmap;
+    CvGridMapTransportFunc m_transport_cvgridmap;
+
+    /*!
+     * @brief Setting an async data ready functor allows the thread to wake up from sleep outside the sleep time. It
+     * will only sleep as long as the data ready functor returns falls. It  could therefore be provided with a function
+     * that checks the size of a processing queue and returns true as long as there is data inside.
+     * @param func Functor that tells the worker thread when there is something to process and when there is not.
+     */
+    void registerAsyncDataReadyFunctor(const std::function<bool()> &func);
 
     /*!
      * @brief Function for creation of all neccessary output directories of the derived stage. Will be called whenever

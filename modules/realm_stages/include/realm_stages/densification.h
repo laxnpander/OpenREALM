@@ -91,41 +91,41 @@ class Densification : public StageBase
   private:
 
     //! Flag for use of bilateral depth filtering
-    bool _use_filter_bilat;
+    bool m_use_filter_bilat;
 
     //! Flag for use of guided depth filtering (currently not implemented)
-    bool _use_filter_guided;
+    bool m_use_filter_guided;
 
     //! Flag for surface normal computation
-    bool _compute_normals;
+    bool m_compute_normals;
 
     //! Files and data to be saved in the stage
-    SaveSettings _settings_save;
+    SaveSettings m_settings_save;
 
     //! Number of frames used for stereo reconstruction
-    uint8_t  _n_frames;
+    uint8_t  m_n_frames;
 
     //! Number of frames received for densification
-    uint64_t _rcvd_frames;
+    uint64_t m_rcvd_frames;
 
     //! Rough reference plane of the projection
-    Plane _plane_ref;
+    Plane m_plane_ref;
 
     //! Minimum depth of the current observed scene
-    float _depth_min_current;
+    float m_depth_min_current;
 
     //! Maximum depth of the current observed scene
-    float _depth_max_current;
+    float m_depth_max_current;
 
     //! Buffer for frames that should be 3d reconstructed
-    std::deque<Frame::Ptr> _buffer_reco;
-    std::mutex _mutex_buffer_reco;
+    std::deque<Frame::Ptr> m_buffer_reco;
+    std::mutex m_mutex_buffer_reco;
 
     //! Buffer for consistency filter
-    std::deque<std::pair<Frame::Ptr, cv::Mat>> _buffer_consistency;
+    std::deque<std::pair<Frame::Ptr, cv::Mat>> m_buffer_consistency;
 
     //! Densifier handle for surface reconstruction. Mostly external frameworks to generate dense depth maps
-    DensifierIF::Ptr _densifier;
+    DensifierIF::Ptr m_densifier;
 
     /*!
      * @brief Function to call for reset of densification stage

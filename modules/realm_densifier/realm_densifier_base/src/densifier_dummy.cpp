@@ -23,7 +23,7 @@
 using namespace realm;
 
 densifier::Dummy::Dummy(const DensifierSettings::Ptr &settings)
-: _resizing((*settings)["resizing"].toDouble())
+: m_resizing((*settings)["resizing"].toDouble())
 {
 
 }
@@ -40,7 +40,7 @@ uint8_t densifier::Dummy::getNrofInputFrames()
 
 double densifier::Dummy::getResizeFactor()
 {
-  return _resizing;
+  return m_resizing;
 }
 
 void densifier::Dummy::printSettingsToLog()

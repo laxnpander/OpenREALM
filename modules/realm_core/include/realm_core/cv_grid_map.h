@@ -76,7 +76,7 @@ class CvGridMap
      * @brief Function to create deep copy of CvGridMap
      * @return Deep copy of this object
      */
-    CvGridMap clone();
+    CvGridMap clone() const;
 
     /*!
      * @brief Function to create deep copy of specific layers of this object
@@ -100,7 +100,7 @@ class CvGridMap
      * @param interpolation interpolation flag for opencv, e.g. CV_INTER_LINEAR
      * @return
      */
-    void add(const std::string &layer_name, const cv::Mat &layer_data, int interpolation = CV_INTER_LINEAR);
+    void add(const std::string &layer_name, const cv::Mat &layer_data, int interpolation = cv::InterpolationFlags::INTER_LINEAR);
 
     /*!
      * @brief Adds a submap to the existing grid map
@@ -108,6 +108,18 @@ class CvGridMap
      * @param submap
      */
     void add(const CvGridMap &submap, int flag_overlap_handle, bool do_extend = true);
+
+    /*!
+     * @brief Removes a layer from the grid
+     * @param layer_name Name of the layer to be removed
+     */
+    void remove(const std::string &layer_name);
+
+    /*!
+    * @brief Removes layers from the grid
+    * @param layer_name Vector of names of layers to be removed
+    */
+    void remove(const std::vector<std::string> &layer_names);
 
     /*!
      * @brief Sets the geometry of the grid map, therefore size of the grid (nrof rows, nrof cols),
@@ -221,12 +233,20 @@ class CvGridMap
     CvGridMap getSubmap(const std::vector<std::string> &layer_names) const;
 
     /*!
-     * @brief Extracts a region of interest from specified layers
+     * @brief Extracts a floating point region of interest from specified layers
      * @param layer_names names of the desired layers of the submap
-     * @param roi region of interest to be extracted
+     * @param roi floating point region of interest to be extracted
      * @return submap of roi with desired layers
      */
     CvGridMap getSubmap(const std::vector<std::string> &layer_names, const cv::Rect2d &roi) const;
+
+    /*!
+     * @brief Extracts a index-based region of interest from specified layers
+     * @param layer_names names of the desired layers of the submap
+     * @param roi index-based region of interest to be extracted
+     * @return submap of roi with desired layers
+     */
+    CvGridMap getSubmap(const std::vector<std::string> &layer_names, const cv::Rect2i &roi) const;
 
     /*!
      * @brief Extracts the overlapping region of two CvGridMaps and returns it as an isolated CvGridMap
@@ -287,36 +307,20 @@ class CvGridMap
      */
     cv::Rect2d roi() const;
 
-    /*!
-     * @brief Prints debug information of the grid map, e.g. size of the data, layers, roi in the world frame
-     */
-    void printInfo() const;
-  private:
+private:
     // resolution therefor [m] / cell
-    double _resolution;
+    double m_resolution;
     // Global region of interest the map is played in
-    cv::Rect2d _roi;
+    cv::Rect2d m_roi;
     // Dimensions of the grid in [cols, rows]
-    cv::Size2i _size;
+    cv::Size2i m_size;
     // vector of all layers added, currently very dynamic operations
     // like adding and removing layers frequently is not expected
-    std::vector<Layer> _layers;
+    std::vector<Layer> m_layers;
 
     void mergeMatrices(const cv::Mat &mat1, cv::Mat &mat2, int flag_merge_handling);
 
-    /*!
-     * @brief Function to check if input data is valid. Depends on the currently supported data formats
-     * @param data Data to be checked -> Debug assertions if not valid
-     */
-    void checkValid(const cv::Mat &data);
-
-    /*!
-     * @brief Function to check if input layer is valid. Depends on the currently supported data formats
-     * @param layer Data to be checked -> Debug assertions if not valid
-     */
-    void checkValid(const Layer &layer);
-
-    /*!
+  /*!
      * @brief Checks the input matrix type and return true if CvGridMap currently supports it.
      * @param type OpenCV matrix type, e.g. CV_32F, ...
      * @return True if matrix type is supported

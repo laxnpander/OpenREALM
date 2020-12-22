@@ -31,7 +31,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3 REQUIRED)
+    find_package(OpenCV 3 QUIET)
+endif()
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 4 REQUIRED)
+    message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
 endif()
 
 find_package(Exiv2 REQUIRED)
@@ -52,6 +56,7 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(HEADER_FILES
         ${root}/include/realm_io/cv_export.h
+        ${root}/include/realm_io/cv_import.h
         ${root}/include/realm_io/exif_export.h
         ${root}/include/realm_io/exif_import.h
         ${root}/include/realm_io/gis_export.h
@@ -64,6 +69,7 @@ set(HEADER_FILES
 
 set(SOURCE_FILES
         ${root}/src/cv_export.cpp
+        ${root}/src/cv_import.cpp
         ${root}/src/exif_export.cpp
         ${root}/src/exif_import.cpp
         ${root}/src/gis_export.cpp
@@ -155,3 +161,34 @@ install(
 ################################################################################
 # Test
 ################################################################################
+
+
+if(TESTS_ENABLED)
+    include(GoogleTest)
+
+    add_executable(run_realm_io_tests
+            test/test_realm_io.cpp
+            test/cv_io_test.cpp
+            test/realm_io_test.cpp
+            )
+
+    # Standard linking to gtest stuff.
+    target_link_libraries(run_realm_io_tests gtest_main)
+
+    # Extra linking for the project.
+    target_link_libraries(run_realm_io_tests ${LIBRARY_NAME} ${Boost_LIBRARIES})
+
+    add_custom_command(TARGET run_realm_io_tests PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/test/data $<TARGET_FILE_DIR:run_realm_io_tests>
+    )
+
+    # This is so you can do 'make test' to see all your tests run, instead of
+    # manually running the executable run_unit_tests to see those specific tests.
+    add_test(
+            NAME
+                realm_io_unit_tests
+            COMMAND
+                ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/run_realm_io_tests
+    )
+
+endif()

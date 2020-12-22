@@ -54,6 +54,13 @@ bool dirExists(const std::string &directory);
 void createDir(const std::string &directory);
 
 /*!
+ * @brief Function to remove a file
+ * @param filepath Absolute path to the file or directory
+ * @return True if succesfull removal
+ */
+bool removeFileOrDirectory(const std::string &filepath);
+
+/*!
  * @brief Function for creation of unique filename based on a frame id
  * @param prefix Prefix of the file, e.g. image_
  * @param frame_id Frame id or unique id for the file, e.g. 213 -> will be formattet as 000213
@@ -63,13 +70,10 @@ void createDir(const std::string &directory);
 std::string createFilename(const std::string &prefix, uint32_t frame_id, const std::string &suffix);
 
 /*!
- * @brief Function for determining wether a filename path is given relative or absolute and then returning the absolute
- * path
- * @param directory Directory within the file may have been, e.g. /home/user/example/
- * @param filename Filename of the object, e.g. text.txt, but also possible /home/user/example2/text2.txt
- * @return returns the absolute path if a file is found relative or absolute to the given informations
+ * @brief Function for determining the system temporary directory
+ * @return System temp directory
  */
-std::string getAbsolutePath(const std::string &directory, const std::string &filename);
+std::string getTempDirectoryPath();
 
 /*!
  * @brief Function to create a string of local date and time

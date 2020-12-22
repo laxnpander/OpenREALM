@@ -25,28 +25,27 @@
 using namespace realm;
 
 DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi, double elevation)
-: _use_prior_normals(false),
-  _assumption(SurfaceAssumption::PLANAR),
-  _surface_normal_mode(SurfaceNormalMode::NONE)
+: m_use_prior_normals(false),
+  m_assumption(SurfaceAssumption::PLANAR),
+  m_surface_normal_mode(SurfaceNormalMode::NONE)
 {
   // Planar surface means an elevation of zero.
   // Therefore based region of interest a grid
   // map is created and filled with zeros.
   // Resolution is assumed to be 1.0m as default
-  _surface = std::make_shared<CvGridMap>();
-  _surface->setGeometry(roi, 1.0);
-  _surface->add("elevation", cv::Mat::ones(_surface->size(), CV_32FC1)*elevation);
-  _surface->add("valid", cv::Mat::ones(_surface->size(), CV_8UC1)*255);
+  m_surface = std::make_shared<CvGridMap>();
+  m_surface->setGeometry(roi, 1.0);
+  m_surface->add("elevation", cv::Mat::ones(m_surface->size(), CV_32FC1) * elevation);
 }
 
 DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi,
                                          const cv::Mat& points,
                                          SurfaceNormalMode mode,
                                          int knn_max_iter)
-    : _use_prior_normals(false),
-      _knn_max_iter(knn_max_iter),
-      _assumption(SurfaceAssumption::ELEVATION),
-      _surface_normal_mode(mode)
+    : m_use_prior_normals(false),
+      m_knn_max_iter(knn_max_iter),
+      m_assumption(SurfaceAssumption::ELEVATION),
+      m_surface_normal_mode(mode)
 {
   // Elevation surface means, that prior information
   // about the surface is available. Here in the form
@@ -59,35 +58,35 @@ DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi,
 
   // Check if prior normals were computed and can be used
   if (points.cols >= 9)
-    _use_prior_normals = true;
+    m_use_prior_normals = true;
 
   // 0) Filter input point cloud and create container
   cv::Mat points_filtered = filterPointCloud(points);
 
-  _point_cloud.pts.clear();
-  _point_cloud.pts.resize((unsigned long)points_filtered.rows);
+  m_point_cloud.pts.clear();
+  m_point_cloud.pts.resize((unsigned long)points_filtered.rows);
   for (int i = 0; i < points_filtered.rows; ++i)
   {
-    _point_cloud.pts[i].x = points_filtered.at<double>(i, 0);
-    _point_cloud.pts[i].y = points_filtered.at<double>(i, 1);
-    _point_cloud.pts[i].z = points_filtered.at<double>(i, 2);
+    m_point_cloud.pts[i].x = points_filtered.at<double>(i, 0);
+    m_point_cloud.pts[i].y = points_filtered.at<double>(i, 1);
+    m_point_cloud.pts[i].z = points_filtered.at<double>(i, 2);
   }
 
   // 1) Init Kd-tree
-  initKdTree(_point_cloud);
+  initKdTree(m_point_cloud);
 
   // 2) Estimate resolution based on the point cloud
-  double GSD_estimated = computePointCloudGSD(_point_cloud);
+  double GSD_estimated = computePointCloudGSD(m_point_cloud);
 
   // 3) Create grid map based on point cloud resolution and surface info
-  _surface = std::make_shared<CvGridMap>(roi, GSD_estimated);
+  m_surface = std::make_shared<CvGridMap>(roi, GSD_estimated);
   computeElevation(points_filtered);
 }
 
 cv::Mat DigitalSurfaceModel::filterPointCloud(const cv::Mat &points)
 {
   assert(points.type() == CV_64F);
-  assert(_assumption == SurfaceAssumption::ELEVATION);
+  assert(m_assumption == SurfaceAssumption::ELEVATION);
 
 //  pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 //  for (uint32_t i = 0; i < points.rows; ++i)
@@ -134,12 +133,12 @@ cv::Mat DigitalSurfaceModel::filterPointCloud(const cv::Mat &points)
 
 void DigitalSurfaceModel::initKdTree(const PointCloud<double> &point_cloud)
 {
-  assert(_assumption == SurfaceAssumption::ELEVATION);
+  assert(m_assumption == SurfaceAssumption::ELEVATION);
 
   // Build kd-tree for space hierarchy
-  _point_cloud_adaptor.reset(new PointCloudAdaptor_t(_point_cloud));
-  _kd_tree.reset(new DigitalSurfaceModel::KdTree_t(kDimensionKdTree, *_point_cloud_adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf)));
-  _kd_tree->buildIndex();
+  m_point_cloud_adaptor.reset(new PointCloudAdaptor_t(m_point_cloud));
+  m_kd_tree.reset(new DigitalSurfaceModel::KdTree_t(kDimensionKdTree, *m_point_cloud_adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf)));
+  m_kd_tree->buildIndex();
 }
 
 double DigitalSurfaceModel::computePointCloudGSD(const PointCloud<double> &point_cloud)
@@ -164,7 +163,7 @@ double DigitalSurfaceModel::computePointCloudGSD(const PointCloud<double> &point
     // Initialization
     const double query_pt[3]{pt.x, pt.y, 0.0};
 
-    _kd_tree->knnSearch(&query_pt[0], 2u, &tmp_indices[0], &tmp_dists[0]);
+    m_kd_tree->knnSearch(&query_pt[0], 2u, &tmp_indices[0], &tmp_dists[0]);
 
     // "closest point" distance is zero, because search point is also trained data
     // Therefore choose the one point that distance is above approx 0.0
@@ -179,13 +178,12 @@ double DigitalSurfaceModel::computePointCloudGSD(const PointCloud<double> &point
 
 void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
 {
-  assert(_assumption == SurfaceAssumption::ELEVATION);
+  assert(m_assumption == SurfaceAssumption::ELEVATION);
 
-  cv::Size2i size = _surface->size();
+  cv::Size2i size = m_surface->size();
 
   // Essential layers / must have
   cv::Mat elevation = cv::Mat(size, CV_32FC1, std::numeric_limits<float>::quiet_NaN());
-  cv::Mat valid = cv::Mat::zeros(size, CV_8UC1);
 
   // Optional computation according to flag
   cv::Mat elevation_normal(size, CV_32FC3, cv::Scalar(0.0, 0.0, 0.0));
@@ -193,18 +191,18 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
   for (uint32_t r = 0; r < size.height; ++r)
     for (uint32_t c = 0; c < size.width; ++c)
     {
-      cv::Point2d pt = _surface->atPosition2d(r, c);
+      cv::Point2d pt = m_surface->atPosition2d(r, c);
       std::vector<double> query_pt{pt.x, pt.y, 0.0};
 
       // Prepare kd-search for nearest neighbors
-      double resolution = _surface->resolution();
+      double resolution = m_surface->resolution();
       std::vector<std::pair<int, double>> indices_dists;
 
       // Process neighbor search, if no neighbors are found, extend search distance
-      for (int i = 0; i < _knn_max_iter; ++i)
+      for (int i = 0; i < m_knn_max_iter; ++i)
       {
         nanoflann::RadiusResultSet<double, int> result_set(static_cast<double>(i) * resolution, indices_dists);
-        _kd_tree->findNeighbors(result_set, &query_pt[0], nanoflann::SearchParams());
+        m_kd_tree->findNeighbors(result_set, &query_pt[0], nanoflann::SearchParams());
 
         // Process only if neighbours were found
         if (result_set.size() >= 3u)
@@ -227,11 +225,10 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
           }
 
           elevation.at<float>(r, c) = interpolateHeight(heights, distances);
-          valid.at<uchar>(r, c) = 255;
 
-          if ((_surface_normal_mode == SurfaceNormalMode::NONE) && _use_prior_normals)
+          if ((m_surface_normal_mode == SurfaceNormalMode::NONE) && m_use_prior_normals)
             elevation_normal.at<cv::Vec3f>(r, c) = interpolateNormal(normals_prior, distances);
-          else if (_surface_normal_mode != SurfaceNormalMode::NONE)
+          else if (m_surface_normal_mode != SurfaceNormalMode::NONE)
             elevation_normal.at<cv::Vec3f>(r, c) = computeSurfaceNormal(points, distances);
 
           break;
@@ -239,22 +236,21 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
       }
     }
 
-  _surface->add("elevation", elevation);
-  _surface->add("valid", valid);
+  m_surface->add("elevation", elevation);
 
   // If exact normal computation was chosen, remove high frequent noise from data
-  if (_surface_normal_mode == SurfaceNormalMode::RANDOM_NEIGHBOURS
-      || _surface_normal_mode == SurfaceNormalMode::FURTHEST_NEIGHBOURS)
+  if (m_surface_normal_mode == SurfaceNormalMode::RANDOM_NEIGHBOURS
+      || m_surface_normal_mode == SurfaceNormalMode::FURTHEST_NEIGHBOURS)
     cv::medianBlur(elevation_normal, elevation_normal, 5);
 
   // If normals were computed. set in surface map
-  if (_surface_normal_mode != SurfaceNormalMode::NONE || _use_prior_normals)
-    _surface->add("elevation_normal", elevation_normal);
+  if (m_surface_normal_mode != SurfaceNormalMode::NONE || m_use_prior_normals)
+    m_surface->add("elevation_normal", elevation_normal);
 }
 
 CvGridMap::Ptr DigitalSurfaceModel::getSurfaceGrid()
 {
-  return _surface;
+  return m_surface;
 }
 
 float DigitalSurfaceModel::interpolateHeight(const std::vector<double> &heights, const std::vector<double> &dists)
@@ -285,7 +281,7 @@ cv::Vec3f DigitalSurfaceModel::interpolateNormal(const std::vector<PlaneFitter::
 
 cv::Vec3f DigitalSurfaceModel::computeSurfaceNormal(const std::vector<PlaneFitter::Point> &points, const std::vector<double> &dists)
 {
-  assert(_surface_normal_mode != SurfaceNormalMode::NONE);
+  assert(m_surface_normal_mode != SurfaceNormalMode::NONE);
 
   // Creation of plane fitter
   PlaneFitter plane_fitter;
@@ -294,7 +290,7 @@ cv::Vec3f DigitalSurfaceModel::computeSurfaceNormal(const std::vector<PlaneFitte
   std::vector<size_t> indices_points;
   std::vector<PlaneFitter::Point> points_selected;
 
-  switch(_surface_normal_mode)
+  switch(m_surface_normal_mode)
   {
     case SurfaceNormalMode::NONE:
       // Should be unreachable code segment

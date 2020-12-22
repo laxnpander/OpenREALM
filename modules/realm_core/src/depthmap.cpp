@@ -23,52 +23,54 @@
 using namespace realm;
 
 Depthmap::Depthmap(const cv::Mat &data, const camera::Pinhole &cam)
- : _data(data),
-   _cam(std::make_shared<camera::Pinhole>(cam))
+ : m_data(data),
+   m_cam(std::make_shared<camera::Pinhole>(cam))
 {
-  if (_data.type() != CV_32F)
+  if (m_data.type() != CV_32F)
     throw(std::invalid_argument("Error creating depth map: Matrix type not CV_32F"));
+  if (data.rows != m_cam->height() || data.cols != m_cam->width())
+    throw(std::invalid_argument("Error creating depth map: Dimension mismatch! Camera size does not match data."));
 
   updateDepthParameters();
 }
 
 camera::Pinhole::ConstPtr Depthmap::getCamera() const
 {
-  return _cam;
+  return m_cam;
 }
 
 double Depthmap::getMinDepth() const
 {
-  return _min_depth;
+  return m_min_depth;
 }
 
 double Depthmap::getMaxDepth() const
 {
-  return _max_depth;
+  return m_max_depth;
 }
 
 double Depthmap::getMedianDepth() const
 {
-  return _med_depth;
+  return m_med_depth;
 }
 
 cv::Mat& Depthmap::data()
 {
-  return _data;
+  return m_data;
 }
 
 void Depthmap::updateDepthParameters()
 {
   // First grab min and max values
-  cv::Mat mask = (_data > 0);
-  cv::minMaxLoc(_data, &_min_depth, &_max_depth, nullptr, nullptr, mask);
+  cv::Mat mask = (m_data > 0);
+  cv::minMaxLoc(m_data, &m_min_depth, &m_max_depth, nullptr, nullptr, mask);
 
   std::vector<float> array;
-  if (_data.isContinuous()) {
-    array.assign((float*)_data.data, (float*)_data.data + _data.total()*_data.channels());
+  if (m_data.isContinuous()) {
+    array.assign((float*)m_data.data, (float*)m_data.data + m_data.total() * m_data.channels());
   } else {
-    for (int i = 0; i < _data.rows; ++i) {
-      array.insert(array.end(), _data.ptr<float>(i), _data.ptr<float>(i)+_data.cols*_data.channels());
+    for (int i = 0; i < m_data.rows; ++i) {
+      array.insert(array.end(), m_data.ptr<float>(i), m_data.ptr<float>(i) + m_data.cols * m_data.channels());
     }
   }
 
@@ -78,5 +80,5 @@ void Depthmap::updateDepthParameters()
 
   // Find median by sorting the array and get middle value
   std::sort(array.begin(), array.end());
-  _med_depth = array[array.size()/2];
+  m_med_depth = array[array.size() / 2];
 }

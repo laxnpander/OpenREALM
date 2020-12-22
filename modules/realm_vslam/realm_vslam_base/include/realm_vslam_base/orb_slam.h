@@ -32,20 +32,19 @@
 
 
 // CPU implementation
-#include <orb_slam_2/Settings.h>
-#include <orb_slam_2/System.h>
-#include <orb_slam_2/KeyFrame.h>
+#include <ORB_SLAM3/System.h>
+#include <ORB_SLAM3/KeyFrame.h>
 
 namespace realm
 {
 
 
-class OrbSlam2 : public VisualSlamIF
+class OrbSlam : public VisualSlamIF
 {
   public:
     // Construction
-    OrbSlam2(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set);
-    ~OrbSlam2();
+    OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set);
+    ~OrbSlam();
 
     // Process
     VisualSlamIF::State track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial) override;
@@ -66,28 +65,27 @@ class OrbSlam2 : public VisualSlamIF
 
   private:
 
-    int32_t _prev_keyid;
-    double _resizing;
+    int32_t m_prev_keyid;
+    double m_resizing;
 
-    bool _use_viewer;
-    std::string _path_settings;
-    std::string _path_vocabulary;
-    ORB_SLAM2::CameraSettings _cam_set;
-    ORB_SLAM2::TrackerSettings _track_set;
-    ORB_SLAM2::ViewerSettings _view_set;
-    cv::FileStorage _settings_file;
+    uint64_t m_timestamp_reference;
+
+    bool m_use_viewer;
+    std::string m_path_settings;
+    std::string m_path_vocabulary;
+    cv::FileStorage m_settings_file;
 
 
     // Map of orbslam inserted keyframe ids to realm frames
-    std::map<uint32_t , uint32_t> _orb_to_frame_ids;
+    std::map<uint32_t , uint32_t> m_orb_to_frame_ids;
 
     // Cpu handles
-    ORB_SLAM2::System *_slam;
+    ORB_SLAM3::System *m_slam;
 
-    VisualSlamIF::PoseUpdateFuncCb _pose_update_func_cb;
+    VisualSlamIF::PoseUpdateFuncCb m_pose_update_func_cb;
 
     cv::Mat invertPose(const cv::Mat &pose) const;
-    void keyframeUpdateCb(ORB_SLAM2::KeyFrame* kf);
+    void keyframeUpdateCb(ORB_SLAM3::KeyFrame* kf);
 };
 
 }

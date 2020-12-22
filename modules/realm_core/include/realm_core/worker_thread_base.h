@@ -25,6 +25,8 @@
 #include <chrono>
 #include <mutex>
 #include <string>
+#include <condition_variable>
+#include <functional>
 
 namespace realm
 {
@@ -32,10 +34,13 @@ namespace realm
 class WorkerThreadBase
 {
   public:
+
     /*!
      * @brief Basic constructor for worker thread class
      * @param thread_name Name of the thread
-     * @param sleep_time Duration the thread is sleeping after processing in milliseconds
+     * @param sleep_time Duration the thread is sleeping after processing in milliseconds. Note that we implemented
+     * it with a condition variable, so you can also asynchronously wake up the processing thread by calling the notify()
+     * function.
      * @param verbose Flag for verbose output
      */
     explicit WorkerThreadBase(const std::string &thread_name, int64_t sleep_time, bool verbose);
@@ -77,22 +82,31 @@ class WorkerThreadBase
      */
     void requestFinish();
 
+    /*!
+     * @brief Allows the processing thread to return before sleep time is over.
+     */
+    void notify();
+
   protected:
 
     /*!
      * @brief Threader member for worker
      */
-    std::thread _thread;
+    std::thread m_thread;
 
     /*!
      * @brief Time the processing thread sleeps in milliseconds
      */
-    int64_t _sleep_time;
+    int64_t m_sleep_time;
 
     /*!
      * @brief Verbose flag, set true if additional output should be generated
      */
-    bool _verbose;
+    bool m_verbose;
+
+    std::mutex m_mutex_processing;
+    std::function<bool()> m_data_ready_functor;
+    std::condition_variable m_condition_processing;
 
     /*!
      * @brief Function that every derived worker thread should implement. run() will trigger process, if no stop, reset or
@@ -116,35 +130,35 @@ class WorkerThreadBase
     /*!
      * @brief Name of the thread. Will be used to output current state
      */
-    std::string _thread_name;
+    std::string m_thread_name;
 
     /*!
      * @brief Thread management: set true, if a stop was requested from the outside. Will afterwards be set false
      * again, if "isStopped()" is triggered with "true".
      */
-    bool _stop_requested;
-    std::mutex _mutex_stop_requested;
+    bool m_stop_requested;
+    std::mutex m_mutex_stop_requested;
 
     /*!
      * @brief Thread management: set true, if a reset was requested from the outside. Will afterwards be set false
      * again, if reset was successfully be executed.
      */
-    bool _reset_requested;
-    std::mutex _mutex_reset_requested;
+    bool m_reset_requested;
+    std::mutex m_mutex_reset_requested;
 
     /*!
      * @brief Thread management: set true, if a stop was requested from the outside. Will never be set false again,
      * because stage will be closed as soon as possible.
      */
-    bool _finish_requested;
-    std::mutex _mutex_finish_requested;
+    bool m_finish_requested;
+    std::mutex m_mutex_finish_requested;
 
     /*!
      * @brief Thread management: set true, if a stop was requested and has reached the stopping point. Will be set
      * false again, if resume was triggered
      */
-    bool _is_stopped;
-    std::mutex _mutex_is_stopped;
+    bool m_is_stopped;
+    std::mutex m_mutex_is_stopped;
 
     /*!
      * @brief virtual function for the derived stage to be implemented. Has to reset all neccessary data to allow a

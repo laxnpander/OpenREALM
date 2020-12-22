@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+ARCH=$(uname -m)
+echo 'Detected architecture: $ARCH'
+
 # Basic dependencies
 sudo apt-get install -y build-essential pkg-config git wget curl unzip
 
@@ -12,7 +15,22 @@ if [ "${CMAKE_VERSION_MINOR}" -le 9 ]; then
 
   echo 'CMake Version is too old! Trying to download newer version '
 
-  CMAKE_FILE="cmake-3.10.3-Linux-x86_64"
+  if [ $ARCH == "aarch64" ]
+    CMAKE_FILE="cmake-3.10.3"
+
+    echo 'Architecture is aarch64. There is no cmake binaries available. Compiling from source is required. This takes a while.'
+    while true; do
+      read -p "Should cmake be compiled from sources now? (yes/no)" yn
+      case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+      esac
+    done
+
+  elif [ $ARCH == "x86_64" ]
+    CMAKE_FILE="cmake-3.10.3-Linux-x86_64"
+  fi
 
   # Check if file already exists
   if [ ! -e "${CMAKE_FILE}.tar.gz" ]; then
@@ -26,7 +44,12 @@ if [ "${CMAKE_VERSION_MINOR}" -le 9 ]; then
 
   tar xvzf ${CMAKE_FILE}.tar.gz
 
-  export PATH="`pwd`/${CMAKE_FILE}/bin:$PATH"
+  if [ $ARCH == "aarch64" ]
+    ./configure
+    sudo make install
+  else
+    export PATH="`pwd`/${CMAKE_FILE}/bin:$PATH"
+  fi
 fi
 
 # Update the Apt Cache
@@ -90,20 +113,19 @@ else
        echo "No problems to repair."
 fi
 
-opencv_version=$(pkg-config --modversion opencv)
-if [[ $opencv_version == "3.3.1" ]]; then
+OPENCV_VERSION=$(pkg-config --modversion opencv)
+if [[ $OPENCV_VERSION == "3.3.1" ]]; then
         echo "[OK] OpenCV Version is 3.3.1"
 else
-        echo "[Warning] OpenCV Version $opencv_version detected. It is recommended to build OpenREALM with OpenCV 3.3.1."
-
-	if [[ "$1" != "-i" ]]; then
-                echo "Continue anyway? [y/n]"
-        	read user_input
-		if [ $user_input == "n" ]; then
-		    echo "Aborting installation..."
-		    exit 1
-		fi
-	fi
+        echo "[Warning] OpenCV Version $OPENCV_VERSION detected. It is recommended to build OpenREALM with OpenCV 3.3.1."
+        while true; do
+          read -p "Continue anyway? [yes/no]" yn
+          case $yn in
+            [Yy]* ) break;;
+            [Nn]* ) exit;;
+            * ) echo "Please answer yes or no.";;
+          esac
+        done
 fi
 
 # DBoW2
