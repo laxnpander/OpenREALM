@@ -51,7 +51,9 @@ class Exiv2FrameReader
           camera_id("Exif.Image.Model"),
           heading("Xmp.exif.REALM.Heading"),
           latitude("Exif.GPSInfo.GPSLatitude"),
+          latituderef("Exif.GPSInfo.GPSLatitudeRef"),
           longitude("Exif.GPSInfo.GPSLongitude"),
+          longituderef("Exif.GPSInfo.GPSLongitudeRef"),
           altitude("Exif.GPSInfo.GPSAltitude")
         {
         }
@@ -60,13 +62,17 @@ class Exiv2FrameReader
                   const std::string &camera_id,
                   const std::string &heading,
                   const std::string &latitude,
+                  const std::string &latituderef,
                   const std::string &longitude,
+                  const std::string &longituderef,
                   const std::string &altitude)
         : timestamp(timestamp),
           camera_id(camera_id),
           heading(heading),
           latitude(latitude),
+          latituderef(latituderef),
           longitude(longitude),
+          longituderef(longituderef),
           altitude(altitude)
         {
         }
@@ -82,7 +88,9 @@ class Exiv2FrameReader
                       fs["Frame.camera_id"],
                       fs["Frame.heading"],
                       fs["Frame.latitude_tag"],
+                      fs["Frame.latituderef_tag"],
                       fs["Frame.longitude_tag"],
+                      fs["Frame.longituderef_tag"],
                       fs["Frame.altitude_tag"]
                     };
           }
@@ -96,7 +104,9 @@ class Exiv2FrameReader
         std::string camera_id;
         std::string heading;
         std::string latitude;
+        std::string latituderef;
         std::string longitude;
+        std::string longituderef;
         std::string altitude;
     };
 
