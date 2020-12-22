@@ -38,7 +38,7 @@ public:
 public:
   GDALContinuousWriter(const std::string &thread_name, int64_t sleep_time, bool verbose);
 
-  bool requestSaveGeoTIFF(const CvGridMap::Ptr &map,
+  void requestSaveGeoTIFF(const CvGridMap::Ptr &map,
                           const uint8_t &zone,
                           const std::string &filename,
                           bool do_build_overview = false,

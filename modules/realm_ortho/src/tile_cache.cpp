@@ -384,6 +384,7 @@ size_t TileCache::estimateByteSize(const Tile::Ptr &tile) const
   tile->unlock();
 
   //return bytes;
+  return 0;
 }
 
 void TileCache::updatePrediction(int zoom_level, const cv::Rect2i &roi_current)

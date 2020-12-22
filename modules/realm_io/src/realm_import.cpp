@@ -44,6 +44,11 @@ camera::Pinhole io::loadCameraFromYaml(const std::string &filepath, double* fps)
                          (*settings)["p1"].toDouble(), (*settings)["p2"].toDouble(), (*settings)["k3"].toDouble());
     return cam;
   }
+  else
+  {
+      throw std::runtime_error("Unable to load camera settings from yaml file at: " + filepath);
+  }
+
 }
 
 cv::Mat io::loadGeoreferenceFromYaml(const std::string &filepath)

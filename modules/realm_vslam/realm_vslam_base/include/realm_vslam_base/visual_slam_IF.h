@@ -98,14 +98,9 @@ public:
   virtual void queueImuData(const ImuData &)
   {};
 
-  virtual cv::Mat getMapPoints() const
-  {};
+  virtual cv::Mat getTrackedMapPoints() const = 0;
 
-  virtual cv::Mat getTrackedMapPoints() const
-  {};
-
-  virtual bool drawTrackedImage(cv::Mat &img) const
-  {};
+  virtual bool drawTrackedImage(cv::Mat &img) const = 0;
 
   // Callbacks
   virtual void registerUpdateTransport(const PoseUpdateFuncCb &func)
