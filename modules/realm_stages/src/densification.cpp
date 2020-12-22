@@ -201,7 +201,7 @@ Frame::Ptr Densification::consistencyFilter(std::deque<std::pair<Frame::Ptr, cv:
 
   if (perc_coverage < 30.0)
   {
-    LOG_IF_F(WARNING, m_verbose, "Depthmap coverage too low (%3.1f%%). Assuming plane surface.");
+    LOG_IF_F(WARNING, m_verbose, "Depthmap coverage too low (%3.1f%%). Assuming plane surface.", perc_coverage);
     frame->setDepthmap(nullptr);
 
     for (auto it = buffer_denoise->begin(); it != buffer_denoise->end(); ) {
