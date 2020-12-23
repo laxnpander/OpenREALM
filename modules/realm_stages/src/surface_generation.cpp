@@ -24,6 +24,7 @@
 
 using namespace realm;
 using namespace stages;
+using namespace realm::ortho;
 
 SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double rate)
 : StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt()),
