@@ -35,7 +35,8 @@
 
 namespace realm
 {
-
+namespace ortho
+{
 class DigitalSurfaceModel
 {
   public:
@@ -45,8 +46,8 @@ class DigitalSurfaceModel
     // Wrapping typedefs in realm convention
     static constexpr size_t kMaxLeaf = 10u;
     static constexpr size_t kDimensionKdTree = 2u;
-    using PointCloudAdaptor_t = PointCloudAdaptor<PointCloud<double>>;
-    using KdTree_t = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Adaptor<double, PointCloudAdaptor_t>, PointCloudAdaptor_t, kDimensionKdTree>;
+    using PointCloudAdaptor_t = PointCloudAdaptor<ortho::PointCloud<double>>;
+    using KdTree_t = nanoflann::KDTreeSingleIndexAdaptor<ortho::nanoflann::L2_Adaptor<double, PointCloudAdaptor_t>, PointCloudAdaptor_t, kDimensionKdTree>;
   public:
     enum class SurfaceNormalMode
     {
@@ -93,7 +94,7 @@ class DigitalSurfaceModel
     CvGridMap::Ptr m_surface;
 
     //! Input point cloud (only for elevation surface)
-    PointCloud<double> m_point_cloud;
+    ortho::PointCloud<double> m_point_cloud;
 
     //! Adapter for point cloud k-d tree and NN search (only for elevation surface)
     std::unique_ptr<PointCloudAdaptor_t> m_point_cloud_adaptor;
@@ -179,7 +180,7 @@ class DigitalSurfaceModel
         return indices;
     }
 };
-
+} // namespace ortho
 } // namespace realm
 
 #endif //PROJECT_DSM_H
