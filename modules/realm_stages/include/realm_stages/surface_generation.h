@@ -72,6 +72,7 @@ class SurfaceGeneration : public StageBase
     void reset() override;
     void initStageCallback() override;
     void printSettingsToLog() override;
+    uint32_t getQueueDepth() override;
 
     void saveIter(const CvGridMap &surface, uint32_t id);
     void publish(const Frame::Ptr &frame);

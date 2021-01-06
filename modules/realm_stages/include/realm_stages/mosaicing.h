@@ -99,6 +99,7 @@ class Mosaicing : public StageBase
 
     void finishCallback() override;
     void printSettingsToLog() override;
+    uint32_t getQueueDepth() override;
 
     CvGridMap blend(CvGridMap::Overlap *overlap);
 

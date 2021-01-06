@@ -33,7 +33,7 @@ StageBase::StageBase(const std::string &name, const std::string &path, double ra
   m_t_statistics_period(10),
   m_counter_frames_in(0),
   m_counter_frames_out(0),
-  m_timer_statistics_fps(new Timer(std::chrono::seconds(m_t_statistics_period), std::bind(&StageBase::evaluateFpsStatistic, this)))
+  m_timer_statistics_fps(new Timer(std::chrono::seconds(m_t_statistics_period), std::bind(&StageBase::evaluateStatistic, this)))
 {
 }
 
@@ -56,6 +56,12 @@ void StageBase::initStagePath(const std::string &abs_path)
   LOG_F(INFO, "Successfully initialized!");
   LOG_F(INFO, "Stage path set to: %s", m_stage_path.c_str());
   printSettingsToLog();
+}
+
+StageStatistics StageBase::getStageStatistics() {
+    std::unique_lock<std::mutex> lock(m_mutex_statistics);
+    m_stage_statistics.queue_depth = getQueueDepth();
+    return m_stage_statistics;
 }
 
 void StageBase::registerAsyncDataReadyFunctor(const std::function<bool()> &func)
@@ -101,30 +107,57 @@ void StageBase::registerCvGridMapTransport(const std::function<void(const CvGrid
 
 void StageBase::setStatisticsPeriod(uint32_t s)
 {
-    std::unique_lock<std::mutex> lock(m_mutex_statistics_fps);
+    std::unique_lock<std::mutex> lock(m_mutex_statistics);
   m_t_statistics_period = s;
 }
 
-void StageBase::updateFpsStatisticsIncoming()
+void StageBase::updateStatisticsIncoming()
 {
-    std::unique_lock<std::mutex> lock(m_mutex_statistics_fps);
+    std::unique_lock<std::mutex> lock(m_mutex_statistics);
     m_counter_frames_in++;
+    m_stage_statistics.frames_total++;
 }
 
-void StageBase::updateFpsStatisticsOutgoing()
+void StageBase::updateStatisticsSkippedFrame() {
+    std::unique_lock<std::mutex> lock(m_mutex_statistics);
+    m_stage_statistics.frames_dropped++;
+}
+
+void StageBase::updateStatisticsBadFrame() {
+    std::unique_lock<std::mutex> lock(m_mutex_statistics);
+    m_stage_statistics.frames_bad++;
+}
+
+void StageBase::updateStatisticsOutgoing()
 {
-    std::unique_lock<std::mutex> lock(m_mutex_statistics_fps);
+    std::unique_lock<std::mutex> lock(m_mutex_statistics);
     m_counter_frames_out++;
+    m_stage_statistics.process_statistics = getProcessingStatistics();
+
+    uint32_t queue_depth = getQueueDepth();
+    if (m_stage_statistics.queue_statistics.count == 0) {
+        m_stage_statistics.queue_statistics.min = queue_depth;
+        m_stage_statistics.queue_statistics.max = queue_depth;
+    } else {
+        if (m_stage_statistics.queue_statistics.min > queue_depth) m_stage_statistics.queue_statistics.min = queue_depth;
+        if (m_stage_statistics.queue_statistics.max > queue_depth) m_stage_statistics.queue_statistics.max = queue_depth;
+    }
+    m_stage_statistics.queue_statistics.count++;
+    m_stage_statistics.queue_statistics.avg = (m_stage_statistics.queue_statistics.avg + queue_depth) / 2.0;
+
 }
 
-void StageBase::evaluateFpsStatistic()
+void StageBase::evaluateStatistic()
 {
-    std::unique_lock<std::mutex> lock(m_mutex_statistics_fps);
-    float fps_in = static_cast<float>(m_counter_frames_in) / m_t_statistics_period;
-    float fps_out = static_cast<float>(m_counter_frames_out) / m_t_statistics_period;
+  std::unique_lock<std::mutex> lock(m_mutex_statistics);
+  float fps_in = static_cast<float>(m_counter_frames_in) / m_t_statistics_period;
+  float fps_out = static_cast<float>(m_counter_frames_out) / m_t_statistics_period;
 
   m_counter_frames_in = 0;
   m_counter_frames_out = 0;
 
-    LOG_F(INFO, "FPS in: %f, out: %f", fps_in, fps_out);
+  LOG_F(INFO, "FPS in: %f, out: %f", fps_in, fps_out);
+
+  m_stage_statistics.fps_in = fps_in;
+  m_stage_statistics.fps_out = fps_out;
 }

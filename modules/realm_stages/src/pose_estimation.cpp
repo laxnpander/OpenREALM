@@ -47,6 +47,8 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                       (*stage_set)["save_keyframes"].toInt() > 0,
                       (*stage_set)["save_keyframes_full"].toInt() > 0})
 {
+  std::cout << "Stage [" << m_stage_name << "]: Created Stage with Settings: " << std::endl;
+  stage_set->print();
   registerAsyncDataReadyFunctor([=]{ return !m_buffer_no_pose.empty(); });
 
   if (m_use_vslam)
@@ -109,7 +111,7 @@ void PoseEstimation::evaluateFallbackStrategy(PoseEstimation::FallbackStrategy s
 void PoseEstimation::addFrame(const Frame::Ptr &frame)
 {
   // First update statistics about incoming frame rate
-  updateFpsStatisticsIncoming();
+  updateStatisticsIncoming();
 
   // The user can provide a-priori georeferencing. Check if this is the case
   if (!m_is_georef_initialized && frame->isGeoreferenced())
@@ -126,10 +128,11 @@ void PoseEstimation::addFrame(const Frame::Ptr &frame)
   notify();
 
   // Ringbuffer implementation for buffer with no pose
-  if (m_buffer_no_pose.size() > 5)
+  if (m_buffer_no_pose.size() > m_queue_size)
   {
     std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
     m_buffer_no_pose.pop_front();
+    updateStatisticsSkippedFrame();
   }
 
   m_transport_pose(frame->getDefaultPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose/gnss");
@@ -329,6 +332,10 @@ void PoseEstimation::initStageCallback()
     io::createDir(m_stage_path + "/frames");
 
   m_stage_publisher->setOutputPath(m_stage_path);
+}
+
+uint32_t PoseEstimation::getQueueDepth() {
+    return (m_use_vslam ? m_buffer_no_pose.size() : m_buffer_do_publish.size());
 }
 
 void PoseEstimation::printSettingsToLog()
@@ -605,7 +612,7 @@ void PoseEstimationIO::publishSparseCloud(const Frame::Ptr &frame)
 void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 {
   // First update statistics about outgoing frame rate
-  m_stage_handle->updateFpsStatisticsOutgoing();
+  m_stage_handle->updateStatisticsOutgoing();
 
   // Two situation can occure, when publishing a frame is triggered
   // 1) Frame is marked as keyframe by the SLAM -> publish directly

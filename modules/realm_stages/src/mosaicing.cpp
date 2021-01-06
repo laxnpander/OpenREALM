@@ -75,19 +75,22 @@ Mosaicing::~Mosaicing()
 void Mosaicing::addFrame(const Frame::Ptr &frame)
 {
   // First update statistics about incoming frame rate
-  updateFpsStatisticsIncoming();
+  updateStatisticsIncoming();
 
   if (!frame->getSurfaceModel() || !frame->getOrthophoto())
   {
     LOG_F(INFO, "Input frame missing observed map. Dropping!");
+    updateStatisticsBadFrame();
     return;
   }
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   m_buffer.push_back(frame);
 
   // Ringbuffer implementation for buffer with no pose
-  if (m_buffer.size() > m_queue_size)
-    m_buffer.pop_front();
+  if (m_buffer.size() > m_queue_size) {
+      m_buffer.pop_front();
+      updateStatisticsSkippedFrame();
+  }
   notify();
 }
 
@@ -224,6 +227,10 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 
 void Mosaicing::saveAll()
 {
+  // Make sure we have a map to save
+  if (m_global_map == nullptr) {
+      return;
+  }
   // Check NaN
   cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
@@ -359,6 +366,10 @@ void Mosaicing::printSettingsToLog()
   LOG_F(INFO, "- save_dense_ply: %i", m_settings_save.save_dense_ply);
 }
 
+uint32_t Mosaicing::getQueueDepth() {
+    return m_buffer.size();
+}
+
 std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
 {
   CvGridMap::Ptr mesh_sampled;
@@ -403,7 +414,7 @@ void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, cons
   cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
   // First update statistics about outgoing frame rate
-  updateFpsStatisticsOutgoing();
+  updateStatisticsOutgoing();
 
   m_transport_img((*m_global_map)["color_rgb"], "output/rgb");
   m_transport_img(analysis::convertToColorMapFromCVFC1((*m_global_map)["elevation"],

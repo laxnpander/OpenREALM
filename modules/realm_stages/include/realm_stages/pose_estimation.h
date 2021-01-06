@@ -158,6 +158,7 @@ class PoseEstimation : public StageBase
     void reset() override;
     void initStageCallback() override;
     void printSettingsToLog() override;
+    uint32_t getQueueDepth() override;
 
     void applyGeoreferenceToBuffer();
     void printGeoReferenceInfo(const Frame::Ptr &frame);

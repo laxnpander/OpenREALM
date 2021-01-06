@@ -81,6 +81,7 @@ class Tileing : public StageBase
 
     void reset() override;
     void initStageCallback() override;
+    uint32_t getQueueDepth() override;
 
     void publish(const Frame::Ptr &frame, const CvGridMap::Ptr &global_map, const CvGridMap::Ptr &update, uint64_t timestamp);
 

@@ -54,7 +54,7 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
 void Densification::addFrame(const Frame::Ptr &frame)
 {
   // First update statistics about incoming frame rate
-  updateFpsStatisticsIncoming();
+  updateStatisticsIncoming();
 
   // Increment received valid frames
   m_rcvd_frames++;
@@ -72,6 +72,7 @@ void Densification::addFrame(const Frame::Ptr &frame)
 
     LOG_F(INFO, "Frame #%u not suited for dense reconstruction. Passing through...", frame->getFrameId());
     m_transport_frame(frame, "output/frame");
+    updateStatisticsBadFrame();
     return;
   }
 
@@ -297,7 +298,7 @@ cv::Mat Densification::computeDepthMapMask(const cv::Mat &depth_map, bool use_sp
 void Densification::publish(const Frame::Ptr &frame, const cv::Mat &depthmap)
 {
   // First update statistics about outgoing frame rate
-  updateFpsStatisticsOutgoing();
+  updateStatisticsOutgoing();
 
   m_transport_frame(frame, "output/frame");
   m_transport_pose(frame->getPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose");
@@ -336,6 +337,7 @@ void Densification::pushToBufferReco(const Frame::Ptr &frame)
   if (m_buffer_reco.size() > m_queue_size)
   {
     m_buffer_reco.pop_front();
+    updateStatisticsSkippedFrame();
   }
 }
 
@@ -392,4 +394,8 @@ void Densification::printSettingsToLog()
   LOG_F(INFO, "- save_thumb: %i", m_settings_save.save_thumb);
 
   m_densifier->printSettingsToLog();
+}
+
+uint32_t Densification::getQueueDepth() {
+    return m_buffer_reco.size();
 }

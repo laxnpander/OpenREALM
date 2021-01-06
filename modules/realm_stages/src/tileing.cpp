@@ -53,19 +53,22 @@ Tileing::~Tileing()
 void Tileing::addFrame(const Frame::Ptr &frame)
 {
   // First update statistics about incoming frame rate
-  updateFpsStatisticsIncoming();
+  updateStatisticsIncoming();
 
   if (!frame->getSurfaceModel() || !frame->getOrthophoto())
   {
     LOG_F(INFO, "Input frame is missing data. Dropping!");
+    updateStatisticsBadFrame();
     return;
   }
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   m_buffer.push_back(frame);
 
   // Ringbuffer implementation for buffer with no pose
-  if (m_buffer.size() > m_queue_size)
-    m_buffer.pop_front();
+  if (m_buffer.size() > m_queue_size) {
+      updateStatisticsSkippedFrame();
+      m_buffer.pop_front();
+  }
   notify();
 }
 
@@ -387,7 +390,7 @@ void Tileing::printSettingsToLog()
 void Tileing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, const CvGridMap::Ptr &update, uint64_t timestamp)
 {
   // First update statistics about outgoing frame rate
-  updateFpsStatisticsOutgoing();
+  updateStatisticsOutgoing();
 
 //  _transport_img((*_global_map)["color_rgb"], "output/rgb");
 //  _transport_img(analysis::convertToColorMapFromCVFC1((*_global_map)["elevation"],
@@ -407,4 +410,8 @@ void Tileing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, const 
 //  {
 //    _publish_mesh_nth_iter++;
 //  }
+}
+
+uint32_t Tileing::getQueueDepth() {
+    return m_buffer.size();
 }

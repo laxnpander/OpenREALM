@@ -40,6 +40,21 @@ namespace realm
 {
 
 /*!
+ * @brief Structure to hold performance statistics for a stage.  This is mostly concerned with the state of the
+ * frame queue, processing time, and any overruns.
+ */
+struct StageStatistics {
+    float fps_in{};
+    float fps_out{};
+    uint32_t queue_depth{};
+    uint32_t frames_total{};
+    uint32_t frames_dropped{};
+    uint32_t frames_bad{};
+    Statistics queue_statistics{};
+    Statistics process_statistics{};
+};
+
+/*!
  * @brief Similiar to state of the art photogrammetry software REALM is designed as pipeline. The idea behind the
  * pipeline architecture is to break down the complex problem into several independent steps. Similiar to a conveyor
  * images are transported from one step (stage) to another doing all the possible processing work and then moving on.
@@ -100,6 +115,14 @@ class StageBase : public WorkerThreadBase
      * @param abs_path absolut path to the folder, in which subfolders of output data will be created by derived stage
      */
     void initStagePath(const std::string &abs_path);
+
+    /*!
+     * @brief Gets statistics on frame rates, queue sizes, processing times, and other useful information about the
+     * runtime status of the stage. For this to have data, the correct calls to update statistics must be made
+     * in the implemented module.
+     * @return A structure with the current stage statistics.
+     */
+    StageStatistics getStageStatistics();
 
     /*!
      * @brief Because REALM is independent from the communication infrastructure (e.g. ROS), a transport to the
@@ -176,12 +199,17 @@ class StageBase : public WorkerThreadBase
     uint32_t m_counter_frames_out;
     uint32_t m_t_statistics_period; // [seconds]
     Timer::Ptr m_timer_statistics_fps;
-    std::mutex m_mutex_statistics_fps;
 
     /*!
      * @brief Queue size of the added frames. Usually implemented as ringbuffer / fifo
      */
     int m_queue_size;
+
+    /*!
+     * @brief Statistics for the stage including processing time, queue depths, and other useful information
+     */
+    StageStatistics m_stage_statistics{};
+    std::mutex m_mutex_statistics;
 
     /*!
      * @brief Short name of the implemented stage. Should be written by derived classes
@@ -257,20 +285,37 @@ class StageBase : public WorkerThreadBase
     void setStatisticsPeriod(uint32_t s);
 
     /*!
-     * @brief Update function to be called by the derived class to update the incoming frame rate statistic.
+     * @brief Gets the current stage queue depth
      */
-    void updateFpsStatisticsIncoming();
+    virtual uint32_t getQueueDepth() = 0;
 
     /*!
-     * @brief Update function to be called by the derived class to update the outgoing frame rate statistic.
+     * @brief Update function to be called by the derived class to update the incoming statistics
      */
-    void updateFpsStatisticsOutgoing();
+    void updateStatisticsIncoming();
+
+    /*!
+     * @brief Update function to be called by the derived class to update statistics when a frame is skipped due to
+     * the queue filling up.
+     */
+    void updateStatisticsSkippedFrame();
+
+    /*!
+     * @brief Update function to be called by the derived class to update statistics when a frame is skipped due to bad
+     * or incomplete data
+     */
+    void updateStatisticsBadFrame();
+
+    /*!
+     * @brief Update function to be called by the derived class to update the outgoing statistics
+     */
+    void updateStatisticsOutgoing();
 
     /*
      * brief Gets triggered by _timer_statistics_fps every X seconds to read the incoming and outgoing number of frame
      * counters.
      */
-    void evaluateFpsStatistic();
+    void evaluateStatistic();
 };
 
 } // namespace realm
