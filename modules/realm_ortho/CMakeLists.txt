@@ -125,7 +125,7 @@ target_link_libraries(${LIBRARY_NAME}
         PUBLIC
             realm_core
             realm_io
-            ${CGAL_LIBRARIES}
+            CGAL
         PRIVATE
             ${OpenCV_LIBRARIES}
 )

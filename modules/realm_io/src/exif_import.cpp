@@ -171,7 +171,7 @@ bool io::Exiv2FrameReader::readMetaTagLatitude(Exiv2::ExifData &exif_data, Exiv2
       
       if (xmp_data[m_frame_tags.latituderef].toString(0) == "S")
       {
-	*latitude *= -1.0;
+	      *latitude *= -1.0;
       }
      
       return true;
@@ -189,7 +189,7 @@ bool io::Exiv2FrameReader::readMetaTagLatitude(Exiv2::ExifData &exif_data, Exiv2
 
       if (exif_data[m_frame_tags.latituderef].toString(0) == "S")
       {
-	*latitude *= -1.0;
+	      *latitude *= -1.0;
       }
       return true;
     }
@@ -212,7 +212,7 @@ bool io::Exiv2FrameReader::readMetaTagLongitude(Exiv2::ExifData &exif_data, Exiv
 
       if (xmp_data[m_frame_tags.longituderef].toString(0) == "W")
       {
-	*longitude *= -1.0;
+	      *longitude *= -1.0;
       }
       return true;
     }
@@ -229,7 +229,7 @@ bool io::Exiv2FrameReader::readMetaTagLongitude(Exiv2::ExifData &exif_data, Exiv
 
       if (exif_data[m_frame_tags.longituderef].toString(0) == "W")
       {
-	*longitude *= -1.0;
+	      *longitude *= -1.0;
       }
       return true;
     }

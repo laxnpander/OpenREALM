@@ -28,7 +28,7 @@ if [ "${CMAKE_VERSION_MINOR}" -le 9 ]; then
       esac
     done
 
-  elif [ $ARCH == "x86_64" ]
+  elif [ $ARCH == "x86_64" ]; then
     CMAKE_FILE="cmake-3.10.3-Linux-x86_64"
   fi
 
