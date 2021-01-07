@@ -60,7 +60,7 @@ class SurfaceGeneration : public StageBase
     bool m_is_projection_plane_offset_computed;
     double m_projection_plane_offset;
 
-    DigitalSurfaceModel::SurfaceNormalMode m_mode_surface_normals;
+    ortho::DigitalSurfaceModel::SurfaceNormalMode m_mode_surface_normals;
 
     SaveSettings m_settings_save;
 
@@ -86,8 +86,8 @@ class SurfaceGeneration : public StageBase
     double computeProjectionPlaneOffset(const Frame::Ptr &frame);
 
     SurfaceAssumption computeSurfaceAssumption(const Frame::Ptr &frame);
-    DigitalSurfaceModel::Ptr createPlanarSurface(const Frame::Ptr &frame);
-    DigitalSurfaceModel::Ptr createElevationSurface(const Frame::Ptr &frame);
+    ortho::DigitalSurfaceModel::Ptr createPlanarSurface(const Frame::Ptr &frame);
+    ortho::DigitalSurfaceModel::Ptr createElevationSurface(const Frame::Ptr &frame);
 };
 
 } // namespace stages
