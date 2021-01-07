@@ -143,7 +143,9 @@ void StageBase::updateStatisticsOutgoing()
         if (m_stage_statistics.queue_statistics.max > queue_depth) m_stage_statistics.queue_statistics.max = queue_depth;
     }
     m_stage_statistics.queue_statistics.count++;
-    m_stage_statistics.queue_statistics.avg = (m_stage_statistics.queue_statistics.avg + queue_depth) / 2.0;
+    m_stage_statistics.queue_statistics.avg =
+            m_stage_statistics.queue_statistics.avg + ((double)queue_depth - m_stage_statistics.queue_statistics.avg)
+            / (double)m_stage_statistics.queue_statistics.count;
 
 }
 

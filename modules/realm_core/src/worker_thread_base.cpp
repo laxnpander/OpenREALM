@@ -100,20 +100,21 @@ void WorkerThreadBase::run()
                m_verbose,
                "Timing [Total]: %lu ms",
                getCurrentTimeMilliseconds() - t);
+
+        // Only Update statistics for processing if we did work
+        std::unique_lock<std::mutex> stat_lock(m_mutex_statistics);
+        long timing = getCurrentTimeMilliseconds() - t;
+        if (m_process_statistics.count == 0) {
+            m_process_statistics.min = (double)timing;
+            m_process_statistics.max = (double)timing;
+        } else {
+            if (m_process_statistics.min > (double)timing) m_process_statistics.min = (double)timing;
+            if (m_process_statistics.max < (double)timing) m_process_statistics.max = (double)timing;
+        }
+        m_process_statistics.count++;
+        m_process_statistics.avg = m_process_statistics.avg + ((double)timing - m_process_statistics.avg) / (double)m_process_statistics.count;
     }
 
-    // Update statistics for processing
-    std::unique_lock<std::mutex> stat_lock(m_mutex_statistics);
-    long timing = getCurrentTimeMilliseconds() - t;
-    if (m_process_statistics.count == 0) {
-      m_process_statistics.min = (double)timing;
-      m_process_statistics.max = (double)timing;
-    } else {
-      if (m_process_statistics.min > (double)timing) m_process_statistics.min = (double)timing;
-      if (m_process_statistics.max < (double)timing) m_process_statistics.max = (double)timing;
-    }
-    m_process_statistics.count++;
-    m_process_statistics.avg = (m_process_statistics.avg + (double)timing) / 2.0;
   }
   LOG_IF_F(INFO, m_verbose, "Thread '%s' finished!", m_thread_name.c_str());
 }
