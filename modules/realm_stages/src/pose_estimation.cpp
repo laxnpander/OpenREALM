@@ -335,7 +335,10 @@ void PoseEstimation::initStageCallback()
 }
 
 uint32_t PoseEstimation::getQueueDepth() {
-    return (m_use_vslam ? m_buffer_no_pose.size() : m_buffer_do_publish.size());
+    // If no vslam is used, only the publish buffer has elements
+    // If vslam is in use, then frames can be added to no_pose as well as do_publish
+    // To get an accurate read of the backlog, it should include both elements.
+    return m_buffer_no_pose.size() + m_buffer_do_publish.size();
 }
 
 void PoseEstimation::printSettingsToLog()
