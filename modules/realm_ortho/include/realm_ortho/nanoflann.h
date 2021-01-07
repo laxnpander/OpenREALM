@@ -66,6 +66,8 @@
 #endif
 #endif
 
+namespace realm {
+namespace ortho {
 namespace nanoflann {
 /** @addtogroup nanoflann_grp nanoflann C++ library for ANN
   *  @{ */
@@ -1454,5 +1456,6 @@ struct KDTreeEigenMatrixAdaptor {
 
 /** @} */  // end of grouping
 }  // end of NS
-
+} // end of NS
+} // end of NS
 #endif /* NANOFLANN_H_ */

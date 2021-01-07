@@ -15,6 +15,8 @@
 #include <eigen3/Eigen/Core>
 #include <realm_ortho/nanoflann.h>
 
+namespace realm {
+namespace ortho {
 template <template <typename, typename> class Container, typename Type>
 struct AlignedType {
   typedef Container<Type, Eigen::aligned_allocator<Type> > type;
@@ -74,5 +76,6 @@ struct PointCloudAdaptor {
     return false;
   }
 };  // end of PointCloudAdaptor
-
+}
+}
 #endif  // NEAREST_NEIGHBOR_H_

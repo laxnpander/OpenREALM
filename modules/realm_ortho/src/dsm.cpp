@@ -22,7 +22,7 @@
 
 #include <opencv2/imgproc.hpp>
 
-using namespace realm;
+using namespace realm::ortho;
 
 DigitalSurfaceModel::DigitalSurfaceModel(const cv::Rect2d &roi, double elevation)
 : m_use_prior_normals(false),
@@ -248,7 +248,7 @@ void DigitalSurfaceModel::computeElevation(const cv::Mat &point_cloud)
     m_surface->add("elevation_normal", elevation_normal);
 }
 
-CvGridMap::Ptr DigitalSurfaceModel::getSurfaceGrid()
+realm::CvGridMap::Ptr DigitalSurfaceModel::getSurfaceGrid()
 {
   return m_surface;
 }
