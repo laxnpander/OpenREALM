@@ -10,6 +10,14 @@ Feel free to fork and contribute. Let's make mapping fast again! :)
 
 ## Changelog
 
+**01/2021: Licensing**
+
+Finally some good news for 2021: Most of the OpenREALM library will now be available under the LGPL license. Yay! This 
+allows commercial users to integrate our code base into their products without having the need to publish all 
+infrastructure around it. However, changes to the original code base have to be made available to all users. 
+
+Please note: If your are compiling with CUDA and consequently use the thirdparty PSL library, the whole code base becomes GPLv3!
+
 **09/2020: OpenVSLAM as default SLAM**
 
 As of today OpenREALM is relying on OpenVSLAM as default visual SLAM framework. The overall performance differences 
@@ -217,6 +225,16 @@ This script can be run from any folder in the host system. The Working Directory
 mounted in the docker. The dataset should ideally be kept in this same folder. Then change
 the path of the dataset in the launch file as described previously and run the test.
 
+## License
+
+Most of the code base is published under LGPL license. This basically includes all functionalities to create 2D maps.
+For 3D dense reconstruction however we rely on the thirdparty framework *Plane Sweep Library* by Christian Häne. It is
+published under GPLv3, which means the rest of the code base will automatically transition to GPLv3 as well if you compile
+it also.
+
+**TL/DR:**
+- Using OpenREALM for 2.5/3D maps with CUDA/PSL? -> **GPLv3**
+- Using OpenREALM for 2D maps without CUDA/PSL? -> **LGPL**
 
 ## References
 
