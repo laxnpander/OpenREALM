@@ -78,18 +78,18 @@ void WorkerThreadBase::run()
         if (isResetRequested())
         {
           reset();
-          LOG_IF_F(INFO, m_verbose, "Thread '%s' reseted!", m_thread_name.c_str());
+          LOG_IF_F(INFO, m_verbose, "Thread '%s' reset!", m_thread_name.c_str());
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(m_sleep_time));
       }
       LOG_IF_F(INFO, m_verbose, "Thread '%s' resumed to loop!", m_thread_name.c_str());
     }
 
-    // Check if reset was requested and execute if neccessary
+    // Check if reset was requested and execute if necessary
     if (isResetRequested())
     {
       reset();
-      LOG_IF_F(INFO, m_verbose, "Thread '%s' reseted!", m_thread_name.c_str());
+      LOG_IF_F(INFO, m_verbose, "Thread '%s' reset!", m_thread_name.c_str());
     }
 
     // Calls to derived classes implementation of process()

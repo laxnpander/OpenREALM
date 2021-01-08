@@ -85,6 +85,10 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
 
 PoseEstimation::~PoseEstimation()
 {
+  // Shut down VSlam worker threads
+  if (m_use_vslam) {
+      m_vslam->close();
+  }
   m_stage_publisher->requestFinish();
   m_stage_publisher->join();
 }
