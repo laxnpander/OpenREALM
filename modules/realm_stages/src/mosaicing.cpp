@@ -218,7 +218,7 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
   if (m_settings_save.save_elevation_obs_angle_all)
     io::saveImageColorMap((*m_global_map)["elevation_angle"], valid, m_stage_path + "/obs_angle", "angle", id, io::ColormapType::ELEVATION);
   if (m_settings_save.save_num_obs_all)
-    io::saveImageColorMap((*m_global_map)["num_observations"], valid, m_stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*m_global_map)["num_observations"], valid, m_stage_path + "/nobs", "nobs", id, io::ColormapType::NUM_OBS);
   if (m_settings_save.save_ortho_gtiff_all && m_gdal_writer != nullptr)
     m_gdal_writer->requestSaveGeoTIFF(std::make_shared<CvGridMap>(m_global_map->getSubmap({"color_rgb"})), m_utm_reference->zone, m_stage_path + "/ortho/ortho_iter.tif", true, m_settings_save.split_gtiff_channels);
 
@@ -244,7 +244,7 @@ void Mosaicing::saveAll()
   if (m_settings_save.save_elevation_obs_angle_one)
     io::saveImageColorMap((*m_global_map)["elevation_angle"], valid, m_stage_path + "/obs_angle", "angle", io::ColormapType::ELEVATION);
   if (m_settings_save.save_num_obs_one)
-    io::saveImageColorMap((*m_global_map)["num_observations"], valid, m_stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*m_global_map)["num_observations"], valid, m_stage_path + "/nobs", "nobs", io::ColormapType::NUM_OBS);
   if (m_settings_save.save_num_obs_one)
     io::saveGeoTIFF(m_global_map->getSubmap({"num_observations"}), m_utm_reference->zone, m_stage_path + "/nobs/nobs.tif");
   if (m_settings_save.save_ortho_gtiff_one)
@@ -417,9 +417,9 @@ void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, cons
   updateStatisticsOutgoing();
 
   m_transport_img((*m_global_map)["color_rgb"], "output/rgb");
-  m_transport_img(analysis::convertToColorMapFromCVFC1((*m_global_map)["elevation"],
-                                                       valid,
-                                                       cv::COLORMAP_JET), "output/elevation");
+  m_transport_img(analysis::convertToColorMapFromCVC1((*m_global_map)["elevation"],
+                                                      valid,
+                                                      cv::COLORMAP_JET), "output/elevation");
   m_transport_cvgridmap(update->getSubmap({"color_rgb"}), m_utm_reference->zone, m_utm_reference->band, "output/update/ortho");
   //_transport_cvgridmap(update->getSubmap({"elevation", "valid"}), _utm_reference->zone, _utm_reference->band, "output/update/elevation");
 

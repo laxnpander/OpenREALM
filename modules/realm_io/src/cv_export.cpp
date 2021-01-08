@@ -188,13 +188,14 @@ void saveImageColorMap(const cv::Mat &img, const cv::Mat &mask, const std::strin
   switch(flag)
   {
     case ColormapType::DEPTH:
-      map_colored = analysis::convertToColorMapFromCVFC1(img, mask, cv::COLORMAP_JET);
+      map_colored = analysis::convertToColorMapFromCVC1(img, mask, cv::COLORMAP_JET);
       break;
     case ColormapType::ELEVATION:
-      map_colored = analysis::convertToColorMapFromCVFC1(img, mask, cv::COLORMAP_JET);
+    case ColormapType::NUM_OBS:
+      map_colored = analysis::convertToColorMapFromCVC1(img, mask, cv::COLORMAP_JET);
       break;
     case ColormapType::NORMALS:
-      map_colored = analysis::convertToColorMapFromCVFC3(img, mask);
+      map_colored = analysis::convertToColorMapFromCVC3(img, mask);
       break;
   }
   cv::imwrite(filename, map_colored);

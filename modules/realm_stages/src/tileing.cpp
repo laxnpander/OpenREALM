@@ -393,7 +393,7 @@ void Tileing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, const 
   updateStatisticsOutgoing();
 
 //  _transport_img((*_global_map)["color_rgb"], "output/rgb");
-//  _transport_img(analysis::convertToColorMapFromCVFC1((*_global_map)["elevation"],
+//  _transport_img(analysis::convertToColorMapFromCVC1((*_global_map)["elevation"],
 //                                                      (*_global_map)["valid"],
 //                                                      cv::COLORMAP_JET), "output/elevation");
 //  _transport_cvgridmap(update->getSubmap({"color_rgb"}), _utm_reference->zone, _utm_reference->band,
