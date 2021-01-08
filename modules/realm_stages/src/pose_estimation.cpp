@@ -37,6 +37,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
       m_use_fallback(false),
       m_use_initial_guess((*stage_set)["use_initial_guess"].toInt() > 0),
       m_do_update_georef((*stage_set)["update_georef"].toInt() > 0),
+      m_do_delay_keyframes((*stage_set)["do_delay_keyframes"].toInt() > 0),
       m_do_suppress_outdated_pose_pub((*stage_set)["suppress_outdated_pose_pub"].toInt() > 0),
       m_th_error_georef((*stage_set)["th_error_georef"].toDouble()),
       m_overlap_max((*stage_set)["overlap_max"].toDouble()),
@@ -70,7 +71,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
   evaluateFallbackStrategy(m_strategy_fallback);
 
   // Create Pose Estimation publisher
-  m_stage_publisher.reset(new PoseEstimationIO(this, rate, true));
+  m_stage_publisher.reset(new PoseEstimationIO(this, rate, m_do_delay_keyframes));
   m_stage_publisher->start();
 
   // Creation of reference plane, currently only the one below is supported

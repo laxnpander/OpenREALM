@@ -50,6 +50,8 @@ class PoseEstimationSettings : public StageSettings
       add("fallback_strategy", Parameter_t<int>{0, "Strategy when to use the projection only fallback: 1 - Always, 2 - once orientation is calibrated, 3 - never"});
       add("use_initial_guess", Parameter_t<int>{0, "Flag can be set to 'false', then the initial guess of the pose is not being considered in the visual SLAM."});
       add("update_georef", Parameter_t<int>{0, "Flag can be set to 'false', then georeference will only be computed at initialization."});
+      add("do_delay_keyframes", Parameter_t<int>{0, "Flag to delay publishing of keyframes by the duration it takes for the georeference to initialize."
+                                                                           "This ensures higher pose and map point quality, as the frames are refined with consecutive frames."});
       add("suppress_outdated_pose_pub", Parameter_t<int>{0, "Flag to suppress publish of outdated poses after georeference computation."});
       add("th_error_georef", Parameter_t<double>{1.0, "Threshold of error for georeference until initialization is performed."});
       add("overlap_max", Parameter_t<double>{0.0, "Maximum overlap for all publishes, even keyframes"});

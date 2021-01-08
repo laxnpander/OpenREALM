@@ -102,6 +102,10 @@ class PoseEstimation : public StageBase
     // georeferencing results
     bool m_do_update_georef;
 
+    // Flag to delay keyframes by the duration it takes for the georeference to initialize. This ensure higher pose
+    // and map point quality, as every frame is refined with consecutive frames as well.
+    bool m_do_delay_keyframes;
+
     // Flag to suppress publish of outdated poses after initialization of georeference. Might be needed if visual pose
     // is fed to state estimation filters
     bool m_do_suppress_outdated_pose_pub;
