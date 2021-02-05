@@ -33,8 +33,8 @@ OpenVslam::OpenVslam(const VisualSlamSettings::Ptr &vslam_set, const CameraSetti
   settings["Camera.p2"] = (*cam_set)["p2"].toDouble();
   settings["Camera.k3"] = (*cam_set)["k3"].toDouble();
   settings["Camera.fps"] = (*cam_set)["fps"].toDouble();
-  settings["Camera.cols"] = (*cam_set)["width"].toInt() * m_resizing;
-  settings["Camera.rows"] = (*cam_set)["height"].toInt() * m_resizing;
+  settings["Camera.cols"] = static_cast<unsigned int>((*cam_set)["width"].toInt() * m_resizing);
+  settings["Camera.rows"] = static_cast<unsigned int>((*cam_set)["height"].toInt() * m_resizing);
   settings["Feature.max_num_keypoints"] = (*vslam_set)["nrof_features"].toInt();
   settings["Feature.scale_factor"] = (*vslam_set)["scale_factor"].toFloat();
   settings["Feature.ini_fast_threshold"] = (*vslam_set)["ini_th_FAST"].toInt();
