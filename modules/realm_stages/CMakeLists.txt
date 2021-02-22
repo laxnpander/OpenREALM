@@ -29,13 +29,19 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.3.1 EXACT QUIET)
-if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3 QUIET)
-endif()
-if (NOT OpenCV_FOUND)
-    find_package(OpenCV 4 REQUIRED)
-    message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
+if(IOS)
+    set(OpenCV_DIR /Users/zach/Source/quickstitch/apple_root/)
+    set(OpenCV_INCLUDE_DIRS /Users/zach/Source/quickstitch/apple_root/include)
+    message(WARNING "Using OpenCV Include: ${OpenCV_INCLUDE_DIRS}")
+else()
+    find_package(OpenCV 3.3.1 EXACT QUIET)
+    if (NOT OpenCV_FOUND)
+        find_package(OpenCV 3 QUIET)
+    endif()
+    if (NOT OpenCV_FOUND)
+        find_package(OpenCV 4 REQUIRED)
+        message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
+    endif()
 endif()
 
 
@@ -48,7 +54,7 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(HEADER_FILES
         include/realm_stages/conversions.h
-        include/realm_stages/densification.h
+#        include/realm_stages/densification.h
         include/realm_stages/mosaicing.h
         include/realm_stages/ortho_rectification.h
         include/realm_stages/pose_estimation.h
@@ -61,7 +67,7 @@ set(HEADER_FILES
 
 set(SOURCE_FILES
         src/conversions.cpp
-        src/densification.cpp
+#        src/densification.cpp
         src/mosaicing.cpp
         src/ortho_rectification.cpp
         src/pose_estimation.cpp
@@ -98,7 +104,7 @@ include_directories(
 
 )
 
-add_library(${LIBRARY_NAME} SHARED
+add_library(${LIBRARY_NAME} STATIC
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${FORM_HEADERS}
@@ -116,7 +122,7 @@ target_link_libraries(${LIBRARY_NAME}
             realm_core
             realm_io
             realm_vslam_base
-            realm_densifier_base
+#            realm_densifier_base
             realm_ortho
         PRIVATE
             ${OpenCV_LIBRARIES}

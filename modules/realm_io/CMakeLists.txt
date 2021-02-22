@@ -29,19 +29,27 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.3.1 EXACT QUIET)
-if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3 QUIET)
-endif()
-if (NOT OpenCV_FOUND)
-    find_package(OpenCV 4 REQUIRED)
-    message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
+if(IOS)
+    set(OpenCV_DIR /Users/zach/Source/quickstitch/apple_root/)
+    set(OpenCV_INCLUDE_DIRS /Users/zach/Source/quickstitch/apple_root/include)
+    message(WARNING "Using OpenCV Include: ${OpenCV_INCLUDE_DIRS}")
+else()
+    find_package(OpenCV 3.3.1 EXACT QUIET)
+    if (NOT OpenCV_FOUND)
+        find_package(OpenCV 3 QUIET)
+    endif()
+    if (NOT OpenCV_FOUND)
+        find_package(OpenCV 4 REQUIRED)
+        message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
+    endif()
 endif()
 
 find_package(Exiv2 REQUIRED)
 find_package(GDAL REQUIRED)
 find_package(PCL 1.7 REQUIRED)
+message(STATUS "############# PCL: ${PCL_FOUND}")
 list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
+
 find_package(Boost REQUIRED COMPONENTS
         filesystem
 )
@@ -105,11 +113,11 @@ include_directories(
         ${PCL_INCLUDE_DIRS}
         ${PCL_LIBRARY_DIRS}
         ${GDAL_INCLUDE_DIR}
-        ${Exiv2_INCLUDE_DIRS}
+#        ${Exiv2_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} SHARED
+add_library(${LIBRARY_NAME} STATIC
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${FORM_HEADERS}
@@ -128,10 +136,9 @@ target_link_libraries(${LIBRARY_NAME}
         PRIVATE
             ${OpenCV_LIBRARIES}
             ${GDAL_LIBRARY}
-            ${Exiv2_LIBRARIES}
+#            ${Exiv2_LIBRARIES}
             ${Boost_LIBRARIES}
             ${PCL_LIBRARIES}
-            -lexiv2
 )
 
 ################################################################################

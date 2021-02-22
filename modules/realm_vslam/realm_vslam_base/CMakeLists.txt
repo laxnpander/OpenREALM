@@ -31,22 +31,33 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 SET(VSLAM_IMPL_TYPE "OPEN_VSLAM")
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-find_package(OpenCV 3.3.1 EXACT QUIET)
-if (NOT OpenCV_FOUND)
-    find_package(OpenCV 3 QUIET)
-endif()
-if (NOT OpenCV_FOUND)
-    find_package(OpenCV 4 REQUIRED)
-    message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
+if(IOS)
+    set(OpenCV_DIR /Users/zach/Source/quickstitch/apple_root/)
+    set(OpenCV_INCLUDE_DIRS /Users/zach/Source/quickstitch/apple_root/include)
+    message(WARNING "Using OpenCV Include: ${OpenCV_INCLUDE_DIRS}")
+else()
+    find_package(OpenCV 3.3.1 EXACT QUIET)
+    if (NOT OpenCV_FOUND)
+        find_package(OpenCV 3 QUIET)
+    endif()
+    if (NOT OpenCV_FOUND)
+        find_package(OpenCV 4 REQUIRED)
+        message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
+    endif()
 endif()
 
 
-#fix to find eigen3
-find_package(Eigen3 QUIET)
-if(NOT Eigen3_FOUND)
-	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(Eigen3 REQUIRED eigen3)
-	set(Eigen3_INCLUDE_DIR ${Eigen3_INCLUDE_DIRS})
+# Solution to find Eigen3 with Saucy.
+if(IOS)
+    set(EIGEN3_INCLUDE_DIRS /Users/zach/Source/quickstitch/apple_root/include/eigen3)
+    set(EIGEN3_FOUND 1)
+else()
+    find_package(EIGEN3 QUIET)
+    if(NOT EIGEN3_FOUND)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(EIGEN3 REQUIRED eigen3)
+        set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
+    endif()
 endif()
 
 ################################################################################
@@ -65,8 +76,21 @@ if(${VSLAM_IMPL_TYPE} STREQUAL "ORB_SLAM3")
 	message(STATUS "Selected ORB SLAM 3 for visual pose estimation")
 
 elseif(${VSLAM_IMPL_TYPE} STREQUAL "OPEN_VSLAM")
-	set(VSLAM_IMPL_LIB openvslam)
-	set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
+	# Open VSLAM currently does not appear to set variables for the library
+	# and include location?  WTF, manual override here
+	find_package(openvslam REQUIRED)
+	set(openvslam_INCLUDE_DIR /Users/zach/Source/quickstitch/apple_root/include/openvslam)
+	set(openvslam_LIB /Users/zach/Source/quickstitch/apple_root/lib/libopenvslam.a)
+
+	get_cmake_property(_variableNames VARIABLES)
+	list (SORT _variableNames)
+	foreach (_variableName ${_variableNames})
+	    message(STATUS "${_variableName}=${${_variableName}}")
+	endforeach()
+
+	set(VSLAM_IMPL_LIB ${openvslam_LIB})
+	set(VSLAM_IMPL_LIB_HEADERS ${openvslam_INCLUDE_DIR})
+
 	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
 	set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
 	set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM" "-DUSE_DBOW2")
@@ -139,7 +163,7 @@ include_directories(
 		${realm_io_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} SHARED
+add_library(${LIBRARY_NAME} STATIC
 		${SOURCE_FILES}
 		${HEADER_FILES}
 		${FORM_HEADERS}
@@ -147,9 +171,10 @@ add_library(${LIBRARY_NAME} SHARED
 		${RESOURCES_RCC}
 )
 
+message(STATUS "json: ${CMAKE_SYSROOT}/include/openvslam/3rd/json/include #fix for missing target include of openvslam")
 target_include_directories(${LIBRARY_NAME} PUBLIC
-		/usr/include/eigen3	#fix for Eigen/Core not found
-		/usr/local/include/openvslam/3rd/json/include #fix for missing target include of openvslam
+		${EIGEN3_INCLUDE_DIRS}
+		${CMAKE_SYSROOT}/include/openvslam/3rd/json/include #fix for missing target include of openvslam
 )
 
 target_link_libraries(${LIBRARY_NAME}
