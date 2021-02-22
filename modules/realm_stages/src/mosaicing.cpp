@@ -31,7 +31,7 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       m_utm_reference(nullptr),
       m_global_map(nullptr),
-      m_mesher(nullptr),
+      //m_mesher(nullptr),
       m_gdal_writer(nullptr),
       m_publish_mesh_nth_iter(0),
       m_publish_mesh_every_nth_kf((*stage_set)["publish_mesh_every_nth_kf"].toInt()),
