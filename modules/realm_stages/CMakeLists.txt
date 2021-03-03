@@ -104,7 +104,7 @@ include_directories(
 
 )
 
-add_library(${LIBRARY_NAME} STATIC
+add_library(${LIBRARY_NAME}
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${FORM_HEADERS}

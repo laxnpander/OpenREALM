@@ -137,7 +137,7 @@ include_directories(
         ${realm_io_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} STATIC
+add_library(${LIBRARY_NAME}
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${FORM_HEADERS}

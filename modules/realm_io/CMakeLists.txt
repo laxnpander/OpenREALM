@@ -117,7 +117,7 @@ include_directories(
         ${Boost_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} STATIC
+add_library(${LIBRARY_NAME}
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${FORM_HEADERS}
@@ -136,7 +136,7 @@ target_link_libraries(${LIBRARY_NAME}
         PRIVATE
             ${OpenCV_LIBRARIES}
             ${GDAL_LIBRARY}
-#            ${Exiv2_LIBRARIES}
+            ${Exiv2_LIBRARIES}
             ${Boost_LIBRARIES}
             ${PCL_LIBRARIES}
 )

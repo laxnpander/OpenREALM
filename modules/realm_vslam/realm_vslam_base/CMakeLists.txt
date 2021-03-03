@@ -78,18 +78,12 @@ if(${VSLAM_IMPL_TYPE} STREQUAL "ORB_SLAM3")
 elseif(${VSLAM_IMPL_TYPE} STREQUAL "OPEN_VSLAM")
 	# Open VSLAM currently does not appear to set variables for the library
 	# and include location?  WTF, manual override here
-	find_package(openvslam REQUIRED)
-	set(openvslam_INCLUDE_DIR /Users/zach/Source/quickstitch/apple_root/include/openvslam)
-	set(openvslam_LIB /Users/zach/Source/quickstitch/apple_root/lib/libopenvslam.a)
+	#find_package(openvslam REQUIRED)
+	#set(openvslam_INCLUDE_DIR /Users/zach/Source/quickstitch/apple_root/include/openvslam)
+	#set(openvslam_LIB /Users/zach/Source/quickstitch/apple_root/lib/libopenvslam.a)
 
-	get_cmake_property(_variableNames VARIABLES)
-	list (SORT _variableNames)
-	foreach (_variableName ${_variableNames})
-	    message(STATUS "${_variableName}=${${_variableName}}")
-	endforeach()
-
-	set(VSLAM_IMPL_LIB ${openvslam_LIB})
-	set(VSLAM_IMPL_LIB_HEADERS ${openvslam_INCLUDE_DIR})
+	set(VSLAM_IMPL_LIB openvslam)
+	set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
 
 	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
 	set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
@@ -163,7 +157,7 @@ include_directories(
 		${realm_io_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} STATIC
+add_library(${LIBRARY_NAME}
 		${SOURCE_FILES}
 		${HEADER_FILES}
 		${FORM_HEADERS}
