@@ -54,28 +54,49 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(HEADER_FILES
         include/realm_stages/conversions.h
-#        include/realm_stages/densification.h
-        include/realm_stages/mosaicing.h
-        include/realm_stages/ortho_rectification.h
-        include/realm_stages/pose_estimation.h
         include/realm_stages/stage_base.h
         include/realm_stages/stage_settings.h
         include/realm_stages/stage_settings_factory.h
-        include/realm_stages/surface_generation.h
-        include/realm_stages/tileing.h
+
 )
 
 set(SOURCE_FILES
         src/conversions.cpp
-#        src/densification.cpp
-        src/mosaicing.cpp
-        src/ortho_rectification.cpp
-        src/pose_estimation.cpp
         src/stage_base.cpp
         src/stage_settings_factory.cpp
-        src/surface_generation.cpp
-        src/tileing.cpp
 )
+
+################################################################################
+# Options
+################################################################################
+
+if(WITH_densifier)
+    list(APPEND HEADER_FILES include/realm_stages/densification.h)
+    list(APPEND SOURCE_FILES src/densification.cpp)
+endif()
+
+if(WITH_ortho)
+    list(APPEND HEADER_FILES
+            include/realm_stages/ortho_rectification.h
+            include/realm_stages/surface_generation.h
+            include/realm_stages/mosaicing.h
+            include/realm_stages/tileing.h)
+    list(APPEND SOURCE_FILES
+            src/ortho_rectification.cpp
+            src/surface_generation.cpp
+            src/mosaicing.cpp
+            src/tileing.cpp)
+endif()
+
+if(WITH_ortho)
+    list(APPEND HEADER_FILES )
+    list(APPEND SOURCE_FILES )
+endif()
+
+if(WITH_vslam_base)
+    list(APPEND HEADER_FILES include/realm_stages/pose_estimation.h)
+    list(APPEND SOURCE_FILES src/pose_estimation.cpp)
+endif()
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})
@@ -121,13 +142,21 @@ target_link_libraries(${LIBRARY_NAME}
         PUBLIC
             realm_core
             realm_io
-            realm_vslam_base
-#            realm_densifier_base
-            realm_ortho
         PRIVATE
             ${OpenCV_LIBRARIES}
 )
 
+if(WITH_densifier)
+    target_link_libraries(${LIBRARY_NAME} PUBLIC realm_densifier_base)
+endif()
+
+if(WITH_ortho)
+    target_link_libraries(${LIBRARY_NAME} PUBLIC realm_ortho)
+endif()
+
+if(WITH_vslam_base)
+    target_link_libraries(${LIBRARY_NAME} PUBLIC realm_vslam_base)
+endif()
 
 ################################################################################
 # Install

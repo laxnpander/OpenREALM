@@ -22,12 +22,12 @@ cmake_minimum_required(VERSION 3.9)
 # Options
 ################################################################################
 
-option(WITH_core       "Enable/Disable building of core library"        ON)
-option(WITH_io         "Enable/Disable building of io library"          ON)
-option(WITH_densifier  "Enable/Disable building of densifier library"   ON)
-option(WITH_ortho      "Enable/Disable building of ortho library"       ON)
-option(WITH_stages     "Enable/Disable building of stages library"      ON)
-option(WITH_vslam_base "Enable/Disable building of vslam_base library"  ON)
+option(WITH_core       "Enable/Disable building of core library"          ON)
+option(WITH_io         "Enable/Disable building of io library"            ON)
+option(WITH_densifier  "Enable/Disable building of densifier library"     ON)
+option(WITH_ortho      "Enable/Disable building of ortho library"         ON)
+option(WITH_stages     "Enable/Disable building of stages library"        ON)
+option(WITH_vslam_base "Enable/Disable building of vslam_base library"    ON)
 
 ################################################################################
 # Add modules
