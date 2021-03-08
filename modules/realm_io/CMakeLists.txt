@@ -44,7 +44,6 @@ else()
     endif()
 endif()
 
-find_package(Exiv2 REQUIRED)
 find_package(GDAL REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
@@ -64,8 +63,6 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES
         ${root}/include/realm_io/cv_export.h
         ${root}/include/realm_io/cv_import.h
-        ${root}/include/realm_io/exif_export.h
-        ${root}/include/realm_io/exif_import.h
         ${root}/include/realm_io/gis_export.h
         ${root}/include/realm_io/gdal_continuous_writer.h
         ${root}/include/realm_io/pcl_export.h
@@ -77,8 +74,6 @@ set(HEADER_FILES
 set(SOURCE_FILES
         ${root}/src/cv_export.cpp
         ${root}/src/cv_import.cpp
-        ${root}/src/exif_export.cpp
-        ${root}/src/exif_import.cpp
         ${root}/src/gis_export.cpp
         ${root}/src/gdal_continuous_writer.cpp
         ${root}/src/pcl_export.cpp
@@ -86,6 +81,16 @@ set(SOURCE_FILES
         ${root}/src/realm_import.cpp
         ${root}/src/utilities.cpp
         include/realm_io/gdal_continuous_writer.h src/gdal_continuous_writer.cpp)
+
+# Conditionally add exif import/export to handle removing Exiv2 dependancy
+if (WITH_EXIV2)
+    list(APPEND HEADER_FILES
+            ${root}/include/realm_io/exif_export.h
+            ${root}/include/realm_io/exif_import.h)
+    list(APPEND SOURCE_FILES
+            ${root}/src/exif_export.cpp
+            ${root}/src/exif_import.cpp)
+endif()
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})
@@ -112,7 +117,6 @@ include_directories(
         ${PCL_INCLUDE_DIRS}
         ${PCL_LIBRARY_DIRS}
         ${GDAL_INCLUDE_DIR}
-#        ${Exiv2_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
 )
 
@@ -135,10 +139,28 @@ target_link_libraries(${LIBRARY_NAME}
         PRIVATE
             ${OpenCV_LIBRARIES}
             ${GDAL_LIBRARY}
-            ${Exiv2_LIBRARIES}
             ${Boost_LIBRARIES}
             ${PCL_LIBRARIES}
 )
+
+
+################################################################################
+# Options
+################################################################################
+
+# Optional Exiv2 file input support
+# We can disable this to avoid GPL licensing issues
+if(WITH_EXIV2)
+    find_package(Exiv2 REQUIRED)
+    add_compile_definitions(WITH_EXIV2)
+
+    include_directories(${Exiv2_INCLUDE_DIRS})
+    target_link_libraries(${LIBRARY_NAME}
+            PRIVATE
+            ${Exiv2_LIBRARIES})
+else()
+    message(STATUS "** WARNING ** Exiv2 Disabled.  Some I/O features will not be present.")
+endif()
 
 ################################################################################
 # Install

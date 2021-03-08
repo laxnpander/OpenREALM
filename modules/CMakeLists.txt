@@ -22,6 +22,10 @@ cmake_minimum_required(VERSION 3.9)
 # Options
 ################################################################################
 
+# Optional Libraries
+option(WITH_EXIV2      "Enable/Disable support for Exiv2 input libraries" ON)
+
+# Optional Modules
 option(WITH_core       "Enable/Disable building of core library"          ON)
 option(WITH_io         "Enable/Disable building of io library"            ON)
 option(WITH_densifier  "Enable/Disable building of densifier library"     ON)

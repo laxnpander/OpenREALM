@@ -32,7 +32,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 if(IOS)
     set(OpenCV_DIR /Users/zach/Source/quickstitch/apple_root/)
     set(OpenCV_INCLUDE_DIRS /Users/zach/Source/quickstitch/apple_root/include)
-    message(WARNING "Using OpenCV Include: ${OpenCV_INCLUDE_DIRS}")
+    message(STATUS "Using OpenCV Include: ${OpenCV_INCLUDE_DIRS}")
 else()
     find_package(OpenCV 3.3.1 EXACT QUIET)
     if (NOT OpenCV_FOUND)
@@ -70,6 +70,10 @@ set(SOURCE_FILES
 # Options
 ################################################################################
 
+if(WITH_EXIV2)
+    add_compile_definitions(WITH_EXIV2)
+endif()
+
 if(WITH_densifier)
     list(APPEND HEADER_FILES include/realm_stages/densification.h)
     list(APPEND SOURCE_FILES src/densification.cpp)
@@ -86,11 +90,6 @@ if(WITH_ortho)
             src/surface_generation.cpp
             src/mosaicing.cpp
             src/tileing.cpp)
-endif()
-
-if(WITH_ortho)
-    list(APPEND HEADER_FILES )
-    list(APPEND SOURCE_FILES )
 endif()
 
 if(WITH_vslam_base)

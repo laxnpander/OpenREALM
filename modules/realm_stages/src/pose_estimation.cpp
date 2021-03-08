@@ -632,13 +632,22 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
   m_stage_handle->m_transport_frame(frame, "output/frame");
   m_stage_handle->printGeoReferenceInfo(frame);
 
-  // Save image related data
+#ifdef WITH_EXIV2
+  // Save image related data only if Exiv2 is enabled
   if (m_stage_handle->m_settings_save.save_frames && !frame->isKeyframe())
     io::saveExifImage(frame, m_stage_handle->m_stage_path + "/frames", "frames", frame->getFrameId(), true);
   if (m_stage_handle->m_settings_save.save_keyframes && frame->isKeyframe())
     io::saveExifImage(frame, m_stage_handle->m_stage_path + "/keyframes", "keyframe", frame->getFrameId(), true);
   if (m_stage_handle->m_settings_save.save_keyframes_full && frame->isKeyframe())
     io::saveExifImage(frame, m_stage_handle->m_stage_path + "/keyframes_full", "keyframe_full", frame->getFrameId(), false);
+#else
+    if (m_stage_handle->m_settings_save.save_frames && !frame->isKeyframe())
+        LOG_F(WARNING, "Exiv2 Library required for save frames from pose_estimation!");
+    if (m_stage_handle->m_settings_save.save_keyframes && frame->isKeyframe())
+        LOG_F(WARNING, "Exiv2 Library required for save keyframes from pose_estimation!");
+    if (m_stage_handle->m_settings_save.save_keyframes_full && frame->isKeyframe())
+        LOG_F(WARNING, "Exiv2 Library required for save full keyframes from pose_estimation!");
+#endif
 }
 
 void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
