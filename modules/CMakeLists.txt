@@ -18,16 +18,51 @@
 
 cmake_minimum_required(VERSION 3.9)
 
+################################################################################
+# Options
+################################################################################
+
+option(WITH_core       "Enable/Disable building of core library"        ON)
+option(WITH_io         "Enable/Disable building of io library"          ON)
+option(WITH_densifier  "Enable/Disable building of densifier library"   ON)
+option(WITH_ortho      "Enable/Disable building of ortho library"       ON)
+option(WITH_stages     "Enable/Disable building of stages library"      ON)
+option(WITH_vslam_base "Enable/Disable building of vslam_base library"  ON)
 
 ################################################################################
 # Add modules
 ################################################################################
+set(BUILD_MODULES "")
 
+if(WITH_core)
+    list(APPEND BUILD_MODULES "core")
+    add_subdirectory(realm_core)
+endif()
 
-add_subdirectory(realm_core)
-add_subdirectory(realm_io)
-#add_subdirectory(realm_densifier/realm_densifier_impl/psl)
-#add_subdirectory(realm_densifier/realm_densifier_base)
-add_subdirectory(realm_ortho)
-add_subdirectory(realm_stages)
-add_subdirectory(realm_vslam/realm_vslam_base)
+if(WITH_io)
+    list(APPEND BUILD_MODULES "io")
+    add_subdirectory(realm_io)
+endif()
+
+if (WITH_densifier)
+    list(APPEND BUILD_MODULES "densifier")
+    add_subdirectory(realm_densifier/realm_densifier_impl/psl)
+    add_subdirectory(realm_densifier/realm_densifier_base)
+endif()
+
+if (WITH_ortho)
+    list(APPEND BUILD_MODULES "ortho")
+    add_subdirectory(realm_ortho)
+endif()
+
+if (WITH_stages)
+    list(APPEND BUILD_MODULES "stages")
+    add_subdirectory(realm_stages)
+endif()
+
+if (WITH_vslam_base)
+    list(APPEND BUILD_MODULES "vslam_base")
+    add_subdirectory(realm_vslam/realm_vslam_base)
+endif()
+
+message("-- With OpenREALM Modules: ${BUILD_MODULES}")

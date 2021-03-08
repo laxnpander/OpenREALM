@@ -125,13 +125,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # Add modules
 ################################################################################
 
-
-#add_subdirectory(apps)
-#add_subdirectory(data)
-#add_subdirectory(doc)
 add_subdirectory(modules)
-#add_subdirectory(samples)
-
 
 ################################################################################
 # Install
