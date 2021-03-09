@@ -65,15 +65,9 @@ if(${VSLAM_IMPL_TYPE} STREQUAL "ORB_SLAM3")
 	message(STATUS "Selected ORB SLAM 3 for visual pose estimation")
 
 elseif(${VSLAM_IMPL_TYPE} STREQUAL "OPEN_VSLAM")
-	# Open VSLAM currently does not appear to set variables for the library
-	# and include location?  WTF, manual override here
-	#find_package(openvslam REQUIRED)
-	#set(openvslam_INCLUDE_DIR /Users/zach/Source/quickstitch/apple_root/include/openvslam)
-	#set(openvslam_LIB /Users/zach/Source/quickstitch/apple_root/lib/libopenvslam.a)
-
-	set(VSLAM_IMPL_LIB openvslam)
+	find_package(openvslam REQUIRED)
+	set(VSLAM_IMPL_LIB openvslam::openvslam)
 	set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
-
 	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
 	set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
 	set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM" "-DUSE_DBOW2")
@@ -155,19 +149,13 @@ add_library(${LIBRARY_NAME}
 		${RESOURCES_RCC}
 )
 
-message(STATUS "json: ${CMAKE_SYSROOT}/include/openvslam/3rd/json/include #fix for missing target include of openvslam")
-target_include_directories(${LIBRARY_NAME} PUBLIC
-		${EIGEN3_INCLUDE_DIR}
-		${CMAKE_SYSROOT}/include/openvslam/3rd/json/include #fix for missing target include of openvslam
-)
-
 target_link_libraries(${LIBRARY_NAME}
 		PUBLIC
 			realm_core
 			realm_io
-		PRIVATE
-			${OpenCV_LIBRARIES}
 			${VSLAM_IMPL_LIB}
+		PRIVATE
+			${OpenCV_LIBRARIES}		
 )
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC ${VSLAM_IF_COMPILE_FLAG})

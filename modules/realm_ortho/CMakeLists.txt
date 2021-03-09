@@ -54,9 +54,9 @@ find_package(GDAL REQUIRED)
 ################################################################################
 # Optional Packages (LGPL / Other License Restrictions)
 ################################################################################
-option(ENABLE_CGAL "Enable CGAL support for Mesh generation" ON)
+option(WITH_CGAL "Enable CGAL support for Mesh generation" ON)
 set(CGAL_ENABLED FALSE)
-if(ENABLE_CGAL)
+if(WITH_CGAL)
     find_package(CGAL REQUIRED)
     if(CGAL_FOUND)
         set(CGAL_ENABLED TRUE)
