@@ -140,7 +140,7 @@ include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/include/psl
         ${OpenCV_INCLUDE_DIRS}
-        ${Eigen3_INCLUDE_DIRS}
+        ${Eigen3_INCLUDE_DIR}
         ${Boost_INCLUDE_DIRS}
 )
 

@@ -41,17 +41,14 @@ if (NOT OpenCV_FOUND)
 endif()
 
 # Solution to find Eigen3 with Saucy.
-if(IOS)
-    set(EIGEN_INCLUDE_DIR 3rdparty/eigen)
-else()
-    find_package(EIGEN3 QUIET)
-    if(NOT EIGEN3_FOUND)
-        find_package(PkgConfig REQUIRED)
-        pkg_check_modules(EIGEN3 REQUIRED eigen3)
-        set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
-    endif()
-    find_package(GDAL REQUIRED)
+find_package(EIGEN3 QUIET)
+if(NOT EIGEN3_FOUND)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(EIGEN3 REQUIRED eigen3)
+    set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
 endif()
+find_package(GDAL REQUIRED)
+
 
 
 ################################################################################
@@ -125,7 +122,7 @@ include_directories(
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
-        ${EIGEN3_INCLUDE_DIRS}
+        ${EIGEN3_INCLUDE_DIR}
         ${realm_core_INCLUDE_DIR}
         ${realm_io_INCLUDE_DIR}
 )

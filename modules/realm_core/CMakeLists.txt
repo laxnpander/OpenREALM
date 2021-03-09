@@ -115,7 +115,7 @@ include_directories(
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
-        ${EIGEN3_INCLUDE_DIRS}
+        ${EIGEN3_INCLUDE_DIR}
         ${GDAL_INCLUDE_DIR}
 )
 

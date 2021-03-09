@@ -42,16 +42,11 @@ endif()
 
 
 # Solution to find Eigen3 with Saucy.
-if(IOS)
-    set(EIGEN3_INCLUDE_DIRS /Users/zach/Source/quickstitch/apple_root/include/eigen3)
-    set(EIGEN3_FOUND 1)
-else()
-    find_package(EIGEN3 QUIET)
-    if(NOT EIGEN3_FOUND)
-        find_package(PkgConfig REQUIRED)
-        pkg_check_modules(EIGEN3 REQUIRED eigen3)
-        set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
-    endif()
+find_package(EIGEN3 QUIET)
+if(NOT EIGEN3_FOUND)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(EIGEN3 REQUIRED eigen3)
+    set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
 endif()
 
 ################################################################################
@@ -146,9 +141,10 @@ include_directories(
 		${CMAKE_BINARY_DIR}
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 		${OpenCV_INCLUDE_DIRS}
+		${EIGEN3_INCLUDE_DIR}
 		${VSLAM_IMPL_LIB_HEADERS}
 		${realm_core_INCLUDE_DIR}
-		${realm_io_INCLUDE_DIR}
+		${realm_io_INCLUDE_DIR}	
 )
 
 add_library(${LIBRARY_NAME}
@@ -161,7 +157,7 @@ add_library(${LIBRARY_NAME}
 
 message(STATUS "json: ${CMAKE_SYSROOT}/include/openvslam/3rd/json/include #fix for missing target include of openvslam")
 target_include_directories(${LIBRARY_NAME} PUBLIC
-		${EIGEN3_INCLUDE_DIRS}
+		${EIGEN3_INCLUDE_DIR}
 		${CMAKE_SYSROOT}/include/openvslam/3rd/json/include #fix for missing target include of openvslam
 )
 
