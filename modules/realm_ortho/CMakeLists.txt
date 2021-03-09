@@ -31,19 +31,13 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Fix to avoid OpenCV package confusion with ROS melodic
-if(IOS)
-    set(OpenCV_DIR /Users/zach/Source/quickstitch/apple_root/)
-    set(OpenCV_INCLUDE_DIRS /Users/zach/Source/quickstitch/apple_root/include)
-    message(WARNING "Using OpenCV Include: ${OpenCV_INCLUDE_DIRS}")
-else()
-    find_package(OpenCV 3.3.1 EXACT QUIET)
-    if (NOT OpenCV_FOUND)
-        find_package(OpenCV 3 QUIET)
-    endif()
-    if (NOT OpenCV_FOUND)
-        find_package(OpenCV 4 REQUIRED)
-        message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
-    endif()
+find_package(OpenCV 3.3.1 EXACT QUIET)
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 3 QUIET)
+endif()
+if (NOT OpenCV_FOUND)
+    find_package(OpenCV 4 REQUIRED)
+    message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
 endif()
 
 # Solution to find Eigen3 with Saucy.
@@ -132,7 +126,6 @@ include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIRS}
-
         ${realm_core_INCLUDE_DIR}
         ${realm_io_INCLUDE_DIR}
 )
