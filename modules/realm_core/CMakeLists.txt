@@ -65,6 +65,7 @@ set(HEADER_FILES
         ${root}/include/realm_core/depthmap.h
         ${root}/include/realm_core/enums.h
         ${root}/include/realm_core/frame.h
+        ${root}/include/realm_core/imu_settings.h
         ${root}/include/realm_core/inpaint.h
         ${root}/include/realm_core/loguru.h
         ${root}/include/realm_core/plane_fitter.h

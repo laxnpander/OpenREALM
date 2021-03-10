@@ -9,6 +9,7 @@
 #include <realm_stages/stage_settings.h>
 #include <realm_core/frame.h>
 #include <realm_core/camera_settings.h>
+#include <realm_core/imu_settings.h>
 #include <realm_core/structs.h>
 #include <realm_io/cv_export.h>
 #include <realm_io/realm_export.h>
@@ -56,6 +57,7 @@ class PoseEstimation : public StageBase
     PoseEstimation(const StageSettings::Ptr &stage_set,
                    const VisualSlamSettings::Ptr &vslam_set,
                    const CameraSettings::Ptr &cam_set,
+                   const ImuSettings::Ptr &imu_set,
                    double rate);
     ~PoseEstimation();
     void addFrame(const Frame::Ptr &frame) override;
@@ -70,6 +72,9 @@ class PoseEstimation : public StageBase
     // Flag to disable usage of visual slam. If Flag is set to 'false', then this stage
     // only works as image throttle according to the max overlap defined in the settings
     bool m_use_vslam;
+
+    // Flag to enable usage of IMU. Note, that a IMU settings file must be provided.
+    bool m_use_imu;
 
     // Flag to set all tracked frames as keyframes, consequently they are published in higher frequency for the next stage
     bool m_set_all_frames_keyframes;

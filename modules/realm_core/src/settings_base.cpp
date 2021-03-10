@@ -35,6 +35,11 @@ void SettingsBase::set(const std::string &key, const std::string &val)
   m_parameters[key]->m_string_container.value = val;
 }
 
+void SettingsBase::set(const std::string &key, const cv::Mat &val)
+{
+  m_parameters[key]->m_mat_container.value = val;
+}
+
 void SettingsBase::loadFromFile(const std::string &filepath)
 {
   cv::FileStorage fs(filepath, cv::FileStorage::READ);
@@ -42,9 +47,10 @@ void SettingsBase::loadFromFile(const std::string &filepath)
   {
     for (auto &param : m_parameters)
     {
-      if (param.second->m_type == SettingsBase::Variant::VariantType::INT) fs[param.first] >> param.second->m_int_container.value;
+      if (param.second->m_type == SettingsBase::Variant::VariantType::INT)    fs[param.first] >> param.second->m_int_container.value;
       if (param.second->m_type == SettingsBase::Variant::VariantType::DOUBLE) fs[param.first] >> param.second->m_double_container.value;
       if (param.second->m_type == SettingsBase::Variant::VariantType::STRING) fs[param.first] >> param.second->m_string_container.value;
+      if (param.second->m_type == SettingsBase::Variant::VariantType::MATRIX) fs[param.first] >> param.second->m_mat_container.value;
     }
   }
   else
@@ -65,9 +71,10 @@ void SettingsBase::print()
   std::cout.precision(6);
   for (auto &param : m_parameters)
   {
-    if (param.second->m_type == SettingsBase::Variant::VariantType::INT) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toInt() << std::endl;
+    if (param.second->m_type == SettingsBase::Variant::VariantType::INT)    std::cout << "\t<Param>[" << param.first << "]: " << param.second->toInt() << std::endl;
     if (param.second->m_type == SettingsBase::Variant::VariantType::DOUBLE) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toDouble() << std::endl;
     if (param.second->m_type == SettingsBase::Variant::VariantType::STRING) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toString() << std::endl;
+    if (param.second->m_type == SettingsBase::Variant::VariantType::MATRIX) std::cout << "\t<Param>[" << param.first << "]: " << param.second->toMat() << std::endl;
   }
 }
 
@@ -84,6 +91,11 @@ void SettingsBase::add(const std::string &key, const Parameter_t<double> &param)
 }
 
 void SettingsBase::add(const std::string &key, const Parameter_t<std::string> &param)
+{
+  m_parameters[key].reset(new Variant(param));
+}
+
+void SettingsBase::add(const std::string &key, const Parameter_t<cv::Mat> &param)
 {
   m_parameters[key].reset(new Variant(param));
 }

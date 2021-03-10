@@ -27,9 +27,6 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Dependencies
 ################################################################################
 
-
-SET(VSLAM_IMPL_TYPE "OPEN_VSLAM")
-
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)
 if (NOT OpenCV_FOUND)
@@ -55,40 +52,29 @@ endif()
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(${VSLAM_IMPL_TYPE} STREQUAL "ORB_SLAM3")
-	find_package(ORB_SLAM3 REQUIRED)
-	set(VSLAM_IMPL_LIB ORB_SLAM3)
-	set(VSLAM_IMPL_LIB_HEADERS ${ORB_SLAM3_INCLUDE_DIR})
-	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/orb_slam.h)
-	set(VSLAM_IF_SOURCES ${root}/src/orb_slam.cpp)
-	set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM3=ON")
-	message(STATUS "Selected ORB SLAM 3 for visual pose estimation")
+#find_package(ORB_SLAM3 REQUIRED)
+#set(VSLAM_IMPL_LIB ORB_SLAM3)
+#set(VSLAM_IMPL_LIB_HEADERS ${ORB_SLAM3_INCLUDE_DIR})
+#set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/orb_slam.h)
+#set(VSLAM_IF_SOURCES ${root}/src/orb_slam.cpp)
+#set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM3=ON")
+#message(STATUS "Selected ORB SLAM 3 for visual pose estimation")
 
-elseif(${VSLAM_IMPL_TYPE} STREQUAL "OPEN_VSLAM")
-	set(VSLAM_IMPL_LIB openvslam)
-	set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
-	set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
-	set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
-	set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM" "-DUSE_DBOW2")
-	message(STATUS "Selected OpenVSLAM for visual pose estimation")
+#set(VSLAM_IMPL_LIB openvslam)
+#set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
+#set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
+#set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
+#set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM" "-DUSE_DBOW2")
+#message(STATUS "Selected OpenVSLAM for visual pose estimation")
 
-	#ELSEIF(VSLAM_TYPE STREQUAL "SVO")
-	#	add_definitions(-DUSE_SVO)
-	#	SET(VSLAM_LIB svo)
-	#	SET(VSLAM_SRC "src/svo.cpp")
-	#ELSEIF(VSLAM_TYPE STREQUAL "SVO2")
-	#	add_definitions(-DUSE_SVO2)
-	#	SET(VSLAM_LIB svo)
-	#	SET(VSLAM_SRC "src/svo2.cpp")
-	#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall -D_LINUX -D_REENTRANT -march=native -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unknown-pragmas")
-	#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmmx -msse -msse -msse2 -msse3 -mssse3 -mno-avx")
-	#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-	#	SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -fno-signed-zeros -fno-math-errno -funroll-loops -ffast-math -fno-finite-math-only")
-	#ELSEIF(VSLAM_TYPE STREQUAL "DSO")
-	#	add_definitions(-DUSE_DSO)
-	#	SET(VSLAM_LIB dso)
-	#	SET(VSLAM_SRC "src/dso.cpp")
-endif()
+find_package(ov2slam REQUIRED)
+set(VSLAM_IMPL_LIB ov2slam)
+set(VSLAM_IMPL_LIB_HEADERS ${ov2slam_INCLUDE_DIR})
+set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/ov2_slam.h)
+set(VSLAM_IF_SOURCES ${root}/src/ov2_slam.cpp)
+set(VSLAM_IF_COMPILE_FLAG "-DUSE_OV2SLAM=ON")
+message(STATUS "Selected ov2slam for visual pose estimation")
+
 
 set(HEADER_FILES
 		${root}/include/realm_vslam_base/dummy_referencer.h
@@ -157,8 +143,8 @@ target_link_libraries(${LIBRARY_NAME}
 			realm_core
 			realm_io
 		PRIVATE
-			${OpenCV_LIBRARIES}
 			${VSLAM_IMPL_LIB}
+			${OpenCV_LIBRARIES}
 )
 
 target_compile_definitions(${LIBRARY_NAME} PUBLIC ${VSLAM_IF_COMPILE_FLAG})

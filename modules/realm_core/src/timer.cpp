@@ -35,3 +35,17 @@ long Timer::getCurrentTimeMilliseconds()
   milliseconds ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
   return ms.count();
 }
+
+long Timer::getCurrentTimeMicroseconds()
+{
+  using namespace std::chrono;
+  microseconds ms = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+  return ms.count();
+}
+
+long Timer::getCurrentTimeNanoseconds()
+{
+  using namespace std::chrono;
+  nanoseconds ns = duration_cast<nanoseconds>(system_clock::now().time_since_epoch());
+  return ns.count();
+}

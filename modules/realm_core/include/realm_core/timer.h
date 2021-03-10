@@ -21,6 +21,8 @@ namespace realm {
         ~Timer();
 
         static long getCurrentTimeMilliseconds();
+        static long getCurrentTimeMicroseconds();
+        static long getCurrentTimeNanoseconds();
 
     private:
         std::chrono::milliseconds m_period;

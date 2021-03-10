@@ -5,18 +5,18 @@
 
 using namespace realm;
 
-OrbSlam::OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set)
-: _prev_keyid(-1),
-  _resizing((*vslam_set)["resizing"].toDouble()),
-  _timestamp_reference(0),
-  _path_vocabulary((*vslam_set)["path_vocabulary"].toString())
+OrbSlam::OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set, const ImuSettings::Ptr &imu_set)
+: m_prev_keyid(-1),
+  m_resizing((*vslam_set)["resizing"].toDouble()),
+  m_timestamp_reference(0),
+  m_path_vocabulary((*vslam_set)["path_vocabulary"].toString())
 {
   // Read the settings files
   cv::Mat K_32f = cv::Mat::eye(3, 3, CV_32F);
-  K_32f.at<float>(0, 0) = (*cam_set)["fx"].toFloat() * static_cast<float>(_resizing);
-  K_32f.at<float>(1, 1) = (*cam_set)["fy"].toFloat() * static_cast<float>(_resizing);
-  K_32f.at<float>(0, 2) = (*cam_set)["cx"].toFloat() * static_cast<float>(_resizing);
-  K_32f.at<float>(1, 2) = (*cam_set)["cy"].toFloat() * static_cast<float>(_resizing);
+  K_32f.at<float>(0, 0) = (*cam_set)["fx"].toFloat() * static_cast<float>(m_resizing);
+  K_32f.at<float>(1, 1) = (*cam_set)["fy"].toFloat() * static_cast<float>(m_resizing);
+  K_32f.at<float>(0, 2) = (*cam_set)["cx"].toFloat() * static_cast<float>(m_resizing);
+  K_32f.at<float>(1, 2) = (*cam_set)["cy"].toFloat() * static_cast<float>(m_resizing);
 
   cv::Mat dist_coeffs_32f = cv::Mat::zeros(1, 5, CV_32F);
   dist_coeffs_32f.at<float>(0) = (*cam_set)["k1"].toFloat();
@@ -41,8 +41,22 @@ OrbSlam::OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   orb.iniThFast   = (*vslam_set)["ini_th_FAST"].toInt();
 
   ORB_SLAM3::ImuParameters imu{};
+  if (imu_set != nullptr)
+  {
+    LOG_F(INFO, "Detected IMU settings. Loading ORB SLAM3 with IMU support.");
 
-  _slam = new ORB_SLAM3::System(_path_vocabulary, cam, imu, orb, ORB_SLAM3::System::MONOCULAR);
+    imu.accelWalk  = (*imu_set)["gyro_noise_density"].toFloat();
+    imu.gyroWalk   = (*imu_set)["gyro_bias_random_walk_noise_density"].toFloat();
+    imu.noiseAccel = (*imu_set)["acc_noise_density"].toFloat();
+    imu.noiseGyro  = (*imu_set)["acc_bias_random_walk_noise_density"].toFloat();
+    imu.Tbc        = (*imu_set)["T_cam_imu"].toMat();
+    imu.freq       = (*imu_set)["freq"].toFloat();
+  }
+
+  if (imu_set != nullptr)
+    m_slam = new ORB_SLAM3::System(m_path_vocabulary, cam, imu, orb, ORB_SLAM3::System::IMU_MONOCULAR);
+  else
+    m_slam = new ORB_SLAM3::System(m_path_vocabulary, cam, imu, orb, ORB_SLAM3::System::MONOCULAR);
 
   //namespace ph = std::placeholders;
   //std::function<void(ORB_SLAM2::KeyFrame*)> kf_update = std::bind(&OrbSlam::keyframeUpdateCb, this, ph::_1);
@@ -51,22 +65,32 @@ OrbSlam::OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
 
 OrbSlam::~OrbSlam()
 {
-  _slam->Shutdown();
-  delete _slam;
+  m_slam->Shutdown();
+  delete m_slam;
+}
+
+void OrbSlam::queueImuData(const ImuData &data)
+{
+  m_imu_queue.emplace_back(
+      ORB_SLAM3::IMU::Point(static_cast<float>(data.acceleration.x), static_cast<float>(data.acceleration.y), static_cast<float>(data.acceleration.z),
+                            static_cast<float>(data.gyroscope.x),    static_cast<float>(data.gyroscope.y),    static_cast<float>(data.gyroscope.z),
+                            data.timestamp/10e9)
+      );
+  std::cout << "IMU data received: " << m_imu_queue.back().a << ", " << m_imu_queue.back().w << std::endl;
 }
 
 VisualSlamIF::State OrbSlam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial)
 {
-  if (_timestamp_reference == 0)
+  if (m_timestamp_reference == 0)
   {
-    _timestamp_reference = frame->getTimestamp();
+    m_timestamp_reference = frame->getTimestamp();
     return State::LOST;
   }
 
   // Set image resizing accoring to settings
-  frame->setImageResizeFactor(_resizing);
+  frame->setImageResizeFactor(m_resizing);
 
-  double timestamp = static_cast<double>(frame->getTimestamp() - _timestamp_reference)/10e9;
+  double timestamp = static_cast<double>(frame->getTimestamp() - m_timestamp_reference)/10e9;
   LOG_IF_F(INFO, true, "Time elapsed since first frame: %4.2f [s]", timestamp);
 
   // ORB SLAM returns a transformation from the world to the camera frame (T_w2c). In case we provide an initial guess
@@ -75,14 +99,17 @@ VisualSlamIF::State OrbSlam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
   cv::Mat T_w2c;
   if (T_c2w_initial.empty())
   {
-    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), timestamp);
+    T_w2c = m_slam->TrackMonocular(frame->getResizedImageRaw(), timestamp, m_imu_queue);
+
   }
   else
   {
     cv::Mat T_w2c_initial = invertPose(T_c2w_initial);
     T_w2c_initial.convertTo(T_w2c_initial, CV_32F);
-    T_w2c = _slam->TrackMonocular(frame->getResizedImageRaw(), timestamp, T_w2c_initial);
+    T_w2c = m_slam->TrackMonocular(frame->getResizedImageRaw(), timestamp, T_w2c_initial);
   }
+
+  m_imu_queue.clear();
 
   // In case tracking was successfull and slam not lost
   if (!T_w2c.empty())
@@ -104,18 +131,18 @@ VisualSlamIF::State OrbSlam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
     frame->setSparseCloud(surface_pts, true);
 
     // Check if new frame is keyframe by comparing current keyid with last keyid
-    auto keyid = static_cast<int32_t>(_slam->GetLastKeyFrameId());
+    auto keyid = static_cast<int32_t>(m_slam->GetLastKeyFrameId());
 
     // Check current state of the slam
-    if (_prev_keyid == -1)
+    if (m_prev_keyid == -1)
     {
-      _prev_keyid = keyid;
+      m_prev_keyid = keyid;
       return State::INITIALIZED;
     }
-    else if (_prev_keyid != keyid)
+    else if (m_prev_keyid != keyid)
     {
-      _prev_keyid = keyid;
-      _orb_to_frame_ids.insert({keyid, frame->getFrameId()});
+      m_prev_keyid = keyid;
+      m_orb_to_frame_ids.insert({keyid, frame->getFrameId()});
       return State::KEYFRAME_INSERT;
     }
     else
@@ -128,20 +155,20 @@ VisualSlamIF::State OrbSlam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
 
 void OrbSlam::reset()
 {
-  _slam->Reset();
-  _timestamp_reference = 0;
+  m_slam->Reset();
+  m_timestamp_reference = 0;
 }
 
 void OrbSlam::close()
 {
-  _slam->Shutdown();
+  m_slam->Shutdown();
 }
 
 cv::Mat OrbSlam::getTrackedMapPoints() const
 {
   std::vector<ORB_SLAM3::MapPoint*> mappoints;
 
-  mappoints = _slam->GetTrackedMapPoints();
+  mappoints = m_slam->GetTrackedMapPoints();
 
   size_t n = mappoints.size();
 
@@ -159,20 +186,15 @@ cv::Mat OrbSlam::getTrackedMapPoints() const
   return cvpoints;
 }
 
-cv::Mat OrbSlam::getMapPoints() const
-{
-
-}
-
 bool OrbSlam::drawTrackedImage(cv::Mat &img) const
 {
-  img = _slam->DrawTrackedImage();
+  img = m_slam->DrawTrackedImage();
   return true;
 }
 
 void OrbSlam::registerUpdateTransport(const PoseUpdateFuncCb &func)
 {
-  _pose_update_func_cb = func;
+  m_pose_update_func_cb = func;
 }
 
 void OrbSlam::registerResetCallback(const ResetFuncCb &func)
@@ -185,7 +207,7 @@ void OrbSlam::registerResetCallback(const ResetFuncCb &func)
 
 void OrbSlam::keyframeUpdateCb(ORB_SLAM3::KeyFrame* kf)
 {
-  if (kf != nullptr && _pose_update_func_cb)
+  if (kf != nullptr && m_pose_update_func_cb)
   {
     auto id = (uint32_t) kf->mnFrameId;
 
@@ -205,7 +227,7 @@ void OrbSlam::keyframeUpdateCb(ORB_SLAM3::KeyFrame* kf)
     points.convertTo(points, CV_64F);
 
     // Transport to update function
-    _pose_update_func_cb(_orb_to_frame_ids[id], T_c2w, points);
+    m_pose_update_func_cb(m_orb_to_frame_ids[id], T_c2w, points);
   }
 }
 
@@ -222,8 +244,8 @@ cv::Mat OrbSlam::invertPose(const cv::Mat &pose) const
 void OrbSlam::printSettingsToLog()
 {
   LOG_F(INFO, "### OrbSlam2 general settings ###");
-  LOG_F(INFO, "- use_viewer: %i", _use_viewer);
-  LOG_F(INFO, "- resizing: %4.2f", _resizing);
-  LOG_F(INFO, "- path settings: %s", _path_settings.c_str());
-  LOG_F(INFO, "- path vocabulary: %s", _path_vocabulary.c_str());
+  LOG_F(INFO, "- use_viewer: %i", m_use_viewer);
+  LOG_F(INFO, "- resizing: %4.2f", m_resizing);
+  LOG_F(INFO, "- path settings: %s", m_path_settings.c_str());
+  LOG_F(INFO, "- path vocabulary: %s", m_path_vocabulary.c_str());
 }

@@ -10,10 +10,12 @@ using namespace stages;
 PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                                const VisualSlamSettings::Ptr &vslam_set,
                                const CameraSettings::Ptr &cam_set,
+                               const ImuSettings::Ptr &imu_set,
                                double rate)
     : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       m_is_georef_initialized(false),
       m_use_vslam((*stage_set)["use_vslam"].toInt() > 0),
+      m_use_imu((*stage_set)["use_imu"].toInt() > 0),
       m_set_all_frames_keyframes((*stage_set)["set_all_frames_keyframes"].toInt() > 0),
       m_strategy_fallback(PoseEstimation::FallbackStrategy((*stage_set)["fallback_strategy"].toInt())),
       m_use_fallback(false),
@@ -34,7 +36,14 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
 
   if (m_use_vslam)
   {
-    m_vslam = VisualSlamFactory::create(vslam_set, cam_set);
+    if (m_use_imu)
+    {
+      if (imu_set == nullptr)
+        throw(std::runtime_error("Error creating SLAM with IMU support. No IMU settings provided!"));
+      m_vslam = VisualSlamFactory::create(vslam_set, cam_set, imu_set);
+    }
+    else
+      m_vslam = VisualSlamFactory::create(vslam_set, cam_set);
 
     // Set reset callback from vSLAM to this node
     // therefore if SLAM resets itself, node is being informed
@@ -613,7 +622,7 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
 {
   long t_world = getCurrentTimeMilliseconds();       // millisec
-  uint64_t t_frame = frame->getTimestamp()/1000000;  // millisec
+  uint64_t t_frame = frame->getTimestamp()/10e6;  // millisec
 
   // Check if either first measurement ever (does not have to be keyframe)
   // Or if first keyframe
@@ -633,7 +642,7 @@ void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
 
   // Time until schedule
   long t_remain = ((long)dt) - (getCurrentTimeMilliseconds() - m_t_ref.first);
-  LOG_F(INFO, "Scheduled publish frame #%u in %4.2fs", frame->getFrameId(), (double)t_remain/1000);
+  LOG_F(INFO, "Scheduled publish frame #%u in %4.2fs", frame->getFrameId(), (double)t_remain/10e3);
 }
 
 void PoseEstimationIO::publishScheduled()

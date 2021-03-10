@@ -58,13 +58,15 @@ class SettingsBase
       {
         INT,
         DOUBLE,
-        STRING
+        STRING,
+        MATRIX
       };
       using Ptr = std::unique_ptr<Variant>;
     public:
-      explicit Variant(const Parameter_t<int> &p) : m_type(VariantType::INT), m_int_container(p) {};
-      explicit Variant(const Parameter_t<double> &p) : m_type(VariantType::DOUBLE), m_double_container(p) {};
+      explicit Variant(const Parameter_t<int> &p)         : m_type(VariantType::INT),    m_int_container(p)    {};
+      explicit Variant(const Parameter_t<double> &p)      : m_type(VariantType::DOUBLE), m_double_container(p) {};
       explicit Variant(const Parameter_t<std::string> &p) : m_type(VariantType::STRING), m_string_container(p) {};
+      explicit Variant(const Parameter_t<cv::Mat> &p)     : m_type(VariantType::MATRIX), m_mat_container(p)    {};
 
       int toInt() const
       {
@@ -95,14 +97,21 @@ class SettingsBase
         if (m_type == VariantType::INT) return std::to_string(m_int_container.value);
         if (m_type == VariantType::DOUBLE) return std::to_string(m_double_container.value);
         if (m_type == VariantType::STRING) return m_string_container.value;
-        return m_string_container.value;
+        throw(std::bad_cast());
+      }
+
+      cv::Mat toMat() const
+      {
+        if (m_type != VariantType::MATRIX) throw(std::bad_cast());
+        return m_mat_container.value;
       }
 
       std::string help() const
       {
-        if (m_type == VariantType::INT) return m_int_container.help;
+        if (m_type == VariantType::INT)    return m_int_container.help;
         if (m_type == VariantType::DOUBLE) return m_double_container.help;
         if (m_type == VariantType::STRING) return m_string_container.help;
+        if (m_type == VariantType::MATRIX) return m_mat_container.help;
         return m_string_container.help;
       }
 
@@ -111,6 +120,7 @@ class SettingsBase
       Parameter_t<std::string> m_string_container;
       Parameter_t<double> m_double_container;
       Parameter_t<int> m_int_container;
+      Parameter_t<cv::Mat> m_mat_container;
     };
 
   public:
@@ -139,6 +149,13 @@ class SettingsBase
      * @param val Value to be assigned to the parameter of name "param_name"
      */
     void set(const std::string &key, const std::string &val);
+
+  /*!
+   * @brief Overloaded function to set a parameter of type cv::Mat
+   * @param key Parameter name to be set
+   * @param val Value to be assigned to the parameter of name "param_name"
+   */
+  void set(const std::string &key, const cv::Mat &val);
 
     /*!
      * @brief Basic functionality to load the settings from a .yaml file. For every parameter that was added in the
@@ -205,6 +222,14 @@ class SettingsBase
      * @param param String parameter containing value and description
      */
     void add(const std::string &key, const Parameter_t<std::string> &param);
+
+  /*!
+   * @brief Add functionality for derived class to customize the settings. Can not be called from outside, to force
+   *        explicit definition.
+   * @param key Name of the parameter to be added
+   * @param param String parameter containing value and description
+   */
+  void add(const std::string &key, const Parameter_t<cv::Mat> &param);
 
   private:
 

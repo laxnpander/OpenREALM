@@ -8,6 +8,7 @@
 
 #include <realm_core/frame.h>
 #include <realm_core/structs.h>
+#include <realm_core/imu_settings.h>
 #include <realm_core/camera_settings.h>
 #include <realm_vslam_base/visual_slam_IF.h>
 #include <realm_vslam_base/visual_slam_settings.h>
@@ -25,7 +26,7 @@ class OrbSlam : public VisualSlamIF
 {
   public:
     // Construction
-    OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set);
+    OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set, const ImuSettings::Ptr &imu_set = nullptr);
     ~OrbSlam();
 
     // Process
@@ -33,8 +34,9 @@ class OrbSlam : public VisualSlamIF
     void close() override;
     void reset() override;
 
+    void queueImuData(const ImuData &data) override;
+
     // Getter
-    cv::Mat getMapPoints() const override;
     cv::Mat getTrackedMapPoints() const override;
     bool drawTrackedImage(cv::Mat &) const override;
 
@@ -56,6 +58,8 @@ class OrbSlam : public VisualSlamIF
     std::string m_path_settings;
     std::string m_path_vocabulary;
     cv::FileStorage m_settings_file;
+
+    std::vector<ORB_SLAM3::IMU::Point> m_imu_queue;
 
 
     // Map of orbslam inserted keyframe ids to realm frames

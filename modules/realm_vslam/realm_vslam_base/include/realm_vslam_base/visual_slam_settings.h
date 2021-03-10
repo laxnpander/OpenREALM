@@ -85,6 +85,53 @@ public:
   }
 };
 
+class Ov2SlamSettings : public VisualSlamSettings
+{
+public:
+  Ov2SlamSettings()
+  {
+    add("force_realtime", Parameter_t<int>{0, ""});
+    add("use_shi_tomasi", Parameter_t<int>{0, ""});
+    add("use_brief", Parameter_t<int>{0, ""});
+    add("use_fast", Parameter_t<int>{0, ""});
+    add("use_singlescale_detector", Parameter_t<int>{0, ""});
+    add("nmax_dist", Parameter_t<int>{0, ""});
+    add("nfast_th", Parameter_t<int>{0, ""});
+    add("use_clahe", Parameter_t<int>{0, ""});
+    add("do_klt", Parameter_t<int>{0, ""});
+    add("klt_use_prior", Parameter_t<int>{0, ""});
+    add("btrack_keyframetoframe", Parameter_t<int>{0, ""});
+    add("nklt_win_size", Parameter_t<int>{0, ""});
+    add("nklt_pyr_lvl", Parameter_t<int>{0, ""});
+    add("nmax_iter", Parameter_t<int>{0, ""});
+    add("nklt_err", Parameter_t<int>{0, ""});
+    add("bdo_track_localmap", Parameter_t<int>{0, ""});
+    add("do_epipolar", Parameter_t<int>{0, ""});
+    add("do_p3p", Parameter_t<int>{0, ""});
+    add("do_random", Parameter_t<int>{0, ""});
+    add("nransac_iter", Parameter_t<int>{0, ""});
+    add("use_sparse_schur", Parameter_t<int>{0, ""});
+    add("use_dogleg", Parameter_t<int>{0, ""});
+    add("use_subspace_dogleg", Parameter_t<int>{0, ""});
+    add("use_nonmonotic_step", Parameter_t<int>{0, ""});
+    add("apply_l2_after_robust", Parameter_t<int>{0, ""});
+    add("nmin_covscore", Parameter_t<int>{0, ""});
+    add("do_full_ba", Parameter_t<int>{0, ""});
+    add("alpha", Parameter_t<double>{0.0, ""});
+    add("dmax_quality", Parameter_t<double>{0.0, ""});
+    add("finit_parallax", Parameter_t<double>{0.0, ""});
+    add("fclahe_val", Parameter_t<double>{0.0, ""});
+    add("fmax_px_precision", Parameter_t<double>{0.0, ""});
+    add("fmax_fbklt_dist", Parameter_t<double>{0.0, ""});
+    add("fmax_desc_dist", Parameter_t<double>{0.0, ""});
+    add("fmax_proj_pxdist", Parameter_t<double>{0.0, ""});
+    add("fmax_reproj_err", Parameter_t<double>{0.0, ""});
+    add("robust_mono_th", Parameter_t<double>{0.0, ""});
+    add("fkf_filtering_ratio", Parameter_t<double>{0.0, ""});
+    add("fransac_err", Parameter_t<double>{0.0, ""});
+  }
+};
+
 } // namespace realm
 
 #endif //PROJECT_VISUAL_SLAM_SETTINGS_H

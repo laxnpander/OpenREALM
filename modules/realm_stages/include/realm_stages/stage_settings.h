@@ -28,6 +28,7 @@ class PoseEstimationSettings : public StageSettings
     PoseEstimationSettings()
     {
       add("use_vslam", Parameter_t<int>{0, "Flag can be set to 'false', then this stage only works as image stream throttle depending on the max overlap."});
+      add("use_imu", Parameter_t<int>{0, "Flag to activate usage of IMU. Settings file for IMU parameters must be provided in the profile."});
       add("set_all_frames_keyframes", Parameter_t<int>{0, "Flag to set all tracked frames to being keyframes."});
       add("fallback_strategy", Parameter_t<int>{0, "Strategy when to use the projection only fallback: 1 - Always, 2 - once orientation is calibrated, 3 - never"});
       add("use_initial_guess", Parameter_t<int>{0, "Flag can be set to 'false', then the initial guess of the pose is not being considered in the visual SLAM."});

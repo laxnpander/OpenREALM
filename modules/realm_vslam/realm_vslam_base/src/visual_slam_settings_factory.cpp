@@ -18,6 +18,8 @@ VisualSlamSettings::Ptr VisualSlamSettingsFactory::load(const std::string &filep
     return loadDefault<Svo2Settings>(filepath, directory);
   if (method == "DSO")
     return loadDefault<DsoSettings>(filepath, directory);
+  if (method == "OV2SLAM")
+    return loadDefault<Ov2SlamSettings>(filepath, directory);
   throw (std::invalid_argument("Error: Loading visual slam settings failed. Method '" + method + "' not recognized"));
 }
 
