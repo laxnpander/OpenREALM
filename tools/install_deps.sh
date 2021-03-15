@@ -15,7 +15,7 @@ if [ "${CMAKE_VERSION_MINOR}" -le 9 ]; then
 
   echo 'CMake Version is too old! Trying to download newer version '
 
-  if [ $ARCH == "aarch64" ]
+  if [ $ARCH == "aarch64" ]; then
     CMAKE_FILE="cmake-3.10.3"
 
     echo 'Architecture is aarch64. There is no cmake binaries available. Compiling from source is required. This takes a while.'
@@ -44,7 +44,8 @@ if [ "${CMAKE_VERSION_MINOR}" -le 9 ]; then
 
   tar xvzf ${CMAKE_FILE}.tar.gz
 
-  if [ $ARCH == "aarch64" ]
+  if [ $ARCH == "aarch64" ]; then
+    cd ${CMAKE_FILE}
     ./configure
     sudo make install
   else
