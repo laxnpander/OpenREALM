@@ -29,6 +29,13 @@ Timer::~Timer()
     m_thread.join();
 }
 
+long Timer::getCurrentTimeSeconds()
+{
+  using namespace std::chrono;
+  seconds s = duration_cast<seconds>(system_clock::now().time_since_epoch());
+  return s.count();
+}
+
 long Timer::getCurrentTimeMilliseconds()
 {
   using namespace std::chrono;

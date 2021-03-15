@@ -14,7 +14,7 @@ Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   m_slam_params->blc_is_on_                   = false;
   m_slam_params->bvision_init_                = false;
   m_slam_params->breset_req_                  = false;
-  m_slam_params->debug_                       = true;
+  m_slam_params->debug_                       = false;
   m_slam_params->log_timings_                 = false;
   m_slam_params->mono_                        = true;
   m_slam_params->stereo_                      = false;
@@ -81,7 +81,7 @@ Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   m_slam_params->nbmaxkps_ = static_cast<int>(nbwcells * nbhcells);
 
   m_slam.reset(new SlamManager(m_slam_params));
-  m_thread_slam.reset(new std::thread(&SlamManager::run, m_slam.get()));
+  //m_thread_slam.reset(new std::thread(&SlamManager::run, m_slam.get()));
 }
 
 Ov2Slam::~Ov2Slam()
@@ -100,16 +100,11 @@ void Ov2Slam::close()
 
 VisualSlamIF::State Ov2Slam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial)
 {
-  // If no prior frame was captured, set timing of the current frame
-  if (m_t_first == 0)
-    m_t_first = Timer::getCurrentTimeMilliseconds();
-
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(m_resizing);
 
-  long t_current = Timer::getCurrentTimeMilliseconds();
-  const double timestamp = static_cast<double>(t_current - m_t_first) / 10e3;
-  LOG_IF_F(INFO, true, "Time elapsed since first frame: %4.2f [s]", timestamp);
+  const double timestamp = static_cast<double>(frame->getTimestamp())/10e9;
+  LOG_IF_F(INFO, true, "Time stamp of frame: %4.2f [s]", timestamp);
 
   cv::Mat img = frame->getResizedImageRaw();
 
@@ -119,11 +114,7 @@ VisualSlamIF::State Ov2Slam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
     cv::cvtColor(img, img, cv::COLOR_BGRA2GRAY);
 
   m_slam->addNewMonoImage(timestamp, img);
-
-  // The pipeline expects a result within the call to this function. So we have to sleep until the slam is finished
-  // processing.
-  while (m_slam->bprocess_triggered_)
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  m_slam->spin();
 
   cv::Mat T_c2w = convertPose(m_slam->pcurframe_->Twc_.matrix3x4());
 
