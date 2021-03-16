@@ -25,13 +25,16 @@ SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double 
 void SurfaceGeneration::addFrame(const Frame::Ptr &frame)
 {
   // First update statistics about incoming frame rate
-  updateFpsStatisticsIncoming();
+  updateStatisticsIncoming();
 
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   m_buffer.push_back(frame);
   // Ringbuffer implementation
   if (m_buffer.size() > m_queue_size)
+  {
+    updateStatisticsSkippedFrame();
     m_buffer.pop_front();
+  }
   notify();
 }
 
@@ -110,7 +113,7 @@ void SurfaceGeneration::reset()
 void SurfaceGeneration::publish(const Frame::Ptr &frame)
 {
   // First update statistics about outgoing frame rate
-  updateFpsStatisticsOutgoing();
+  updateStatisticsOutgoing();
   m_transport_frame(frame, "output/frame");
 }
 
@@ -148,6 +151,10 @@ void SurfaceGeneration::printSettingsToLog()
   LOG_F(INFO, "- save_elevation: %i", m_settings_save.save_elevation);
   LOG_F(INFO, "- save_normals: %i", m_settings_save.save_normals);
 
+}
+
+uint32_t SurfaceGeneration::getQueueDepth() {
+  return m_buffer.size();
 }
 
 Frame::Ptr SurfaceGeneration::getNewFrame()

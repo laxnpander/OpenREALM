@@ -13,7 +13,7 @@ Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
       m_utm_reference(nullptr),
       m_global_map(nullptr),
-      m_mesher(nullptr),
+      //m_mesher(nullptr),
       m_gdal_writer(nullptr),
       m_publish_mesh_nth_iter(0),
       m_publish_mesh_every_nth_kf((*stage_set)["publish_mesh_every_nth_kf"].toInt()),
@@ -57,7 +57,7 @@ Mosaicing::~Mosaicing()
 void Mosaicing::addFrame(const Frame::Ptr &frame)
 {
   // First update statistics about incoming frame rate
-  updateFpsStatisticsIncoming();
+  updateStatisticsIncoming();
 
   if (!frame->getSurfaceModel() || !frame->getOrthophoto())
   {
@@ -69,7 +69,10 @@ void Mosaicing::addFrame(const Frame::Ptr &frame)
 
   // Ringbuffer implementation for buffer with no pose
   if (m_buffer.size() > m_queue_size)
+  {
     m_buffer.pop_front();
+    updateStatisticsSkippedFrame();
+  }
   notify();
 }
 
@@ -197,7 +200,7 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
   if (m_settings_save.save_elevation_obs_angle_all)
     io::saveImageColorMap((*m_global_map)["elevation_angle"], valid, m_stage_path + "/obs_angle", "angle", id, io::ColormapType::ELEVATION);
   if (m_settings_save.save_num_obs_all)
-    io::saveImageColorMap((*m_global_map)["num_observations"], valid, m_stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
+    io::saveImageColorMap((*m_global_map)["num_observations"], valid, m_stage_path + "/nobs", "nobs", id, io::ColormapType::NUM_OBS);
   if (m_settings_save.save_ortho_gtiff_all && m_gdal_writer != nullptr)
     m_gdal_writer->requestSaveGeoTIFF(std::make_shared<CvGridMap>(m_global_map->getSubmap({"color_rgb"})), m_utm_reference->zone, m_stage_path + "/ortho/ortho_iter.tif", true, m_settings_save.split_gtiff_channels);
 
@@ -341,6 +344,10 @@ void Mosaicing::printSettingsToLog()
   LOG_F(INFO, "- save_dense_ply: %i", m_settings_save.save_dense_ply);
 }
 
+uint32_t Mosaicing::getQueueDepth() {
+  return m_buffer.size();
+}
+
 std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
 {
   CvGridMap::Ptr mesh_sampled;
@@ -385,12 +392,13 @@ void Mosaicing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, cons
   cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
   // First update statistics about outgoing frame rate
-  updateFpsStatisticsOutgoing();
+  updateStatisticsOutgoing();
 
   m_transport_img((*m_global_map)["color_rgb"], "output/rgb");
-  m_transport_img(analysis::convertToColorMapFromCVFC1((*m_global_map)["elevation"],
-                                                       valid,
-                                                       cv::COLORMAP_JET), "output/elevation");
+  m_transport_img(analysis::convertToColorMapFromCVC1((*m_global_map)["elevation"],
+                                                      valid,
+                                                      cv::COLORMAP_JET), "output/elevation");
+  m_transport_cvgridmap(m_global_map->getSubmap({"color_rgb"}), m_utm_reference->zone, m_utm_reference->band, "output/full/ortho");
   m_transport_cvgridmap(update->getSubmap({"color_rgb"}), m_utm_reference->zone, m_utm_reference->band, "output/update/ortho");
   //_transport_cvgridmap(update->getSubmap({"elevation", "valid"}), _utm_reference->zone, _utm_reference->band, "output/update/elevation");
 

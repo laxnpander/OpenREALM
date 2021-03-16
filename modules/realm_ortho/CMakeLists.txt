@@ -1,32 +1,16 @@
-# This file is part of OpenREALM.
-#
-# Copyright (C) 2018 Alexander Kern <laxnpander at gmail dot com> (Braunschweig University of Technology)
-# For more information see <https://github.com/laxnpander/OpenREALM>
-#
-# OpenREALM is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenREALM is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.15)
 
 set(LIBRARY_NAME realm_ortho)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ################################################################################
 # Dependencies
 ################################################################################
 
+# Add custom Find cmake files
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)
@@ -38,13 +22,20 @@ if (NOT OpenCV_FOUND)
     message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
 endif()
 
-find_package(CGAL REQUIRED)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(EIGEN3 QUIET)
-if(NOT EIGEN3_FOUND)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(EIGEN3 REQUIRED eigen3)
-    set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
+find_package(GDAL REQUIRED)
+
+################################################################################
+# Optional Packages (LGPL / Other License Restrictions)
+################################################################################
+option(WITH_CGAL "Enable CGAL support for Mesh generation" ON)
+set(CGAL_ENABLED FALSE)
+if(WITH_CGAL)
+    find_package(CGAL REQUIRED)
+    if(CGAL_FOUND)
+        set(CGAL_ENABLED TRUE)
+    else()
+        message(SEND_ERROR "CGAL dependency not found!")
+    endif()
 endif()
 
 
@@ -56,7 +47,6 @@ endif()
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(HEADER_FILES
-        ${root}/include/realm_ortho/delaunay_2d.h
         ${root}/include/realm_ortho/dsm.h
         ${root}/include/realm_ortho/gdal_warper.h
         ${root}/include/realm_ortho/map_tiler.h
@@ -68,7 +58,6 @@ set(HEADER_FILES
 )
 
 set(SOURCE_FILES
-        ${root}/src/delaunay_2d.cpp
         ${root}/src/dsm.cpp
         ${root}/src/gdal_warper.cpp
         ${root}/src/map_tiler.cpp
@@ -76,6 +65,12 @@ set(SOURCE_FILES
         ${root}/src/tile.cpp
         ${root}/src/tile_cache.cpp
 )
+
+# delaunay relies on CGAL to work
+if(CGAL_ENABLED)
+    list(APPEND HEADER_FILES ${root}/include/realm_ortho/delaunay_2d.h)
+    list(APPEND HEADER_FILES ${root}/src/delaunay_2d.cpp)
+endif()
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})
@@ -101,14 +96,13 @@ include_directories(
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
-        ${EIGEN3_INCLUDE_DIRS}
-        ${CGAL_INCLUDE_DIRS}
+        ${EIGEN3_INCLUDE_DIR}
 
         ${realm_core_INCLUDE_DIR}
         ${realm_io_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} SHARED
+add_library(${LIBRARY_NAME}
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${FORM_HEADERS}
@@ -125,10 +119,17 @@ target_link_libraries(${LIBRARY_NAME}
         PUBLIC
             realm_core
             realm_io
-            CGAL
         PRIVATE
             ${OpenCV_LIBRARIES}
 )
+
+if (CGAL_ENABLED)
+    target_link_libraries(${LIBRARY_NAME}
+            PUBLIC
+            CGAL
+            )
+    include_directories(${CGAL_INCLUDE_DIRS})
+endif()
 
 add_definitions(
         -Wno-deprecated-declarations

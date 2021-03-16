@@ -1,32 +1,13 @@
-# This file is part of OpenREALM.
-#
-# Copyright (C) 2018 Alexander Kern <laxnpander at gmail dot com> (Braunschweig University of Technology)
-# For more information see <https://github.com/laxnpander/OpenREALM>
-#
-# OpenREALM is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenREALM is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.15)
 
 set(LIBRARY_NAME realm_core)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ################################################################################
 # Dependencies
 ################################################################################
-
 
 # Fix to avoid OpenCV package confusion with ROS melodic
 find_package(OpenCV 3.3.1 EXACT QUIET)
@@ -38,13 +19,7 @@ if (NOT OpenCV_FOUND)
     message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
 endif()
 
-# Solution to find Eigen3 with Saucy.
-find_package(EIGEN3 QUIET)
-if(NOT EIGEN3_FOUND)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(EIGEN3 REQUIRED eigen3)
-    set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
-endif()
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(GDAL REQUIRED)
 
 
@@ -118,11 +93,10 @@ include_directories(
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
-        ${EIGEN3_INCLUDE_DIRS}
         ${GDAL_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} SHARED
+add_library(${LIBRARY_NAME}
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${FORM_HEADERS}
@@ -139,6 +113,7 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
         PUBLIC
             ${OpenCV_LIBRARIES}
+            Eigen3::Eigen
         PRIVATE
             ${GDAL_LIBRARY}
 )

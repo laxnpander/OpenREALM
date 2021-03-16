@@ -125,6 +125,11 @@ class Densification : public StageBase
     void printSettingsToLog() override;
 
     /*!
+     * @brief Returns the current depth of the processing queue
+     */
+    uint32_t getQueueDepth() override;
+
+    /*!
      * @brief Publish function that is called on every iteration of the processing thread
      * @param frame Current frame to be processed
      * @param depthmap Depthmap for the current frame

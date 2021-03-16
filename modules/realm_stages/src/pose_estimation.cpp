@@ -32,6 +32,9 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                       (*stage_set)["save_keyframes"].toInt() > 0,
                       (*stage_set)["save_keyframes_full"].toInt() > 0})
 {
+  LOG_S(INFO) << "Stage [" << m_stage_name << "]: Created Stage with Settings:\n";
+  stage_set->print();
+
   registerAsyncDataReadyFunctor([=]{ return !m_buffer_no_pose.empty(); });
 
   if (m_use_vslam)
@@ -75,6 +78,10 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
 
 PoseEstimation::~PoseEstimation()
 {
+  if (m_use_vslam) {
+    m_vslam->close();
+  }
+
   m_stage_publisher->requestFinish();
   m_stage_publisher->join();
 }
@@ -101,7 +108,7 @@ void PoseEstimation::evaluateFallbackStrategy(PoseEstimation::FallbackStrategy s
 void PoseEstimation::addFrame(const Frame::Ptr &frame)
 {
   // First update statistics about incoming frame rate
-  updateFpsStatisticsIncoming();
+  updateStatisticsIncoming();
 
   // The user can provide a-priori georeferencing. Check if this is the case
   if (!m_is_georef_initialized && frame->isGeoreferenced())
@@ -118,13 +125,21 @@ void PoseEstimation::addFrame(const Frame::Ptr &frame)
   notify();
 
   // Ringbuffer implementation for buffer with no pose
-  if (m_buffer_no_pose.size() > 5)
+  if (m_buffer_no_pose.size() > m_queue_size)
   {
     std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
     m_buffer_no_pose.pop_front();
+    updateStatisticsSkippedFrame();
   }
 
   m_transport_pose(frame->getDefaultPose(), frame->getGnssUtm().zone, frame->getGnssUtm().band, "output/pose/gnss");
+}
+
+uint32_t PoseEstimation::getQueueDepth() {
+  // If no vslam is used, only the publish buffer has elements
+  // If vslam is in use, then frames can be added to no_pose as well as do_publish
+  // To get an accurate read of the backlog, it should include both elements.
+  return m_buffer_no_pose.size() + m_buffer_do_publish.size();
 }
 
 bool PoseEstimation::process()
@@ -597,7 +612,7 @@ void PoseEstimationIO::publishSparseCloud(const Frame::Ptr &frame)
 void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 {
   // First update statistics about outgoing frame rate
-  m_stage_handle->updateFpsStatisticsOutgoing();
+  m_stage_handle->updateStatisticsOutgoing();
 
   // Two situation can occure, when publishing a frame is triggered
   // 1) Frame is marked as keyframe by the SLAM -> publish directly
@@ -610,13 +625,22 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
   m_stage_handle->m_transport_frame(frame, "output/frame");
   m_stage_handle->printGeoReferenceInfo(frame);
 
-  // Save image related data
+#ifdef WITH_EXIV2
+  // Save image related data only if Exiv2 is enabled
   if (m_stage_handle->m_settings_save.save_frames && !frame->isKeyframe())
     io::saveExifImage(frame, m_stage_handle->m_stage_path + "/frames", "frames", frame->getFrameId(), true);
   if (m_stage_handle->m_settings_save.save_keyframes && frame->isKeyframe())
     io::saveExifImage(frame, m_stage_handle->m_stage_path + "/keyframes", "keyframe", frame->getFrameId(), true);
   if (m_stage_handle->m_settings_save.save_keyframes_full && frame->isKeyframe())
     io::saveExifImage(frame, m_stage_handle->m_stage_path + "/keyframes_full", "keyframe_full", frame->getFrameId(), false);
+#else
+  if (m_stage_handle->m_settings_save.save_frames && !frame->isKeyframe())
+    LOG_F(WARNING, "Exiv2 Library required for save frames from pose_estimation!");
+  if (m_stage_handle->m_settings_save.save_keyframes && frame->isKeyframe())
+    LOG_F(WARNING, "Exiv2 Library required for save keyframes from pose_estimation!");
+  if (m_stage_handle->m_settings_save.save_keyframes_full && frame->isKeyframe())
+    LOG_F(WARNING, "Exiv2 Library required for save full keyframes from pose_estimation!");
+#endif
 }
 
 void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)

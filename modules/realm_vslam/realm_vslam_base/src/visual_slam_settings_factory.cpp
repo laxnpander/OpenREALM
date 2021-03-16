@@ -29,7 +29,7 @@ VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOrbSlam2(const std::strin
   settings->loadFromFile(filepath);
 
   // Check and correct paths
-  settings->set("path_vocabulary", directory + "/orb_slam3/ORBvoc.bin");
+  settings->set("path_vocabulary", directory + settings->get("path_vocabulary").toString());
   return std::move(settings);
 }
 
@@ -38,8 +38,8 @@ VisualSlamSettings::Ptr VisualSlamSettingsFactory::loadOpenVslam(const std::stri
   auto settings = std::make_shared<OpenVslamSettings>();
   settings->loadFromFile(filepath);
 
-  // Check and correct paths
-  settings->set("path_vocabulary", directory + "/orb_slam3/ORBvoc.bin");
+  // Add full path to file based on current settings folder
+  settings->set("path_vocabulary", directory + settings->get("path_vocabulary").toString());
   return std::move(settings);
 }
 

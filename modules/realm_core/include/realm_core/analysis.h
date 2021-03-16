@@ -18,7 +18,7 @@ namespace analysis
  * @param flag Color layout
  * @return Colormap of input mat
  */
-cv::Mat convertToColorMapFromCVFC1(const cv::Mat &img, const cv::Mat &mask, cv::ColormapTypes flag);
+cv::Mat convertToColorMapFromCVC1(const cv::Mat &img, const cv::Mat &mask, cv::ColormapTypes flag);
 
 /*!
  * @brief Converts a three channel floating point mat to a RGB color map
@@ -26,7 +26,7 @@ cv::Mat convertToColorMapFromCVFC1(const cv::Mat &img, const cv::Mat &mask, cv::
  * @param mask Mask of valid pixels
  * @return Colormap of input mat
  */
-cv::Mat convertToColorMapFromCVFC3(const cv::Mat &img, const cv::Mat &mask);
+cv::Mat convertToColorMapFromCVC3(const cv::Mat &img, const cv::Mat &mask);
 
 } // namespace analysis
 } // namespace realm

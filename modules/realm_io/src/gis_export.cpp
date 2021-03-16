@@ -196,7 +196,7 @@ GDALDataset* io::generateMemoryDataset(const cv::Mat &data, const io::GDALDatase
 
 char** io::getExportOptionsGeoTIFF(GDALProfile gdal_profile)
 {
-  char** options;
+  char** options = nullptr;
   switch(gdal_profile)
   {
     case GDALProfile::COG:

@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.15)
 
 project(OpenREALM)
 
@@ -28,18 +28,19 @@ set(OpenREALM_VERSION_NUMBER "1000")
 # Paths
 ################################################################################
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_INCLUDE_PATH "/usr/local/include")
 
 if(UNIX)
     include(GNUInstallDirs)
 
-    set(OpenREALM_INC_INSTALL_DIR "/usr/local/include/${PROJECT_NAME}")
+    set(OpenREALM_INC_INSTALL_DIR "${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}")
     set(OpenREALM_RUNTIME_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}")
-    set(OpenREALM_LIBRARY_INSTALL_DIR "/usr/local/lib")
-    set(OpenREALM_ARCHIVE_INSTALL_DIR "/usr/local/lib")
-    set(OpenREALM_FRAMEWORK_INSTALL_DIR "/usr/local/lib")
+    set(OpenREALM_LIBRARY_INSTALL_DIR "{CMAKE_INSTALL_LIBDIR}")
+    set(OpenREALM_ARCHIVE_INSTALL_DIR "{CMAKE_INSTALL_LIBDIR}")
+    set(OpenREALM_FRAMEWORK_INSTALL_DIR "{CMAKE_INSTALL_LIBDIR}")
 
-    set(OpenREALM_CMAKE_CONFIG_INSTALL_DIR "/usr/local/lib/cmake/OpenREALM")
+    set(OpenREALM_CMAKE_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/OpenREALM")
     set(OpenREALM_ADDITIONAL_FILES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/OpenREALM")
 
 #elseif(WIN32)
@@ -120,17 +121,12 @@ set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-
 ################################################################################
 # Add modules
 ################################################################################
 
 
-#add_subdirectory(apps)
-#add_subdirectory(data)
-#add_subdirectory(doc)
 add_subdirectory(modules)
-#add_subdirectory(samples)
 
 
 ################################################################################

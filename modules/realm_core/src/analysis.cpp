@@ -3,12 +3,13 @@
 #include <opencv2/imgproc/imgproc_c.h>
 
 #include <realm_core/analysis.h>
+#include <realm_core/loguru.h>
 
 using namespace realm;
 
-cv::Mat analysis::convertToColorMapFromCVFC1(const cv::Mat &img, const cv::Mat &mask, cv::ColormapTypes flag)
+cv::Mat analysis::convertToColorMapFromCVC1(const cv::Mat &img, const cv::Mat &mask, cv::ColormapTypes flag)
 {
-  assert(img.type() == CV_32FC1 || img.type() == CV_64FC1);
+  assert(img.type() == CV_32FC1 || img.type() == CV_64FC1 || img.type() == CV_16UC1);
 
   cv::Mat map_norm;
   cv::Mat map_colored;
@@ -31,9 +32,9 @@ cv::Mat analysis::convertToColorMapFromCVFC1(const cv::Mat &img, const cv::Mat &
   return map_colored;
 }
 
-cv::Mat analysis::convertToColorMapFromCVFC3(const cv::Mat &img, const cv::Mat &mask)
+cv::Mat analysis::convertToColorMapFromCVC3(const cv::Mat &img, const cv::Mat &mask)
 {
-  assert(img.type() == CV_32FC3 || img.type() == CV_64FC3);
+  assert(img.type() == CV_32FC3 || img.type() == CV_64FC3 || img.type() == CV_16UC3);
 
   cv::Mat map_32fc3, map_8uc3;
   cv::cvtColor(img, map_32fc3, CV_XYZ2BGR);

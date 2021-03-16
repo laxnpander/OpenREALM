@@ -6,6 +6,7 @@
 
 #include <pcl/io/ply_io.h>
 #include <pcl/conversions.h>
+#include <pcl/point_types.h>
 
 #include <realm_core/cv_grid_map.h>
 

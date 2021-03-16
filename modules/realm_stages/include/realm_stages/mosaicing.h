@@ -17,7 +17,7 @@
 #include <realm_io/gis_export.h>
 #include <realm_io/gdal_continuous_writer.h>
 #include <realm_io/utilities.h>
-#include <realm_ortho/delaunay_2d.h>
+//#include <realm_ortho/delaunay_2d.h>
 
 namespace realm
 {
@@ -76,11 +76,12 @@ class Mosaicing : public StageBase
 
     UTMPose::Ptr m_utm_reference;
     CvGridMap::Ptr m_global_map;
-    Delaunay2D::Ptr m_mesher;
+    //Delaunay2D::Ptr m_mesher;
     io::GDALContinuousWriter::Ptr m_gdal_writer;
 
     void finishCallback() override;
     void printSettingsToLog() override;
+    uint32_t getQueueDepth() override;
 
     CvGridMap blend(CvGridMap::Overlap *overlap);
 

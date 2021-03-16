@@ -1,27 +1,9 @@
-# This file is part of OpenREALM.
-#
-# Copyright (C) 2018 Alexander Kern <laxnpander at gmail dot com> (Braunschweig University of Technology)
-# For more information see <https://github.com/laxnpander/OpenREALM>
-#
-# OpenREALM is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenREALM is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.15)
 
 set(LIBRARY_NAME realm_vslam_base)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ################################################################################
 # Dependencies
@@ -35,15 +17,6 @@ endif()
 if (NOT OpenCV_FOUND)
     find_package(OpenCV 4 REQUIRED)
     message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
-endif()
-
-
-#fix to find eigen3
-find_package(Eigen3 QUIET)
-if(NOT Eigen3_FOUND)
-	find_package(PkgConfig REQUIRED)
-	pkg_check_modules(Eigen3 REQUIRED eigen3)
-	set(Eigen3_INCLUDE_DIR ${Eigen3_INCLUDE_DIRS})
 endif()
 
 ################################################################################
@@ -60,21 +33,23 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 #set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM3=ON")
 #message(STATUS "Selected ORB SLAM 3 for visual pose estimation")
 
-#set(VSLAM_IMPL_LIB openvslam)
-#set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
-#set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
-#set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
-#set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM" "-DUSE_DBOW2")
-#message(STATUS "Selected OpenVSLAM for visual pose estimation")
+find_package(openvslam REQUIRED)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+set(VSLAM_IMPL_LIB openvslam::openvslam)
+set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
+set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
+set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
+set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM" "-DUSE_DBOW2")
+message(STATUS "Selected OpenVSLAM for visual pose estimation")
 
-find_package(ov2slam REQUIRED)
-find_package(PCL REQUIRED)
-set(VSLAM_IMPL_LIB ov2slam)
-set(VSLAM_IMPL_LIB_HEADERS ${ov2slam_INCLUDE_DIR} ${PCL_INCLUDE_DIRS})
-set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/ov2_slam.h)
-set(VSLAM_IF_SOURCES ${root}/src/ov2_slam.cpp)
-set(VSLAM_IF_COMPILE_FLAG "-DUSE_OV2SLAM=ON")
-message(STATUS "Selected ov2slam for visual pose estimation")
+#find_package(ov2slam REQUIRED)
+#find_package(PCL REQUIRED)
+#set(VSLAM_IMPL_LIB ov2slam)
+#set(VSLAM_IMPL_LIB_HEADERS ${ov2slam_INCLUDE_DIR} ${PCL_INCLUDE_DIRS})
+#set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/ov2_slam.h)
+#set(VSLAM_IF_SOURCES ${root}/src/ov2_slam.cpp)
+#set(VSLAM_IF_COMPILE_FLAG "-DUSE_OV2SLAM=ON")
+#message(STATUS "Selected ov2slam for visual pose estimation")
 
 
 set(HEADER_FILES
@@ -126,7 +101,7 @@ include_directories(
 		${realm_io_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} SHARED
+add_library(${LIBRARY_NAME}
 		${SOURCE_FILES}
 		${HEADER_FILES}
 		${FORM_HEADERS}
@@ -134,17 +109,12 @@ add_library(${LIBRARY_NAME} SHARED
 		${RESOURCES_RCC}
 )
 
-target_include_directories(${LIBRARY_NAME} PUBLIC
-		/usr/include/eigen3	#fix for Eigen/Core not found
-		/usr/local/include/openvslam/3rd/json/include #fix for missing target include of openvslam
-)
-
 target_link_libraries(${LIBRARY_NAME}
 		PUBLIC
 			realm_core
 			realm_io
-		PRIVATE
 			${VSLAM_IMPL_LIB}
+		PRIVATE
 			${OpenCV_LIBRARIES}
 )
 

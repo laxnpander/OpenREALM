@@ -25,23 +25,28 @@ OrthoRectification::OrthoRectification(const StageSettings::Ptr &stage_set, doub
 void OrthoRectification::addFrame(const Frame::Ptr &frame)
 {
   // First update statistics about incoming frame rate
-  updateFpsStatisticsIncoming();
+  updateStatisticsIncoming();
 
   if (!frame->getSurfaceModel())
   {
     LOG_F(INFO, "Input frame has no surface informations. Dropping...");
+    updateStatisticsBadFrame();
     return;
   }
   if (!frame->getSurfaceModel()->exists("elevation"))
   {
     LOG_F(INFO, "Input frame missing surface elevation layer. Dropping...");
+    updateStatisticsBadFrame();
     return;
   }
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   m_buffer.push_back(frame);
   // Ringbuffer implementation for buffer with no pose
   if (m_buffer.size() > m_queue_size)
+  {
     m_buffer.pop_front();
+    updateStatisticsSkippedFrame();
+  }
   notify();
 }
 
@@ -126,7 +131,7 @@ void OrthoRectification::saveIter(const CvGridMap& surface_model, const CvGridMa
 void OrthoRectification::publish(const Frame::Ptr &frame)
 {
   // First update statistics about outgoing frame rate
-  updateFpsStatisticsOutgoing();
+  updateStatisticsOutgoing();
 
   m_transport_frame(frame, "output/frame");
   m_transport_img((*frame->getOrthophoto())["color_rgb"], "output/rectified");
@@ -189,4 +194,8 @@ void OrthoRectification::printSettingsToLog()
   LOG_F(INFO, "- save_ortho_gtiff: %i", m_settings_save.save_ortho_gtiff);
   LOG_F(INFO, "- save_elevation: %i", m_settings_save.save_elevation);
   LOG_F(INFO, "- save_elevation_angle: %i", m_settings_save.save_elevation_angle);
+}
+
+uint32_t OrthoRectification::getQueueDepth() {
+  return m_buffer.size();
 }

@@ -1,27 +1,9 @@
-# This file is part of OpenREALM.
-#
-# Copyright (C) 2018 Alexander Kern <laxnpander at gmail dot com> (Braunschweig University of Technology)
-# For more information see <https://github.com/laxnpander/OpenREALM>
-#
-# OpenREALM is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenREALM is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.15)
 
 set(LIBRARY_NAME realm_io)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ################################################################################
 # Dependencies
@@ -42,6 +24,7 @@ find_package(Exiv2 REQUIRED)
 find_package(GDAL REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
+
 find_package(Boost REQUIRED COMPONENTS
         filesystem
 )
@@ -57,8 +40,6 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES
         ${root}/include/realm_io/cv_export.h
         ${root}/include/realm_io/cv_import.h
-        ${root}/include/realm_io/exif_export.h
-        ${root}/include/realm_io/exif_import.h
         ${root}/include/realm_io/gis_export.h
         ${root}/include/realm_io/gdal_continuous_writer.h
         ${root}/include/realm_io/pcl_export.h
@@ -70,8 +51,6 @@ set(HEADER_FILES
 set(SOURCE_FILES
         ${root}/src/cv_export.cpp
         ${root}/src/cv_import.cpp
-        ${root}/src/exif_export.cpp
-        ${root}/src/exif_import.cpp
         ${root}/src/gis_export.cpp
         ${root}/src/gdal_continuous_writer.cpp
         ${root}/src/pcl_export.cpp
@@ -79,6 +58,16 @@ set(SOURCE_FILES
         ${root}/src/realm_import.cpp
         ${root}/src/utilities.cpp
         include/realm_io/gdal_continuous_writer.h src/gdal_continuous_writer.cpp)
+
+# Conditionally add exif import/export to handle removing Exiv2 dependancy
+if (WITH_EXIV2)
+    list(APPEND HEADER_FILES
+            ${root}/include/realm_io/exif_export.h
+            ${root}/include/realm_io/exif_import.h)
+    list(APPEND SOURCE_FILES
+            ${root}/src/exif_export.cpp
+            ${root}/src/exif_import.cpp)
+endif()
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})
@@ -105,11 +94,10 @@ include_directories(
         ${PCL_INCLUDE_DIRS}
         ${PCL_LIBRARY_DIRS}
         ${GDAL_INCLUDE_DIR}
-        ${Exiv2_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
 )
 
-add_library(${LIBRARY_NAME} SHARED
+add_library(${LIBRARY_NAME}
         ${SOURCE_FILES}
         ${HEADER_FILES}
         ${FORM_HEADERS}
@@ -128,11 +116,27 @@ target_link_libraries(${LIBRARY_NAME}
         PRIVATE
             ${OpenCV_LIBRARIES}
             ${GDAL_LIBRARY}
-            ${Exiv2_LIBRARIES}
             ${Boost_LIBRARIES}
             ${PCL_LIBRARIES}
-            -lexiv2
 )
+
+################################################################################
+# Options
+################################################################################
+
+# Optional Exiv2 file input support
+# We can disable this to avoid GPL licensing issues
+if(WITH_EXIV2)
+    find_package(Exiv2 REQUIRED)
+    add_compile_definitions(WITH_EXIV2)
+
+    include_directories(${Exiv2_INCLUDE_DIRS})
+    target_link_libraries(${LIBRARY_NAME}
+            PRIVATE
+            ${Exiv2_LIBRARIES})
+else()
+    message(STATUS "** WARNING ** Exiv2 Disabled.  Some I/O features will not be present.")
+endif()
 
 ################################################################################
 # Install

@@ -18,9 +18,10 @@ namespace io
 
 enum class ColormapType
 {
-    DEPTH,
-    ELEVATION,
-    NORMALS
+  DEPTH,
+  ELEVATION,
+  NORMALS,
+  NUM_OBS
 };
 
 void saveStereoPair(const Frame::Ptr &frame_left,

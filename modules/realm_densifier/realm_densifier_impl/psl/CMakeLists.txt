@@ -1,27 +1,9 @@
-# This file is part of OpenREALM.
-#
-# Copyright (C) 2018 Alexander Kern <laxnpander at gmail dot com> (Braunschweig University of Technology)
-# For more information see <https://github.com/laxnpander/OpenREALM>
-#
-# OpenREALM is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenREALM is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.15)
 
 set(LIBRARY_NAME psl)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ################################################################################
 # Dependencies
@@ -39,12 +21,6 @@ if (NOT OpenCV_FOUND)
 endif()
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
-find_package(EIGEN3 QUIET)
-if(NOT EIGEN3_FOUND)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(EIGEN3 REQUIRED eigen3)
-    set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
-endif()
 
 if(NOT CMAKE_CUDA_COMPILER)
     message(STATUS "CUDA not found. Skipping PSL package...\n")
@@ -140,7 +116,6 @@ include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/include/psl
         ${OpenCV_INCLUDE_DIRS}
-        ${Eigen3_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
 )
 

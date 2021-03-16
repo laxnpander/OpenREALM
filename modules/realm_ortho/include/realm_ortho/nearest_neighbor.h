@@ -3,6 +3,7 @@
  *  Created on: Jun 25, 2017
  *      Author: Timo Hinzmann
  *   Institute: ETH Zurich, Autonomous Systems Lab
+ *   License:   BSD-3
  */
 
 #ifndef NEAREST_NEIGHBOR_H_

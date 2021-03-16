@@ -13,6 +13,18 @@
 namespace realm
 {
 
+/**
+ * A simple structure to hold statistics about the worker thread or derived
+ * stage_base;
+ */
+struct Statistics
+{
+  double max;
+  double min;
+  double avg;
+  long count;
+};
+
 class WorkerThreadBase
 {
   public:
@@ -86,6 +98,12 @@ class WorkerThreadBase
      */
     bool m_verbose;
 
+    /*!
+     * @brief Stores max/min/avg time to process a task
+     */
+    Statistics m_process_statistics{};
+    std::mutex m_mutex_statistics{};
+
     std::mutex m_mutex_processing;
     std::function<bool()> m_data_ready_functor;
     std::condition_variable m_condition_processing;
@@ -107,7 +125,12 @@ class WorkerThreadBase
      * @brief Function that every derived worker thread may implement. After finish was requested, this function will be
      * called. Typically last calls to save functions can be put in the implementation.
      */
-    virtual void finishCallback() {};
+    virtual void finishCallback() {}
+
+    /*!
+     * @return Returns the average, max, and min time the processing step is taking
+     */
+    Statistics getProcessingStatistics();
 
     /*!
      * @brief Name of the thread. Will be used to output current state

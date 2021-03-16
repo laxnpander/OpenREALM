@@ -60,18 +60,18 @@ void WorkerThreadBase::run()
         if (isResetRequested())
         {
           reset();
-          LOG_IF_F(INFO, m_verbose, "Thread '%s' reseted!", m_thread_name.c_str());
+          LOG_IF_F(INFO, m_verbose, "Thread '%s' reset!", m_thread_name.c_str());
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(m_sleep_time));
       }
       LOG_IF_F(INFO, m_verbose, "Thread '%s' resumed to loop!", m_thread_name.c_str());
     }
 
-    // Check if reset was requested and execute if neccessary
+    // Check if reset was requested and execute if necessary
     if (isResetRequested())
     {
       reset();
-      LOG_IF_F(INFO, m_verbose, "Thread '%s' reseted!", m_thread_name.c_str());
+      LOG_IF_F(INFO, m_verbose, "Thread '%s' reset!", m_thread_name.c_str());
     }
 
     // Calls to derived classes implementation of process()
@@ -82,7 +82,21 @@ void WorkerThreadBase::run()
                m_verbose,
                "Timing [Total]: %lu ms",
                getCurrentTimeMilliseconds() - t);
+
+      // Only Update statistics for processing if we did work
+      std::unique_lock<std::mutex> stat_lock(m_mutex_statistics);
+      long timing = getCurrentTimeMilliseconds() - t;
+      if (m_process_statistics.count == 0) {
+        m_process_statistics.min = (double)timing;
+        m_process_statistics.max = (double)timing;
+      } else {
+        if (m_process_statistics.min > (double)timing) m_process_statistics.min = (double)timing;
+        if (m_process_statistics.max < (double)timing) m_process_statistics.max = (double)timing;
+      }
+      m_process_statistics.count++;
+      m_process_statistics.avg = m_process_statistics.avg + ((double)timing - m_process_statistics.avg) / (double)m_process_statistics.count;
     }
+
   }
   LOG_IF_F(INFO, m_verbose, "Thread '%s' finished!", m_thread_name.c_str());
 }
@@ -150,6 +164,11 @@ bool WorkerThreadBase::isStopped()
 void WorkerThreadBase::notify()
 {
   m_condition_processing.notify_one();
+}
+
+Statistics WorkerThreadBase::getProcessingStatistics() {
+  std::unique_lock<std::mutex> lock(m_mutex_statistics);
+  return m_process_statistics;
 }
 
 long WorkerThreadBase::getCurrentTimeMilliseconds()
