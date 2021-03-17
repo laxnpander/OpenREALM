@@ -63,10 +63,4 @@ RUN set -ex \
     && cmake -D ENABLE_CXX11=ON -D WITH_CUDA=OFF -D CMAKE_BUILD_TYPE=RELEASE -D BUILD_EXAMPLES=OFF -D BUILD_opencv_apps=OFF -D BUILD_DOCS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_TESTS=OFF -D CMAKE_INSTALL_PREFIX=/usr/local .. \
     && make -j8 && make install
 
-RUN wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_deps.sh
-
-
-RUN cd / && sed -i 's/sudo //g' install_deps.sh && apt-get update && export DEBIAN_FRONTEND=noninteractive && \  
-	bash install_deps.sh && rm -rf /var/lib/apt/lists/*
-
 CMD ["/bin/bash"]
