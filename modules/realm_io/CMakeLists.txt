@@ -20,7 +20,6 @@ if (NOT OpenCV_FOUND)
     message(WARNING "OpenCV 4 Support is experimental, use at your own risk!")
 endif()
 
-find_package(Exiv2 REQUIRED)
 find_package(GDAL REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
