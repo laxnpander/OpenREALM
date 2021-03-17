@@ -16,6 +16,8 @@ before_install:
   - docker pull laxnpander/openrealm-base:latest
   - docker run -it -d --name build laxnpander/openrealm-base:latest bash
   - wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_deps.sh
+  - wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_openrealm_lib.sh
 
 script:
+  - docker exec build bash /install_deps.sh
   - docker exec build bash /install_openrealm_lib.sh
