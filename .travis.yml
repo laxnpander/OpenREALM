@@ -13,8 +13,8 @@ services:
   - docker
 
 before_install:
-  - docker pull khedar/openrealm-base:latest
-  - docker run -it -d --name build khedar/openrealm-base:latest bash
+  - docker pull laxnpander/openrealm-base:latest
+  - docker run -it -d --name build laxnpander/openrealm-base:latest bash
   - wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_deps.sh
 
 script:

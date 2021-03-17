@@ -1,13 +1,67 @@
-FROM ubuntu:18.04
+FROM nvidia/cuda:10.0-devel-ubuntu18.04
 
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
-            apt-get install -yq --no-install-recommends git \
-            nano ca-certificates cmake g++ gcc \
-            lsb-release gnupg2 curl wget make && rm -rf /var/lib/apt/lists/*
+ARG DEBIAN_FRONTEND=noninteractive
 
-RUN cd / && wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_opencv.sh
+# Basic deps
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    git \
+    wget \
+    curl \
+    unzip \
+    cmake \
+    apt-utils
 
-RUN cd / && sed -i 's/sudo //g' install_opencv.sh && bash install_opencv.sh && cd ~ && rm -rf *
+# Install other deps
+RUN apt-get install -y -q \
+    # General packages
+    apt-utils ca-certificates lsb-release gnupg2 curl libproj-dev \
+    # Eigen3 for several linear algebra problems - REMOVE
+    libeigen3-dev \
+    # Gdal library for conversions between UTM and WGS84
+    gdal-bin \
+    # Cgal library for delauney 2.5D triangulation and mesh creation
+    libcgal-dev libcgal-qt5-dev \
+    # PCL for writing point clouds and mesh data
+    libpcl-dev \
+    # Exiv2 for Exif tagging. REMOVE apt-utils
+    exiv2 libexiv2-dev apt-utils \
+    # Used by Pangolin/OpenGL
+    libglew-dev libxkbcommon-dev libglu1-mesa-dev freeglut3-dev mesa-common-dev \
+    libxi-dev libxmu-dev libxmu-headers x11proto-input-dev \
+    # g2o dependencies
+    libatlas-base-dev libsuitesparse-dev \
+    # OpenCV dependencies
+    libgtk-3-dev ffmpeg \
+    libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavresample-dev \
+    # eigen dependencies
+    gfortran \
+    # other dependencies
+    libyaml-cpp-dev libgoogle-glog-dev libgflags-dev
+
+# Install Eigen
+RUN cd ~ && mkdir Eigen3 && cd Eigen3 \
+    && wget -q https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.tar.bz2 \
+    && tar xf eigen-3.3.9.tar.bz2 \
+    && rm -rf eigen-3.3.9.tar.bz2 \
+    && cd eigen-3.3.9 \
+    && mkdir -p build && cd build \
+    && cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        .. \
+    && make -j4 \
+    && make install
+
+# Install opencv
+RUN set -ex \
+    && cd ~ && git clone --depth 1 -b 3.3.1 https://github.com/opencv/opencv.git 
+
+RUN set -ex \
+    && cd ~/opencv && mkdir build && cd build \
+    && cmake -D ENABLE_CXX11=ON -D WITH_CUDA=OFF -D CMAKE_BUILD_TYPE=RELEASE -D BUILD_EXAMPLES=OFF -D BUILD_opencv_apps=OFF -D BUILD_DOCS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_TESTS=OFF -D CMAKE_INSTALL_PREFIX=/usr/local .. \
+    && make -j8 && make install
 
 RUN wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_deps.sh
 
@@ -15,16 +69,4 @@ RUN wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/instal
 RUN cd / && sed -i 's/sudo //g' install_deps.sh && apt-get update && export DEBIAN_FRONTEND=noninteractive && \  
 	bash install_deps.sh && rm -rf /var/lib/apt/lists/*
 
-RUN cd ~ && rm -rf *
-
-RUN cd / && wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_openrealm_lib.sh
-
-#RUN mkdir -p /cmake_ws/src && cd /cmake_ws/src && git clone https://github.com/laxnpander/OpenREALM.git
-
-#RUN cd cmake_ws/src/OpenREALM && mkdir build && cd build && cmake .. && make
-
 CMD ["/bin/bash"]
-
-
-
-
