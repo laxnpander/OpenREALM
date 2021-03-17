@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 # Install other deps
 RUN apt-get install -y -q \
     # General packages
-    apt-utils ca-certificates lsb-release gnupg2 curl libproj-dev \
+    apt-utils ca-certificates lsb-release gnupg2 curl libproj-dev sudo \
     # Eigen3 for several linear algebra problems - REMOVE
     libeigen3-dev \
     # Gdal library for conversions between UTM and WGS84
