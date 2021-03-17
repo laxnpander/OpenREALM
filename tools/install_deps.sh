@@ -51,7 +51,7 @@ if [ "${CMAKE_VERSION_MINOR}" -le 15 ]; then
     ./configure
     sudo make install
   else
-    echo "export PATH="`pwd`/${CMAKE_FILE}/bin:$PATH"" >> ~/.bashrc
+    sudo cp -a ${CMAKE_FILE}/bin/. /usr/bin
   fi
 fi
 
