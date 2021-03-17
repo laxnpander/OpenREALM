@@ -32,6 +32,8 @@ if [ "${CMAKE_VERSION_MINOR}" -le 15 ]; then
     CMAKE_FILE="cmake-3.15.7-Linux-x86_64"
   fi
 
+  cd ~ && mkdir ${CMAKE_FILE} && cd ${CMAKE_FILE}
+
   # Check if file already exists
   if [ ! -e "${CMAKE_FILE}.tar.gz" ]; then
     wget https://cmake.org/files/v3.15/${CMAKE_FILE}.tar.gz
@@ -49,7 +51,7 @@ if [ "${CMAKE_VERSION_MINOR}" -le 15 ]; then
     ./configure
     sudo make install
   else
-    export PATH="`pwd`/${CMAKE_FILE}/bin:$PATH"
+    echo "export PATH="`pwd`/${CMAKE_FILE}/bin:$PATH"" >> ~/.bashrc
   fi
 fi
 
