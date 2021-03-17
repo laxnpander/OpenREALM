@@ -51,7 +51,7 @@ if [ "${CMAKE_VERSION_MINOR}" -le 15 ]; then
     ./configure
     sudo make install
   else
-    sudo cp -a ${CMAKE_FILE}/bin/. /usr/bin
+    sudo cp -a ${CMAKE_FILE}/. /usr/
   fi
 fi
 
@@ -97,10 +97,10 @@ sudo apt-get install -y libyaml-cpp-dev libgoogle-glog-dev libgflags-dev
 
 # Install Eigen
 cd ~ && mkdir Eigen3 && cd Eigen3
-wget -q https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.bz2
-tar xf eigen-3.3.7.tar.bz2
-rm -rf eigen-3.3.7.tar.bz2
-cd eigen-3.3.7
+wget -q https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.tar.bz2
+tar xf eigen-3.3.9.tar.bz2
+rm -rf eigen-3.3.9.tar.bz2
+cd eigen-3.3.9
 mkdir -p build && cd build
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
