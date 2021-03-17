@@ -119,6 +119,10 @@ echo 'export CPATH=/usr/local/cuda-9.0/include:$CPATH' >> ~/.bashrc
 # Get the library
 git clone https://github.com/laxnpander/OpenREALM.git
 
+# For 3D reconstruction with Plane Sweep Lib (PSL)
+git submodule init
+git submodule update
+
 # Install the dependencies
 cd OpenREALM/tools
 chmod u+x install_deps.sh
