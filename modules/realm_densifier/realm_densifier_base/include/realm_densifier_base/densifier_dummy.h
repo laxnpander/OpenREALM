@@ -13,8 +13,7 @@ namespace realm
 namespace densifier
 {
 /*!
- * @brief Dummy class can be used for sparse depth interpolation in the densification stage using inpainting methods.
- *        This class does nothing, can nothing and is only there to be the dummy.
+ * @brief This class does nothing, can nothing and is only there to be the dummy.
  */
 class Dummy : public DensifierIF
 {

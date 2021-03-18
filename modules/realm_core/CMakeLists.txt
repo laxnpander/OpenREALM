@@ -41,7 +41,6 @@ set(HEADER_FILES
         ${root}/include/realm_core/enums.h
         ${root}/include/realm_core/frame.h
         ${root}/include/realm_core/imu_settings.h
-        ${root}/include/realm_core/inpaint.h
         ${root}/include/realm_core/loguru.h
         ${root}/include/realm_core/plane_fitter.h
         ${root}/include/realm_core/settings_base.h
@@ -58,7 +57,6 @@ set(SOURCE_FILES
         ${root}/src/timer.cpp
         ${root}/src/analysis.cpp
         ${root}/src/stereo.cpp
-        ${root}/src/inpaint.cpp
         ${root}/src/conversions.cpp
         ${root}/src/camera.cpp
         ${root}/src/depthmap.cpp

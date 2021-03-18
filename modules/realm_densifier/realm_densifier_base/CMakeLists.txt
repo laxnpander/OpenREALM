@@ -50,7 +50,6 @@ set(HEADER_FILES
         ${root}/include/realm_densifier_base/densifier_IF.h
         ${root}/include/realm_densifier_base/densifier_settings.h
         ${root}/include/realm_densifier_base/densifier_settings_factory.h
-        ${root}/include/realm_densifier_base/sparse_depth.h
         ${DENSIFIER_IMPL_HEADERS}
 )
 
@@ -58,7 +57,6 @@ set(SOURCE_FILES
         ${root}/src/densifier_factory.cpp
         ${root}/src/densifier_settings_factory.cpp
         ${root}/src/densifier_dummy.cpp
-        ${root}/src/sparse_depth.cpp
         ${DENSIFIER_IMPL_SOURCES})
 
 # Organize the source and header files into groups

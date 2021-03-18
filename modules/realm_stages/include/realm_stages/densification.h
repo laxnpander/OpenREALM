@@ -20,7 +20,6 @@
 #include <realm_core/cv_grid_map.h>
 #include <realm_core/frame.h>
 #include <realm_densifier_base/densifier_factory.h>
-#include <realm_densifier_base/sparse_depth.h>
 
 namespace realm
 {
