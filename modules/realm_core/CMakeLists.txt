@@ -114,6 +114,7 @@ target_link_libraries(${LIBRARY_NAME}
             Eigen3::Eigen
         PRIVATE
             ${GDAL_LIBRARY}
+            dl
 )
 
 add_definitions(
