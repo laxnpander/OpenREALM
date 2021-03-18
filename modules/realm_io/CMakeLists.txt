@@ -21,8 +21,6 @@ if (NOT OpenCV_FOUND)
 endif()
 
 find_package(GDAL REQUIRED)
-find_package(PCL 1.7 REQUIRED)
-list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
 
 find_package(Boost REQUIRED COMPONENTS
         filesystem
@@ -41,7 +39,6 @@ set(HEADER_FILES
         ${root}/include/realm_io/cv_import.h
         ${root}/include/realm_io/gis_export.h
         ${root}/include/realm_io/gdal_continuous_writer.h
-        ${root}/include/realm_io/pcl_export.h
         ${root}/include/realm_io/realm_export.h
         ${root}/include/realm_io/realm_import.h
         ${root}/include/realm_io/utilities.h
@@ -52,7 +49,6 @@ set(SOURCE_FILES
         ${root}/src/cv_import.cpp
         ${root}/src/gis_export.cpp
         ${root}/src/gdal_continuous_writer.cpp
-        ${root}/src/pcl_export.cpp
         ${root}/src/realm_export.cpp
         ${root}/src/realm_import.cpp
         ${root}/src/utilities.cpp
@@ -66,6 +62,14 @@ if (WITH_EXIV2)
     list(APPEND SOURCE_FILES
             ${root}/src/exif_export.cpp
             ${root}/src/exif_import.cpp)
+endif()
+
+# Conditionally add PCL import/export to handle removing PCL dependancy
+if (WITH_PCL)
+    list(APPEND HEADER_FILES
+            ${root}/include/realm_io/pcl_export.h)
+    list(APPEND SOURCE_FILES
+            ${root}/src/pcl_export.cpp)
 endif()
 
 # Organize the source and header files into groups
@@ -90,8 +94,6 @@ include_directories(
         ${CMAKE_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
-        ${PCL_INCLUDE_DIRS}
-        ${PCL_LIBRARY_DIRS}
         ${GDAL_INCLUDE_DIR}
         ${Boost_INCLUDE_DIR}
 )
@@ -116,7 +118,6 @@ target_link_libraries(${LIBRARY_NAME}
             ${OpenCV_LIBRARIES}
             ${GDAL_LIBRARY}
             ${Boost_LIBRARIES}
-            ${PCL_LIBRARIES}
 )
 
 ################################################################################
@@ -135,6 +136,21 @@ if(WITH_EXIV2)
             ${Exiv2_LIBRARIES})
 else()
     message(STATUS "** WARNING ** Exiv2 Disabled.  Some I/O features will not be present.")
+endif()
+
+if (WITH_PCL)
+    find_package(PCL 1.7 REQUIRED)
+    list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
+    add_compile_definitions(WITH_PCL)
+
+    include_directories(
+            ${PCL_INCLUDE_DIRS}
+            ${PCL_LIBRARY_DIRS})
+    target_link_libraries(${LIBRARY_NAME}
+            PRIVATE
+            ${PCL_LIBRARIES})
+else()
+    message(STATUS "** WARNING ** PCL Disabled.  Some I/O features will not be present.")
 endif()
 
 ################################################################################

@@ -31,7 +31,6 @@
 #include <realm_core/cv_grid_map.h>
 #include <realm_core/analysis.h>
 #include <realm_io/cv_export.h>
-#include <realm_io/pcl_export.h>
 #include <realm_io/gis_export.h>
 #include <realm_io/utilities.h>
 #include <realm_ortho/map_tiler.h>

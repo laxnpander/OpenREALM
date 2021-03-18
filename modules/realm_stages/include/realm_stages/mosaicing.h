@@ -13,11 +13,14 @@
 #include <realm_core/cv_grid_map.h>
 #include <realm_core/analysis.h>
 #include <realm_io/cv_export.h>
-#include <realm_io/pcl_export.h>
 #include <realm_io/gis_export.h>
 #include <realm_io/gdal_continuous_writer.h>
 #include <realm_io/utilities.h>
 //#include <realm_ortho/delaunay_2d.h>
+
+#ifdef WITH_PCL
+#include <realm_io/pcl_export.h>
+#endif
 
 namespace realm
 {
