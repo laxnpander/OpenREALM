@@ -24,6 +24,7 @@ cmake_minimum_required(VERSION 3.15)
 
 # Optional Libraries
 option(WITH_EXIV2      "Enable/Disable support for Exiv2 input libraries" ON)
+option(WITH_PCL        "Enable/Disable support for PCL libraries"         ON)
 
 # Optional Modules
 option(WITH_core       "Enable/Disable building of core library"          ON)
