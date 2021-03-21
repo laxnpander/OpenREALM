@@ -103,8 +103,8 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
     T_c2w.pop_back();
     frame->setVisualPose(T_c2w);
 
-    cv::Mat surface_pts = getTrackedMapPoints();
-    frame->setSparseCloud(surface_pts, true);
+    SparseCloud::Ptr sparse_cloud = getTrackedMapPoints();
+    frame->setSparseCloud(sparse_cloud, true);
 
     // Check current state of the slam
     if (m_nrof_keyframes == 0 && current_nrof_keyframes > 0)
@@ -151,12 +151,13 @@ void OpenVslam::reset()
   LOG_F(INFO, "Finished reseting visual SLAM.");
 }
 
-cv::Mat OpenVslam::getTrackedMapPoints() const
+SparseCloud::Ptr OpenVslam::getTrackedMapPoints() const
 {
   m_mutex_last_keyframe.lock();
   std::vector<openvslam::data::landmark*> landmarks = m_last_keyframe->get_landmarks();
   m_mutex_last_keyframe.unlock();
 
+  std::vector<uint32_t> point_ids;
   cv::Mat points;
   points.reserve(landmarks.size());
   for (const auto &lm : landmarks)
@@ -168,8 +169,10 @@ cv::Mat OpenVslam::getTrackedMapPoints() const
     openvslam::Vec3_t pos = lm->get_pos_in_world();
     cv::Mat pt = (cv::Mat_<double>(1, 3) << pos[0], pos[1], pos[2]);
     points.push_back(pt);
+    point_ids.push_back(lm->id_);
   }
-  return points;
+
+  return std::make_shared<SparseCloud>(0, point_ids, points);
 }
 
 bool OpenVslam::drawTrackedImage(cv::Mat &img) const
@@ -248,12 +251,13 @@ bool OpenVslamKeyframeUpdater::process()
 
       // Frame is still in the memory
       // Therefore update point cloud
-      cv::Mat surface_points = frame_realm->getSparseCloud();
+      SparseCloud::Ptr sparse_cloud = frame_realm->getSparseCloud();
       std::vector<openvslam::data::landmark*> landmarks = frame_slam->get_landmarks();
 
       cv::Mat new_surface_points;
       new_surface_points.reserve(landmarks.size());
 
+      std::vector<uint32_t> new_surface_point_ids;
       for (const auto &lm : landmarks)
       {
         if (!lm || lm->will_be_erased())
@@ -263,12 +267,13 @@ bool OpenVslamKeyframeUpdater::process()
         openvslam::Vec3_t pos = lm->get_pos_in_world();
         cv::Mat pt = (cv::Mat_<double>(1, 3) << pos[0], pos[1], pos[2]);
         new_surface_points.push_back(pt);
+        new_surface_point_ids.push_back(lm->id_);
       }
 
-      if (surface_points.rows != new_surface_points.rows)
+      if (sparse_cloud->size() != new_surface_points.rows)
       {
-        LOG_IF_F(INFO, m_verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), surface_points.rows, new_surface_points.rows);
-        frame_realm->setSparseCloud(new_surface_points, true);
+        LOG_IF_F(INFO, m_verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), sparse_cloud->size(), new_surface_points.rows);
+        frame_realm->setSparseCloud(std::make_shared<SparseCloud>(sparse_cloud->getContextId(), new_surface_point_ids, new_surface_points), true);
       }
 
       has_processed = true;

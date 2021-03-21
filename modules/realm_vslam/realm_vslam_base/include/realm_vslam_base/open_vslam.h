@@ -31,7 +31,7 @@ public:
 
   bool drawTrackedImage(cv::Mat &img) const override;
 
-  cv::Mat getTrackedMapPoints() const override;
+  SparseCloud::Ptr getTrackedMapPoints() const override;
 
 private:
 

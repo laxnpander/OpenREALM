@@ -186,7 +186,7 @@ double SurfaceGeneration::computeProjectionPlaneOffset(const Frame::Ptr &frame)
   {
     std::vector<double> z_coord;
 
-    cv::Mat points = frame->getSparseCloud();
+    cv::Mat points = frame->getSparseCloud()->data();
     for (int i = 0; i < points.rows; ++i)
       z_coord.push_back(points.at<double>(i, 2));
 

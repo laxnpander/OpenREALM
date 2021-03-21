@@ -180,13 +180,13 @@ cv::Mat Frame::getResizedCalibration() const
     throw(std::runtime_error("Error resizing camera: Image resizing was not set!"));
 }
 
-cv::Mat Frame::getSparseCloud() const
+SparseCloud::Ptr Frame::getSparseCloud() const
 {
   std::lock_guard<std::mutex> lock(m_mutex_sparse_points);
-  if (m_sparse_cloud.empty())
-    return cv::Mat();
+  if (m_sparse_cloud->empty())
+    return std::move(std::make_shared<SparseCloud>());
   else
-    return m_sparse_cloud.clone();
+    return m_sparse_cloud;
 }
 
 void Frame::setDepthmap(const Depthmap::Ptr &depthmap)
@@ -310,9 +310,9 @@ void Frame::setGeoreference(const cv::Mat &T_w2g)
   m_is_georeferenced = true;
 }
 
-void Frame::setSparseCloud(const cv::Mat &sparse_cloud, bool in_visual_coordinates)
+void Frame::setSparseCloud(const SparseCloud::Ptr &sparse_cloud, bool in_visual_coordinates)
 {
-  if (sparse_cloud.empty())
+  if (sparse_cloud->empty())
     return;
 
   m_mutex_sparse_points.lock();
@@ -426,12 +426,13 @@ std::string Frame::print()
   if (!pose.empty())
     sprintf(buffer + strlen(buffer), "Pose: Exists [%i x %i]\n", pose.rows, pose.cols);
   std::lock_guard<std::mutex> lock2(m_mutex_sparse_points);
-  if (!m_sparse_cloud.empty())
-    sprintf(buffer + strlen(buffer), "Mappoints: %i\n", m_sparse_cloud.rows);
+  if (!m_sparse_cloud->empty())
+    sprintf(buffer + strlen(buffer), "Mappoints: %i\n", m_sparse_cloud->data().rows);
 
   return std::string(buffer);
 }
 
+// TODO: move this into sparse cloud?
 void Frame::computeSceneDepth(int max_nrof_points)
 {
   /*
@@ -442,7 +443,7 @@ void Frame::computeSceneDepth(int max_nrof_points)
    * w=depth=(r31,r32,r33,t_z)*(x,y,z,1)
    */
 
-  if (m_sparse_cloud.empty())
+  if (m_sparse_cloud->empty())
     return;
 
   std::lock_guard<std::mutex> lock(m_mutex_sparse_points);
@@ -452,14 +453,15 @@ void Frame::computeSceneDepth(int max_nrof_points)
   int n = 0;
   int inc = 1;
 
-  if (max_nrof_points == 0 || m_sparse_cloud.rows < max_nrof_points)
+  cv::Mat sparse_data = m_sparse_cloud->data();
+  if (max_nrof_points == 0 || sparse_data.rows < max_nrof_points)
   {
-    n = m_sparse_cloud.rows;
+    n = sparse_data.rows;
   }
   else
   {
     n = max_nrof_points;
-    inc = m_sparse_cloud.rows * (max_nrof_points / m_sparse_cloud.rows);
+    inc = sparse_data.rows * (max_nrof_points / sparse_data.rows);
 
     // Just to make sure we don't run into an infinite loop
     if (inc <= 0)
@@ -480,7 +482,7 @@ void Frame::computeSceneDepth(int max_nrof_points)
 
   for (int i = 0; i < n; i += inc)
   {
-    cv::Mat pt = m_sparse_cloud.row(i).colRange(0, 3).t();
+    cv::Mat pt = sparse_data.row(i).colRange(0, 3).t();
 
     // Depth calculation
     double depth = R_wc2.dot(pt) + z_wc;
@@ -519,16 +521,17 @@ cv::Mat Frame::getOrientation() const
 
 void Frame::applyTransformationToSparseCloud(const cv::Mat &T)
 {
-  if (m_sparse_cloud.rows > 0)
+  cv::Mat sparse_data = m_sparse_cloud->data();
+  if (sparse_data.rows > 0)
   {
     m_mutex_sparse_points.lock();
-    for (uint32_t i = 0; i < m_sparse_cloud.rows; ++i)
+    for (uint32_t i = 0; i < sparse_data.rows; ++i)
     {
-      cv::Mat pt = m_sparse_cloud.row(i).colRange(0, 3).t();
+      cv::Mat pt = sparse_data.row(i).colRange(0, 3).t();
       pt.push_back(1.0);
       cv::Mat pt_hom = T * pt;
       pt_hom.pop_back();
-      m_sparse_cloud.row(i) = pt_hom.t();
+      sparse_data.row(i) = pt_hom.t();
     }
     m_mutex_sparse_points.unlock();
   }

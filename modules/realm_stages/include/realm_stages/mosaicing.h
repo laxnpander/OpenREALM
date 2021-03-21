@@ -15,6 +15,7 @@
 #include <realm_io/cv_export.h>
 #include <realm_io/gis_export.h>
 #include <realm_io/gdal_continuous_writer.h>
+#include <realm_io/mvs_export.h>
 #include <realm_io/utilities.h>
 //#include <realm_ortho/delaunay_2d.h>
 
@@ -81,6 +82,8 @@ class Mosaicing : public StageBase
     CvGridMap::Ptr m_global_map;
     //Delaunay2D::Ptr m_mesher;
     io::GDALContinuousWriter::Ptr m_gdal_writer;
+
+    std::vector<Frame::Ptr> m_frames;
 
     void finishCallback() override;
     void printSettingsToLog() override;

@@ -17,6 +17,7 @@
 #include <realm_core/camera.h>
 #include <realm_core/cv_grid_map.h>
 #include <realm_core/depthmap.h>
+#include <realm_core/sparse_cloud.h>
 
 namespace realm
 {
@@ -114,9 +115,9 @@ class Frame
 
     /*!
      * @brief Getter for the surface point cloud
-     * @return Surface point cloud with row(i) = (x, y, z)
+     * @return Sparse reconstructed point cloud set inside the visual SLAM framework.
      */
-    cv::Mat getSparseCloud() const;
+    SparseCloud::Ptr getSparseCloud() const;
 
     /*!
      * @brief Getter for frame pose. Is always up to date, therefore either the default, visual or georeferenced pose
@@ -248,7 +249,7 @@ class Frame
      *        2) row(i) = (x, y, z, r, g, b)
      *        3) row(i) = (x, y, z, r, g, b, nx, ny, nz)
      */
-    void setSparseCloud(const cv::Mat &sparse_cloud, bool in_visual_coordinates);
+    void setSparseCloud(const SparseCloud::Ptr &sparse_cloud, bool in_visual_coordinates);
 
     /*!
      * @brief Setter for depthmap. Invalid depth values are set to -1.0.
@@ -419,10 +420,11 @@ class Frame
     //! Resized image, resize factor defined through image resize factor, only grabbable if factor was set
     cv::Mat m_img_resized;
 
-    //! Reconstructed 3D sparse cloud structured as cv::Mat
-    //! Note: Point cloud can be either dense or sparse, and it can contain only positional informations (x,y,z),
-    //!       optionally color (x,y,z,r,g,b) or also point normal (x,y,z,r,g,b,nx,ny,nz)
-    cv::Mat m_sparse_cloud;
+    //! Reconstructed 3D sparse cloud containing data (cv::Mat with row(i) = x, y, z, r, g, b, nx, ny, nz), point ids as
+    //! well as a unique context identifier. The Ids refer to the ids that are assigned inside the visual SLAM, so points
+    //! are uniquely identified inside a context. The context id is typically required, because after a reset SLAM systems
+    //! may also reset the point ids. So to be able to unqiuely identify a point the context id can be used.
+    SparseCloud::Ptr m_sparse_cloud;
 
     //! Digital surface model of the observed scene represented by a 2.5D grid map. Layers contained:
     //! Essential:

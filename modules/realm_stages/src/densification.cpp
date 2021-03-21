@@ -50,7 +50,7 @@ void Densification::addFrame(const Frame::Ptr &frame)
     LOG_F(INFO, "Frame #%u:", frame->getFrameId());
     LOG_F(INFO, "Keyframe? %s", frame->isKeyframe() ? "Yes" : "No");
     LOG_F(INFO, "Accurate Pose? %s", frame->hasAccuratePose() ? "Yes" : "No");
-    LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud().rows);
+    LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud()->size());
 
     LOG_F(INFO, "Frame #%u not suited for dense reconstruction. Passing through...", frame->getFrameId());
     m_transport_frame(frame, "output/frame");
@@ -303,7 +303,7 @@ void Densification::saveIter(const Frame::Ptr &frame, const cv::Mat &normals)
     io::saveImageColorMap(normals, (depthmap_data > 0), m_stage_path + "/normals", "normals", frame->getFrameId(), io::ColormapType::NORMALS);
   if (m_settings_save.save_sparse)
   {
-    cv::Mat depthmap_sparse = stereo::computeDepthMapFromPointCloud(frame->getResizedCamera(), frame->getSparseCloud().colRange(0, 3));
+    cv::Mat depthmap_sparse = stereo::computeDepthMapFromPointCloud(frame->getResizedCamera(), frame->getSparseCloud()->data().colRange(0, 3));
     io::saveDepthMap(depthmap_sparse, m_stage_path + "/sparse/sparse_%06i.tif", frame->getFrameId());
   }
   if (m_settings_save.save_dense)

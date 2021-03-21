@@ -45,6 +45,7 @@ set(HEADER_FILES
         ${root}/include/realm_core/plane_fitter.h
         ${root}/include/realm_core/settings_base.h
         ${root}/include/realm_core/stereo.h
+        ${root}/include/realm_core/sparse_cloud.h
         ${root}/include/realm_core/structs.h
         ${root}/include/realm_core/timer.h
         ${root}/include/realm_core/tree_node.h
@@ -57,6 +58,7 @@ set(SOURCE_FILES
         ${root}/src/timer.cpp
         ${root}/src/analysis.cpp
         ${root}/src/stereo.cpp
+        ${root}/src/sparse_cloud.cpp
         ${root}/src/conversions.cpp
         ${root}/src/camera.cpp
         ${root}/src/depthmap.cpp
@@ -65,7 +67,8 @@ set(SOURCE_FILES
         ${root}/src/camera_settings_factory.cpp
         ${root}/src/cv_grid_map.cpp
         ${root}/src/worker_thread_base.cpp
-        ${root}/src/plane_fitter.cpp include/realm_core/depthmap.h src/depthmap.cpp)
+        ${root}/src/plane_fitter.cpp
+        src/depthmap.cpp)
 
 # Organize the source and header files into groups
 source_group("Headers" FILES ${HEADER_FILES})

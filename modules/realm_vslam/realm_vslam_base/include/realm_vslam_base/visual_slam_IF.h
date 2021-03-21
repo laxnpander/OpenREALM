@@ -80,7 +80,7 @@ public:
   virtual void queueImuData(const ImuData &)
   {};
 
-  virtual cv::Mat getTrackedMapPoints() const = 0;
+  virtual SparseCloud::Ptr getTrackedMapPoints() const = 0;
 
   virtual bool drawTrackedImage(cv::Mat &img) const = 0;
 

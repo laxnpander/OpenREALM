@@ -57,7 +57,7 @@ class StageBase : public WorkerThreadBase
     using FrameTransportFunc = std::function<void(const realm::Frame::Ptr &, const std::string &)>;
     using PoseTransportFunc = std::function<void(const cv::Mat &, uint8_t zone, char band, const std::string &)>;
     using DepthMapTransportFunc = std::function<void(const cv::Mat &, const std::string &)>;
-    using PointCloudTransportFunc = std::function<void(const cv::Mat &, const std::string &)>;
+    using PointCloudTransportFunc = std::function<void(const SparseCloud::Ptr &, const std::string &)>;
     using ImageTransportFunc = std::function<void(const cv::Mat &, const std::string &)>;
     using MeshTransportFunc = std::function<void(const std::vector<Face> &, const std::string &)>;
     using CvGridMapTransportFunc = std::function<void(const CvGridMap &, uint8_t zone, char band, const std::string &)>;

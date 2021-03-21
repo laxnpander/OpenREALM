@@ -391,28 +391,28 @@ void PoseEstimation::updatePreviousRoi(const Frame::Ptr &frame)
 
 void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat &points)
 {
-  std::unique_lock<std::mutex> lock(m_mutex_buffer_pose_all);
-
-  // Find frame in "all" buffer for updating
-  for (auto &frame : m_buffer_pose_all)
-    if (frame->getFrameId() == (uint32_t)id)
-    {
-      if (!pose.empty())
-        frame->setVisualPose(pose);
-      if (!points.empty())
-        frame->setSparseCloud(points, true);
-      frame->setKeyframe(true);
-    }
-
-  for (auto &frame : m_buffer_do_publish)
-    if (frame->getFrameId() == (uint32_t)id)
-    {
-      if (!pose.empty())
-        frame->setVisualPose(pose);
-      //if (!points.empty())
-      //  frame->setSurfacePoints(points);
-      //frame->setKeyframe(true);
-    }
+//  std::unique_lock<std::mutex> lock(m_mutex_buffer_pose_all);
+//
+//  // Find frame in "all" buffer for updating
+//  for (auto &frame : m_buffer_pose_all)
+//    if (frame->getFrameId() == (uint32_t)id)
+//    {
+//      if (!pose.empty())
+//        frame->setVisualPose(pose);
+//      if (!points.empty())
+//        frame->setSparseCloud(points, true);
+//      frame->setKeyframe(true);
+//    }
+//
+//  for (auto &frame : m_buffer_do_publish)
+//    if (frame->getFrameId() == (uint32_t)id)
+//    {
+//      if (!pose.empty())
+//        frame->setVisualPose(pose);
+//      //if (!points.empty())
+//      //  frame->setSurfacePoints(points);
+//      //frame->setKeyframe(true);
+//    }
 }
 
 double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
@@ -604,7 +604,7 @@ void PoseEstimationIO::publishPose(const Frame::Ptr &frame)
 
 void PoseEstimationIO::publishSparseCloud(const Frame::Ptr &frame)
 {
-  cv::Mat sparse_cloud = frame->getSparseCloud();
+  SparseCloud::Ptr sparse_cloud = frame->getSparseCloud();
   if (!sparse_cloud.empty())
     m_stage_handle->m_transport_pointcloud(sparse_cloud, "output/pointcloud");
 }

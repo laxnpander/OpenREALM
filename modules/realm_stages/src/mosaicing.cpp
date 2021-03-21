@@ -157,6 +157,9 @@ bool Mosaicing::process()
     saveIter(frame->getFrameId(), map_update);
     LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
+    // MVS export
+    m_frames.push_back(frame);
+
     has_processed = true;
   }
   return has_processed;
@@ -212,7 +215,7 @@ void Mosaicing::saveAll()
   // Check NaN
   cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
-  // 2D map output
+  /*// 2D map output
   if (m_settings_save.save_ortho_rgb_one)
     io::saveCvGridMapLayer(*m_global_map, m_utm_reference->zone, m_utm_reference->band, "color_rgb", m_stage_path + "/ortho/ortho.png");
   if (m_settings_save.save_elevation_one)
@@ -227,8 +230,11 @@ void Mosaicing::saveAll()
     io::saveGeoTIFF(m_global_map->getSubmap({"num_observations"}), m_utm_reference->zone, m_stage_path + "/nobs/nobs.tif");
   if (m_settings_save.save_ortho_gtiff_one)
     io::saveGeoTIFF(m_global_map->getSubmap({"color_rgb"}), m_utm_reference->zone, m_stage_path + "/ortho/ortho.tif", true, m_settings_save.split_gtiff_channels);
+  std::cout << "test-1" << std::endl;
   if (m_settings_save.save_elevation_one)
-    io::saveGeoTIFF(m_global_map->getSubmap({"elevation"}), m_utm_reference->zone, m_stage_path + "/elevation/gtiff/elevation.tif");
+    io::saveGeoTIFF(m_global_map->getSubmap({"elevation"}), m_utm_reference->zone, m_stage_path + "/elevation/gtiff/elevation.tif");*/
+
+  io::MvsExport::saveFrames(m_frames, m_stage_path + "/mvs");
 
   // 3D Point cloud output
   if (m_settings_save.save_dense_ply)
@@ -270,8 +276,8 @@ void Mosaicing::finishCallback()
   saveAll();
 
   // Publish final mesh at the end
-  if (m_do_publish_mesh_at_finish)
-    m_transport_mesh(createMeshFaces(m_global_map), "output/mesh");
+  //if (m_do_publish_mesh_at_finish)
+  //  m_transport_mesh(createMeshFaces(m_global_map), "output/mesh");
 }
 
 void Mosaicing::runPostProcessing()
@@ -284,7 +290,7 @@ Frame::Ptr Mosaicing::getNewFrame()
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   Frame::Ptr frame = m_buffer.front();
   m_buffer.pop_front();
-  return (std::move(frame));
+  return std::move(frame);
 }
 
 void Mosaicing::initStageCallback()
@@ -314,6 +320,8 @@ void Mosaicing::initStageCallback()
     io::createDir(m_stage_path + "/ortho");
   if (!io::dirExists(m_stage_path + "/nobs"))
     io::createDir(m_stage_path + "/nobs");
+  if (!io::dirExists(m_stage_path + "/mvs"))
+    io::createDir(m_stage_path + "/mvs");
 }
 
 void Mosaicing::printSettingsToLog()
