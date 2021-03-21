@@ -605,7 +605,7 @@ void PoseEstimationIO::publishPose(const Frame::Ptr &frame)
 void PoseEstimationIO::publishSparseCloud(const Frame::Ptr &frame)
 {
   SparseCloud::Ptr sparse_cloud = frame->getSparseCloud();
-  if (!sparse_cloud.empty())
+  if (!sparse_cloud->empty())
     m_stage_handle->m_transport_pointcloud(sparse_cloud, "output/pointcloud");
 }
 
