@@ -26,9 +26,9 @@ cv::Mat& SparseCloud::data()
   return m_data;
 }
 
-std::vector<int> SparseCloud::getPointIds()
+std::vector<uint32_t> SparseCloud::getPointIds()
 {
-  return getPointIds();
+  return m_point_ids;
 }
 
 int SparseCloud::size()

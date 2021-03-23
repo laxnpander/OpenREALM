@@ -33,7 +33,8 @@ Frame::Frame(const std::string &camera_id,
       m_min_depth(0.0),
       m_max_depth(0.0),
       m_med_depth(0.0),
-      m_depthmap(nullptr)
+      m_depthmap(nullptr),
+      m_sparse_cloud(nullptr)
 {
   if (m_camera_id.empty())
     throw(std::invalid_argument("Error creating frame: Camera Id not provided!"));
@@ -183,10 +184,7 @@ cv::Mat Frame::getResizedCalibration() const
 SparseCloud::Ptr Frame::getSparseCloud() const
 {
   std::lock_guard<std::mutex> lock(m_mutex_sparse_points);
-  if (m_sparse_cloud->empty())
-    return std::move(std::make_shared<SparseCloud>());
-  else
-    return m_sparse_cloud;
+  return m_sparse_cloud;
 }
 
 void Frame::setDepthmap(const Depthmap::Ptr &depthmap)
@@ -443,7 +441,7 @@ void Frame::computeSceneDepth(int max_nrof_points)
    * w=depth=(r31,r32,r33,t_z)*(x,y,z,1)
    */
 
-  if (m_sparse_cloud->empty())
+  if (!m_sparse_cloud || m_sparse_cloud->empty())
     return;
 
   std::lock_guard<std::mutex> lock(m_mutex_sparse_points);

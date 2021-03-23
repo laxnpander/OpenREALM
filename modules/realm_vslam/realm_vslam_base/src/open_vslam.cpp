@@ -149,7 +149,11 @@ void OpenVslam::reset()
   std::lock_guard<std::mutex> lock(m_mutex_last_keyframe);
   m_last_keyframe = nullptr;
   m_nrof_keyframes = 0;
-  m_base_point_id = m_max_point_id;
+
+  // The new base point id is the maximum point id ever recognised +1. This way even though the SLAM starts counting
+  // at 0 again, we still have a unique id for all the points.
+  m_base_point_id = m_max_point_id+1;
+
   LOG_F(INFO, "Finished reseting visual SLAM.");
 }
 

@@ -22,7 +22,7 @@ public:
 
   int size();
 
-  std::vector<int> getPointIds();
+  std::vector<uint32_t> getPointIds();
 
 private:
   std::vector<uint32_t> m_point_ids;

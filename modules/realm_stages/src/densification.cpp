@@ -50,7 +50,7 @@ void Densification::addFrame(const Frame::Ptr &frame)
     LOG_F(INFO, "Frame #%u:", frame->getFrameId());
     LOG_F(INFO, "Keyframe? %s", frame->isKeyframe() ? "Yes" : "No");
     LOG_F(INFO, "Accurate Pose? %s", frame->hasAccuratePose() ? "Yes" : "No");
-    LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud()->size());
+    LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud() != nullptr ? frame->getSparseCloud()->size() : 0);
 
     LOG_F(INFO, "Frame #%u not suited for dense reconstruction. Passing through...", frame->getFrameId());
     m_transport_frame(frame, "output/frame");
