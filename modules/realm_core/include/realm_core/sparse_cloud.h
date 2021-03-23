@@ -14,7 +14,7 @@ public:
 
 public:
   SparseCloud();
-  SparseCloud(uint32_t context_id, const std::vector<uint32_t> &point_ids, const cv::Mat &data);
+  SparseCloud(const std::vector<uint32_t> &point_ids, const cv::Mat &data);
 
   bool empty();
 
@@ -22,11 +22,9 @@ public:
 
   int size();
 
-  uint32_t getContextId();
   std::vector<int> getPointIds();
 
 private:
-  uint32_t m_context_id;
   std::vector<uint32_t> m_point_ids;
   cv::Mat m_data;
 

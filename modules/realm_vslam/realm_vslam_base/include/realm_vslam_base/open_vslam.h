@@ -11,6 +11,7 @@
 #include <openvslam/system.h>
 #include <openvslam/type.h>
 #include <openvslam/data/keyframe.h>
+#include <openvslam/data/landmark.h>
 #include <yaml-cpp/yaml.h>
 
 namespace realm
@@ -31,9 +32,15 @@ public:
 
   bool drawTrackedImage(cv::Mat &img) const override;
 
-  SparseCloud::Ptr getTrackedMapPoints() const override;
+  SparseCloud::Ptr getTrackedMapPoints() override;
 
 private:
+
+  //! We need to assign points a unique id, so they can be identified across several resets of the visual SLAM system.
+  //! We do that by saving the maximum, recognized point id and using this as starting point on a reset. The m_base_point_id
+  //! is set to the max id on reset.
+  uint32_t m_max_point_id;
+  uint32_t m_base_point_id;
 
   unsigned int m_nrof_keyframes;
 
@@ -52,6 +59,8 @@ private:
   std::shared_ptr<openvslam::publish::frame_publisher> m_frame_publisher;
   std::shared_ptr<openvslam::publish::map_publisher> m_map_publisher;
   std::unique_ptr<OpenVslamKeyframeUpdater> m_keyframe_updater;
+
+  uint32_t extractPointId(openvslam::data::landmark* lm);
 
   cv::Mat getLastDrawnFrame() const;
   cv::Mat invertPose(const cv::Mat &pose) const;

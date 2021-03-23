@@ -3,14 +3,15 @@
 #include <realm_vslam_base/open_vslam.h>
 
 #include <openvslam/config.h>
-#include <openvslam/data/landmark.h>
 #include <openvslam/publish/map_publisher.h>
 #include <openvslam/publish/frame_publisher.h>
 
 using namespace realm;
 
 OpenVslam::OpenVslam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set)
- : m_nrof_keyframes(0),
+ : m_max_point_id(0),
+   m_base_point_id(0),
+   m_nrof_keyframes(0),
    m_last_keyframe(nullptr),
    m_resizing((*vslam_set)["resizing"].toDouble()),
    m_path_vocabulary((*vslam_set)["path_vocabulary"].toString()),
@@ -148,10 +149,11 @@ void OpenVslam::reset()
   std::lock_guard<std::mutex> lock(m_mutex_last_keyframe);
   m_last_keyframe = nullptr;
   m_nrof_keyframes = 0;
+  m_base_point_id = m_max_point_id;
   LOG_F(INFO, "Finished reseting visual SLAM.");
 }
 
-SparseCloud::Ptr OpenVslam::getTrackedMapPoints() const
+SparseCloud::Ptr OpenVslam::getTrackedMapPoints()
 {
   m_mutex_last_keyframe.lock();
   std::vector<openvslam::data::landmark*> landmarks = m_last_keyframe->get_landmarks();
@@ -169,16 +171,27 @@ SparseCloud::Ptr OpenVslam::getTrackedMapPoints() const
     openvslam::Vec3_t pos = lm->get_pos_in_world();
     cv::Mat pt = (cv::Mat_<double>(1, 3) << pos[0], pos[1], pos[2]);
     points.push_back(pt);
-    point_ids.push_back(lm->id_);
+
+    uint32_t point_id = extractPointId(lm);
+    point_ids.push_back(point_id);
+
+    // Save the maximum extracted point id
+    if (point_id > m_max_point_id)
+      m_max_point_id = point_id;
   }
 
-  return std::make_shared<SparseCloud>(0, point_ids, points);
+  return std::make_shared<SparseCloud>(point_ids, points);
 }
 
 bool OpenVslam::drawTrackedImage(cv::Mat &img) const
 {
   img = getLastDrawnFrame();
   return !img.empty();
+}
+
+uint32_t OpenVslam::extractPointId(openvslam::data::landmark* lm)
+{
+  return m_base_point_id + lm->id_;
 }
 
 cv::Mat OpenVslam::getLastDrawnFrame() const
@@ -273,7 +286,7 @@ bool OpenVslamKeyframeUpdater::process()
       if (sparse_cloud->size() != new_surface_points.rows)
       {
         LOG_IF_F(INFO, m_verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), sparse_cloud->size(), new_surface_points.rows);
-        frame_realm->setSparseCloud(std::make_shared<SparseCloud>(sparse_cloud->getContextId(), new_surface_point_ids, new_surface_points), true);
+        frame_realm->setSparseCloud(std::make_shared<SparseCloud>(new_surface_point_ids, new_surface_points), true);
       }
 
       has_processed = true;
