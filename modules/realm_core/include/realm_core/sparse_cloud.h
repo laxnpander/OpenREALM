@@ -7,14 +7,14 @@
 namespace realm
 {
 
-class SparseCloud
+class PointCloud
 {
 public:
-  using Ptr = std::shared_ptr<SparseCloud>;
+  using Ptr = std::shared_ptr<PointCloud>;
 
 public:
-  SparseCloud();
-  SparseCloud(const std::vector<uint32_t> &point_ids, const cv::Mat &data);
+  PointCloud();
+  PointCloud(const std::vector<uint32_t> &point_ids, const cv::Mat &data);
 
   bool empty();
 

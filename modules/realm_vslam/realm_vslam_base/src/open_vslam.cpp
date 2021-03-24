@@ -104,7 +104,7 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
     T_c2w.pop_back();
     frame->setVisualPose(T_c2w);
 
-    SparseCloud::Ptr sparse_cloud = getTrackedMapPoints();
+    PointCloud::Ptr sparse_cloud = getTrackedMapPoints();
     frame->setSparseCloud(sparse_cloud, true);
 
     // Check current state of the slam
@@ -157,7 +157,7 @@ void OpenVslam::reset()
   LOG_F(INFO, "Finished reseting visual SLAM.");
 }
 
-SparseCloud::Ptr OpenVslam::getTrackedMapPoints()
+PointCloud::Ptr OpenVslam::getTrackedMapPoints()
 {
   m_mutex_last_keyframe.lock();
   std::vector<openvslam::data::landmark*> landmarks = m_last_keyframe->get_landmarks();
@@ -184,7 +184,7 @@ SparseCloud::Ptr OpenVslam::getTrackedMapPoints()
       m_max_point_id = point_id;
   }
 
-  return std::make_shared<SparseCloud>(point_ids, points);
+  return std::make_shared<PointCloud>(point_ids, points);
 }
 
 bool OpenVslam::drawTrackedImage(cv::Mat &img) const
@@ -268,7 +268,7 @@ bool OpenVslamKeyframeUpdater::process()
 
       // Frame is still in the memory
       // Therefore update point cloud
-      SparseCloud::Ptr sparse_cloud = frame_realm->getSparseCloud();
+      PointCloud::Ptr sparse_cloud = frame_realm->getSparseCloud();
       std::vector<openvslam::data::landmark*> landmarks = frame_slam->get_landmarks();
 
       cv::Mat new_surface_points;
@@ -290,7 +290,7 @@ bool OpenVslamKeyframeUpdater::process()
       if (sparse_cloud->size() != new_surface_points.rows)
       {
         LOG_IF_F(INFO, m_verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), sparse_cloud->size(), new_surface_points.rows);
-        frame_realm->setSparseCloud(std::make_shared<SparseCloud>(new_surface_point_ids, new_surface_points), true);
+        frame_realm->setSparseCloud(std::make_shared<PointCloud>(new_surface_point_ids, new_surface_points), true);
       }
 
       has_processed = true;

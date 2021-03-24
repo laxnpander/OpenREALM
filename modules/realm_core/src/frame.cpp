@@ -181,7 +181,7 @@ cv::Mat Frame::getResizedCalibration() const
     throw(std::runtime_error("Error resizing camera: Image resizing was not set!"));
 }
 
-SparseCloud::Ptr Frame::getSparseCloud() const
+PointCloud::Ptr Frame::getSparseCloud() const
 {
   std::lock_guard<std::mutex> lock(m_mutex_sparse_points);
   return m_sparse_cloud;
@@ -308,7 +308,7 @@ void Frame::setGeoreference(const cv::Mat &T_w2g)
   m_is_georeferenced = true;
 }
 
-void Frame::setSparseCloud(const SparseCloud::Ptr &sparse_cloud, bool in_visual_coordinates)
+void Frame::setSparseCloud(const PointCloud::Ptr &sparse_cloud, bool in_visual_coordinates)
 {
   if (sparse_cloud->empty())
     return;

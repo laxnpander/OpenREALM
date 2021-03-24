@@ -2,11 +2,11 @@
 
 using namespace realm;
 
-SparseCloud::SparseCloud()
+PointCloud::PointCloud()
 {
 }
 
-SparseCloud::SparseCloud(const std::vector<uint32_t> &point_ids, const cv::Mat &data)
+PointCloud::PointCloud(const std::vector<uint32_t> &point_ids, const cv::Mat &data)
  :  m_point_ids(point_ids),
     m_data(data)
 {
@@ -14,24 +14,24 @@ SparseCloud::SparseCloud(const std::vector<uint32_t> &point_ids, const cv::Mat &
     throw(std::invalid_argument("Error creating sparse cloud: Data - ID mismatch!"));
 }
 
-bool SparseCloud::empty()
+bool PointCloud::empty()
 {
   if (m_data.rows == 0)
     return true;
   return false;
 }
 
-cv::Mat& SparseCloud::data()
+cv::Mat& PointCloud::data()
 {
   return m_data;
 }
 
-std::vector<uint32_t> SparseCloud::getPointIds()
+std::vector<uint32_t> PointCloud::getPointIds()
 {
   return m_point_ids;
 }
 
-int SparseCloud::size()
+int PointCloud::size()
 {
   return m_data.rows;
 }

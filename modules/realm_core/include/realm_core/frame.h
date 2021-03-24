@@ -117,7 +117,7 @@ class Frame
      * @brief Getter for the surface point cloud
      * @return Sparse reconstructed point cloud set inside the visual SLAM framework.
      */
-    SparseCloud::Ptr getSparseCloud() const;
+    PointCloud::Ptr getSparseCloud() const;
 
     /*!
      * @brief Getter for frame pose. Is always up to date, therefore either the default, visual or georeferenced pose
@@ -249,7 +249,7 @@ class Frame
      *        2) row(i) = (x, y, z, r, g, b)
      *        3) row(i) = (x, y, z, r, g, b, nx, ny, nz)
      */
-    void setSparseCloud(const SparseCloud::Ptr &sparse_cloud, bool in_visual_coordinates);
+    void setSparseCloud(const PointCloud::Ptr &sparse_cloud, bool in_visual_coordinates);
 
     /*!
      * @brief Setter for depthmap. Invalid depth values are set to -1.0.
@@ -424,7 +424,7 @@ class Frame
     //! well as a unique context identifier. The Ids refer to the ids that are assigned inside the visual SLAM, so points
     //! are uniquely identified inside a context. The context id is typically required, because after a reset SLAM systems
     //! may also reset the point ids. So to be able to unqiuely identify a point the context id can be used.
-    SparseCloud::Ptr m_sparse_cloud;
+    PointCloud::Ptr m_sparse_cloud;
 
     //! Digital surface model of the observed scene represented by a 2.5D grid map. Layers contained:
     //! Essential:

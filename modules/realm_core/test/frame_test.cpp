@@ -56,7 +56,7 @@ TEST(Frame, AddSurfacePoints)
 
   // The camera is facing straight down in -z at position t = (x, y, z) in the world frame, so the created surface points
   // are equally spread around the x-y-plane so their median is exactly at depth = z
-  frame->setSparseCloud(std::make_shared<SparseCloud>(point_ids, surface_points), false);
+  frame->setSparseCloud(std::make_shared<PointCloud>(point_ids, surface_points), false);
 
   EXPECT_EQ(frame->getMedianSceneDepth(), frame->getCamera()->t().at<double>(2));
   EXPECT_EQ(frame->getMinSceneDepth(), frame->getCamera()->t().at<double>(2)-50);
@@ -76,7 +76,7 @@ TEST(Frame, Georeference)
   // Create some artificial point cloud
   std::vector<uint32_t> point_ids{0, 1, 2};
   cv::Mat surface_points = (cv::Mat_<double>(3, 3) << 0, 32, 0, 15, 50, -1200, 2, 2, 600);
-  frame->setSparseCloud(std::make_shared<SparseCloud>(point_ids, surface_points), false);
+  frame->setSparseCloud(std::make_shared<PointCloud>(point_ids, surface_points), false);
 
   // Create some artifical transformation into the UTM frame.
   cv::Mat T_georeference = cv::Mat::eye(4, 4, CV_64F);
@@ -116,7 +116,7 @@ TEST(Frame, UpdateGeoreference)
   // Create some artificial point cloud
   std::vector<uint32_t> point_ids{0, 1, 2};
   cv::Mat surface_points = (cv::Mat_<double>(3, 3) << 0, 32, 0, 15, 50, -1200, 2, 2, 600);
-  frame->setSparseCloud(std::make_shared<SparseCloud>(point_ids, surface_points), false);
+  frame->setSparseCloud(std::make_shared<PointCloud>(point_ids, surface_points), false);
 
   // Create some artifical transformation into the UTM frame.
   cv::Mat T_georeference = cv::Mat::eye(4, 4, CV_64F);
