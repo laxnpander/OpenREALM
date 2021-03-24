@@ -17,7 +17,7 @@
 #include <realm_core/camera.h>
 #include <realm_core/cv_grid_map.h>
 #include <realm_core/depthmap.h>
-#include <realm_core/sparse_cloud.h>
+#include <realm_core/point_cloud.h>
 
 namespace realm
 {

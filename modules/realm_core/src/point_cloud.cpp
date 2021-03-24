@@ -1,4 +1,4 @@
-#include <realm_core/sparse_cloud.h>
+#include <realm_core/point_cloud.h>
 
 using namespace realm;
 

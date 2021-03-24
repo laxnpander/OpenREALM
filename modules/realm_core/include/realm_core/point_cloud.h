@@ -1,5 +1,5 @@
-#ifndef OPENREALM_SPARSE_CLOUD_H
-#define OPENREALM_SPARSE_CLOUD_H
+#ifndef OPENREALM_POINT_CLOUD_H
+#define OPENREALM_POINT_CLOUD_H
 
 #include <opencv2/core.hpp>
 #include <memory>
@@ -32,4 +32,4 @@ private:
 
 } // namespace realm
 
-#endif //OPENREALM_SPARSE_CLOUD_H
+#endif //OPENREALM_POINT_CLOUD_H
