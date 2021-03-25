@@ -254,7 +254,7 @@ bool OpenVslamKeyframeUpdater::process()
 
   bool has_processed = false;
 
-  for (auto it = m_keyframe_links.begin(); it != m_keyframe_links.end(); )
+  for (auto it = m_keyframe_links.begin(); it != m_keyframe_links.end(); it++)
   {
     std::shared_ptr<Frame> frame_realm = it->first.lock();
     openvslam::data::keyframe* frame_slam = it->second;
