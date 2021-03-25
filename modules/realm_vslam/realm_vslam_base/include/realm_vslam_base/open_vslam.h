@@ -75,6 +75,9 @@ private:
   /// Container for OpenREALM frames to corresponding OpenVSLAM keyframe
   std::list<std::pair<std::weak_ptr<Frame>, openvslam::data::keyframe*>> m_keyframe_links;
 
+  /// Mutex to prevent modifying the keyframes list while inside an iterator
+  mutable std::mutex m_mutex_keyframes;
+
   bool process() override;
 
   void reset() override;

@@ -243,11 +243,15 @@ void OpenVslamKeyframeUpdater::add(const std::weak_ptr<Frame> &frame_realm, open
 {
   // We create a connection between the OpenREALM frames and the OpenVSLAM keyframes, so we can update points and
   // poses easily
+  std::lock_guard<std::mutex> lock(m_mutex_keyframes);
   m_keyframe_links.emplace_back(std::make_pair(frame_realm, frame_vslam));
 }
 
 bool OpenVslamKeyframeUpdater::process()
 {
+  // We need to lock down the addition of keyframes while inside the iterator
+  std::lock_guard<std::mutex> lock(m_mutex_keyframes);
+
   bool has_processed = false;
 
   for (auto it = m_keyframe_links.begin(); it != m_keyframe_links.end(); )
