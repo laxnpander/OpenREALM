@@ -134,6 +134,7 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
 
 void OpenVslam::close()
 {
+  m_vslam->request_terminate();
   m_vslam->shutdown();
   m_keyframe_updater->requestFinish();
   m_keyframe_updater->join();

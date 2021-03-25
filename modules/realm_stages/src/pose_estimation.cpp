@@ -78,6 +78,10 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
 
 PoseEstimation::~PoseEstimation()
 {
+}
+
+void PoseEstimation::finishCallback()
+{
   if (m_use_vslam) {
     m_vslam->close();
   }

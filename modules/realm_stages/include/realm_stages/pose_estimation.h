@@ -63,6 +63,8 @@ class PoseEstimation : public StageBase
                    const ImuSettings::Ptr &imu_set,
                    double rate);
     ~PoseEstimation();
+
+    void finishCallback() override;
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
 
