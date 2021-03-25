@@ -47,6 +47,8 @@ private:
   mutable std::mutex m_mutex_last_keyframe;
   openvslam::data::keyframe* m_last_keyframe;
 
+  openvslam::tracker_state_t m_previous_state;
+
   std::shared_ptr<openvslam::system> m_vslam;
   std::shared_ptr<openvslam::config> m_config;
   std::shared_ptr<openvslam::publish::frame_publisher> m_frame_publisher;
@@ -56,6 +58,9 @@ private:
   cv::Mat getLastDrawnFrame() const;
   cv::Mat invertPose(const cv::Mat &pose) const;
   cv::Mat convertToCv(const openvslam::Mat44_t &mat) const;
+
+  void resetOpenVSlam();
+  void resetKeyframeUpdater();
 };
 
 class OpenVslamKeyframeUpdater : public WorkerThreadBase
