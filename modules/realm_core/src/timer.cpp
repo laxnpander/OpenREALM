@@ -9,25 +9,30 @@ Timer::Timer(const std::chrono::milliseconds &period, const std::function<void()
       m_func(func),
       m_in_flight(true)
 {
-    // Lambda implementation for threading
-    m_thread = std::thread([this]
-            {
-                while (m_in_flight)
-                {
-                    std::this_thread::sleep_for(m_period);
-                    if (m_in_flight)
-                    {
-                        m_func();
-                    }
-                }
-            });
+  // Lambda implementation for threading
+  m_thread = std::thread([this]
+  {
+    while (m_in_flight)
+    {
+      this->interruptable_wait_for(m_period);
+      if (m_in_flight)
+      {
+        m_func();
+      }
+    }
+  });
 }
 
 Timer::~Timer()
 {
-  m_in_flight = false;
-    m_thread.join();
+  {
+    std::lock_guard<std::mutex> l(m_stop_mtx);
+      m_in_flight = false;
+  }
+  m_cond.notify_one();
+  m_thread.join();
 }
+
 
 long Timer::getCurrentTimeSeconds()
 {
