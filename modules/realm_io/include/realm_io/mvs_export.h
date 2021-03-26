@@ -1,0 +1,541 @@
+
+#ifndef OPENREALM_MVS_EXPORT_H
+#define OPENREALM_MVS_EXPORT_H
+
+
+// I N C L U D E S /////////////////////////////////////////////////
+
+#include <fstream>
+#include <string>
+#include <cctype>
+#include <algorithm>
+
+#include <opencv2/core.hpp>
+
+#include <realm_core/frame.h>
+
+
+// D E F I N E S ///////////////////////////////////////////////////
+
+#define MVSI_PROJECT_ID "MVSI" // identifies the project stream
+#define MVSI_PROJECT_VER ((uint32_t)5) // identifies the version of a project stream
+
+// set a default namespace name if none given
+#ifndef _INTERFACE_NAMESPACE
+#define _INTERFACE_NAMESPACE MVS
+#endif
+
+// uncomment to enable custom OpenCV data types
+// (should be uncommented if OpenCV is not available)
+#if !defined(_USE_OPENCV) && !defined(_USE_CUSTOM_CV)
+#define _USE_CUSTOM_CV
+#endif
+
+#ifndef NO_ID
+#define NO_ID std::numeric_limits<uint32_t>::max()
+#endif
+
+
+namespace realm {
+namespace io {
+
+// custom serialization
+namespace MvsArchive {
+
+// Basic serialization types
+struct ArchiveSave {
+  std::ostream& stream;
+  uint32_t version;
+  ArchiveSave(std::ostream& _stream, uint32_t _version)
+      : stream(_stream), version(_version) {}
+  template<typename _Tp>
+  ArchiveSave& operator & (const _Tp& obj);
+};
+struct ArchiveLoad {
+  std::istream& stream;
+  uint32_t version;
+  ArchiveLoad(std::istream& _stream, uint32_t _version)
+      : stream(_stream), version(_version) {}
+  template<typename _Tp>
+  ArchiveLoad& operator & (_Tp& obj);
+};
+
+template<typename _Tp>
+bool Save(ArchiveSave& a, const _Tp& obj) {
+  const_cast<_Tp&>(obj).serialize(a, a.version);
+  return true;
+}
+template<typename _Tp>
+bool Load(ArchiveLoad& a, _Tp& obj) {
+  obj.serialize(a, a.version);
+  return true;
+}
+
+template<typename _Tp>
+ArchiveSave& ArchiveSave::operator & (const _Tp& obj) {
+  Save(*this, obj);
+  return *this;
+}
+template<typename _Tp>
+ArchiveLoad& ArchiveLoad::operator & (_Tp& obj) {
+  Load(*this, obj);
+  return *this;
+}
+
+// Main exporter & importer
+template<typename _Tp>
+bool SerializeSave(const _Tp& obj, const std::string& fileName, uint32_t version=MVSI_PROJECT_VER) {
+  // open the output stream
+  std::ofstream stream(fileName, std::ofstream::binary);
+  if (!stream.is_open())
+    return false;
+  // write header
+  if (version > 0) {
+    // save project ID
+    stream.write(MVSI_PROJECT_ID, 4);
+    // save project version
+    stream.write((const char*)&version, sizeof(uint32_t));
+    // reserve some bytes
+    const uint32_t reserved(0);
+    stream.write((const char*)&reserved, sizeof(uint32_t));
+  }
+  // serialize out the current state
+  MvsArchive::ArchiveSave serializer(stream, version);
+  serializer & obj;
+  return true;
+}
+template<typename _Tp>
+bool SerializeLoad(_Tp& obj, const std::string& fileName, uint32_t* pVersion=NULL) {
+  // open the input stream
+  std::ifstream stream(fileName, std::ifstream::binary);
+  if (!stream.is_open())
+    return false;
+  // read header
+  uint32_t version(0);
+  // load project header ID
+  char szHeader[4];
+  stream.read(szHeader, 4);
+  if (!stream)
+    return false;
+  if (strncmp(szHeader, MVSI_PROJECT_ID, 4) != 0) {
+    // try to load as the first version that didn't have a header
+    const size_t size(fileName.size());
+    if (size <= 4)
+      return false;
+    std::string ext(fileName.substr(size-4));
+    std::transform(ext.begin(), ext.end(), ext.begin(), [](char c) { return (char)std::tolower(c); });
+    if (ext != ".mvs")
+      return false;
+    stream.seekg(0, std::ifstream::beg);
+  } else {
+    // load project version
+    stream.read((char*)&version, sizeof(uint32_t));
+    if (!stream || version > MVSI_PROJECT_VER)
+      return false;
+    // skip reserved bytes
+    uint32_t reserved;
+    stream.read((char*)&reserved, sizeof(uint32_t));
+  }
+  // serialize in the current state
+  MvsArchive::ArchiveLoad serializer(stream, version);
+  serializer & obj;
+  if (pVersion)
+    *pVersion = version;
+  return true;
+}
+
+
+#define ARCHIVE_DEFINE_TYPE(TYPE) \
+template<> \
+inline bool Save<TYPE>(ArchiveSave& a, const TYPE& v) { \
+	a.stream.write((const char*)&v, sizeof(TYPE)); \
+	return true; \
+} \
+template<> \
+inline bool Load<TYPE>(ArchiveLoad& a, TYPE& v) { \
+	a.stream.read((char*)&v, sizeof(TYPE)); \
+	return true; \
+}
+
+// Serialization support for basic types
+ARCHIVE_DEFINE_TYPE(uint32_t)
+ARCHIVE_DEFINE_TYPE(uint64_t)
+ARCHIVE_DEFINE_TYPE(float)
+ARCHIVE_DEFINE_TYPE(double)
+
+// Serialization support for cv::Matx
+template<typename _Tp, int m, int n>
+inline bool Save(ArchiveSave& a, const cv::Matx<_Tp,m,n>& _m) {
+  a.stream.write((const char*)_m.val, sizeof(_Tp)*m*n);
+  return true;
+}
+template<typename _Tp, int m, int n>
+inline bool Load(ArchiveLoad& a, cv::Matx<_Tp,m,n>& _m) {
+  a.stream.read((char*)_m.val, sizeof(_Tp)*m*n);
+  return true;
+}
+
+// Serialization support for cv::Point3_
+template<typename _Tp>
+inline bool Save(ArchiveSave& a, const cv::Point3_<_Tp>& pt) {
+  a.stream.write((const char*)&pt.x, sizeof(_Tp)*3);
+  return true;
+}
+template<typename _Tp>
+inline bool Load(ArchiveLoad& a, cv::Point3_<_Tp>& pt) {
+  a.stream.read((char*)&pt.x, sizeof(_Tp)*3);
+  return true;
+}
+
+// Serialization support for std::string
+template<>
+inline bool Save<std::string>(ArchiveSave& a, const std::string& s) {
+  const uint64_t size(s.size());
+  Save(a, size);
+  if (size > 0)
+    a.stream.write(&s[0], sizeof(char)*size);
+  return true;
+}
+template<>
+inline bool Load<std::string>(ArchiveLoad& a, std::string& s) {
+  uint64_t size;
+  Load(a, size);
+  if (size > 0) {
+    s.resize(size);
+    a.stream.read(&s[0], sizeof(char)*size);
+  }
+  return true;
+}
+
+// Serialization support for std::vector
+template<typename _Tp>
+inline bool Save(ArchiveSave& a, const std::vector<_Tp>& v) {
+  const uint64_t size(v.size());
+  Save(a, size);
+  for (uint64_t i=0; i<size; ++i)
+    Save(a, v[i]);
+  return true;
+}
+template<typename _Tp>
+inline bool Load(ArchiveLoad& a, std::vector<_Tp>& v) {
+  uint64_t size;
+  Load(a, size);
+  if (size > 0) {
+    v.resize(size);
+    for (uint64_t i=0; i<size; ++i)
+      Load(a, v[i]);
+  }
+  return true;
+}
+
+} // namespace ARCHIVE
+/*----------------------------------------------------------------*/
+
+
+// interface used to export/import MVS input data;
+//  - MAX(width,height) is used for normalization
+//  - row-major order is used for storing the matrices
+struct MvsInterface
+{
+  typedef cv::Point3_<float> Pos3f;
+  typedef cv::Point3_<double> Pos3d;
+  typedef cv::Matx<double,3,3> Mat33d;
+  typedef cv::Matx<double,4,4> Mat44d;
+  typedef cv::Point3_<uint8_t> Col3; // x=B, y=G, z=R
+  /*----------------------------------------------------------------*/
+
+  // structure describing a mobile platform with cameras attached to it
+  struct Platform {
+    // structure describing a camera mounted on a platform
+    struct Camera {
+      std::string name; // camera's name
+      std::string bandName; // camera's band name, ex: RGB, BLUE, GREEN, RED, NIR, THERMAL, etc (optional)
+      uint32_t width, height; // image resolution in pixels for all images sharing this camera (optional)
+      Mat33d K; // camera's intrinsics matrix (normalized if image resolution not specified)
+      Mat33d R; // camera's rotation matrix relative to the platform
+      Pos3d C; // camera's translation vector relative to the platform
+
+      Camera() : width(0), height(0) {}
+      bool HasResolution() const { return width > 0 && height > 0; }
+      bool IsNormalized() const { return !HasResolution(); }
+      static uint32_t GetNormalizationScale(uint32_t width, uint32_t height) { return std::max(width, height); }
+      uint32_t GetNormalizationScale() const { return GetNormalizationScale(width, height); }
+
+      template <class Archive>
+      void serialize(Archive& ar, const unsigned int version) {
+        ar & name;
+        if (version > 3) {
+          ar & bandName;
+        }
+        if (version > 0) {
+          ar & width;
+          ar & height;
+        }
+        ar & K;
+        ar & R;
+        ar & C;
+      }
+    };
+    typedef std::vector<Camera> CameraArr;
+
+    // structure describing a pose along the trajectory of a platform
+    struct Pose {
+      Mat33d R; // platform's rotation matrix
+      Pos3d C; // platform's translation vector in the global coordinate system
+
+      Pose() {}
+      template <typename MAT, typename POS>
+      Pose(const MAT& _R, const POS& _C) : R(_R), C(_C) {}
+
+      // translation vector t = -RC
+      inline Pos3d GetTranslation() const { return R*(-C); }
+      inline void SetTranslation(const Pos3d& T) { C = R.t()*(-T); }
+
+      template <class Archive>
+      void serialize(Archive& ar, const unsigned int /*version*/) {
+        ar & R;
+        ar & C;
+      }
+    };
+    typedef std::vector<Pose> PoseArr;
+
+    std::string name; // platform's name
+    CameraArr cameras; // cameras mounted on the platform
+    PoseArr poses; // trajectory of the platform
+
+    const Mat33d& GetK(uint32_t cameraID) const {
+      return cameras[cameraID].K;
+    }
+    static Mat33d ScaleK(const Mat33d& _K, double scale) {
+      Mat33d K(_K);
+      K(0,0) *= scale;
+      K(0,1) *= scale;
+      K(0,2) *= scale;
+      K(1,1) *= scale;
+      K(1,2) *= scale;
+      return K;
+    }
+    Mat33d GetFullK(uint32_t cameraID, uint32_t width, uint32_t height) const {
+      return ScaleK(GetK(cameraID), (double)Camera::GetNormalizationScale(width, height)/
+                                    (cameras[cameraID].IsNormalized()?1.0:(double)cameras[cameraID].GetNormalizationScale()));
+    }
+
+    Pose GetPose(uint32_t cameraID, uint32_t poseID) const {
+      const Camera& camera = cameras[cameraID];
+      const Pose& pose = poses[poseID];
+      // add the relative camera pose to the platform
+      return Pose{
+          camera.R*pose.R,
+          pose.R.t()*camera.C+pose.C
+      };
+    }
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int /*version*/) {
+      ar & name;
+      ar & cameras;
+      ar & poses;
+    }
+  };
+  typedef std::vector<Platform> PlatformArr;
+  /*----------------------------------------------------------------*/
+
+  // structure describing an image
+  struct Image {
+    std::string name; // image file name
+    std::string maskName; // segmentation file name (optional)
+    uint32_t platformID; // ID of the associated platform
+    uint32_t cameraID; // ID of the associated camera on the associated platform
+    uint32_t poseID; // ID of the pose of the associated platform
+    uint32_t ID; // ID of this image in the global space (optional)
+
+    Image() : platformID(NO_ID), cameraID(NO_ID), poseID(NO_ID), ID(NO_ID) {}
+
+    bool IsValid() const { return poseID != NO_ID; }
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+      ar & name;
+      if (version > 4) {
+        ar & maskName;
+      }
+      ar & platformID;
+      ar & cameraID;
+      ar & poseID;
+      if (version > 2) {
+        ar & ID;
+      }
+    }
+  };
+  typedef std::vector<Image> ImageArr;
+  /*----------------------------------------------------------------*/
+
+  // structure describing a 3D point
+  struct Vertex {
+    // structure describing one view for a given 3D feature
+    struct View {
+      uint32_t imageID; // image ID corresponding to this view
+      float confidence; // view's confidence (0 - not available)
+
+      template<class Archive>
+      void serialize(Archive& ar, const unsigned int /*version*/) {
+        ar & imageID;
+        ar & confidence;
+      }
+    };
+    typedef std::vector<View> ViewArr;
+
+    Pos3f X; // 3D point position
+    ViewArr views; // list of all available views for this 3D feature
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int /*version*/) {
+      ar & X;
+      ar & views;
+    }
+  };
+  typedef std::vector<Vertex> VertexArr;
+  /*----------------------------------------------------------------*/
+
+  // structure describing a 3D line
+  struct Line {
+    // structure describing one view for a given 3D feature
+    struct View {
+      uint32_t imageID; // image ID corresponding to this view
+      float confidence; // view's confidence (0 - not available)
+
+      template<class Archive>
+      void serialize(Archive& ar, const unsigned int /*version*/) {
+        ar & imageID;
+        ar & confidence;
+      }
+    };
+    typedef std::vector<View> ViewArr;
+
+    Pos3f pt1; // 3D line segment end-point
+    Pos3f pt2; // 3D line segment end-point
+    ViewArr views; // list of all available views for this 3D feature
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int /*version*/) {
+      ar & pt1;
+      ar & pt2;
+      ar & views;
+    }
+  };
+  typedef std::vector<Line> LineArr;
+  /*----------------------------------------------------------------*/
+
+  // structure describing a 3D point's normal (optional)
+  struct Normal {
+    Pos3f n; // 3D feature normal
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int /*version*/) {
+      ar & n;
+    }
+  };
+  typedef std::vector<Normal> NormalArr;
+  /*----------------------------------------------------------------*/
+
+  // structure describing a 3D point's color (optional)
+  struct Color {
+    Col3 c; // 3D feature color
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int /*version*/) {
+      ar & c;
+    }
+  };
+  typedef std::vector<Color> ColorArr;
+  /*----------------------------------------------------------------*/
+
+  PlatformArr platforms; // array of platforms
+  ImageArr images; // array of images
+  VertexArr vertices; // array of reconstructed 3D points
+  NormalArr verticesNormal; // array of reconstructed 3D points' normal (optional)
+  ColorArr verticesColor; // array of reconstructed 3D points' color (optional)
+  LineArr lines; // array of reconstructed 3D lines (optional)
+  NormalArr linesNormal; // array of reconstructed 3D lines' normal (optional)
+  ColorArr linesColor; // array of reconstructed 3D lines' color (optional)
+  Mat44d transform; // transformation used to convert from absolute to relative coordinate system (optional)
+
+  MvsInterface() : transform(Mat44d::eye()) {}
+
+  const Mat33d& GetK(uint32_t imageID) const {
+    const Image& image = images[imageID];
+    return platforms[image.platformID].GetK(image.cameraID);
+  }
+
+  Platform::Pose GetPose(uint32_t imageID) const {
+    const Image& image = images[imageID];
+    return platforms[image.platformID].GetPose(image.cameraID, image.poseID);
+  }
+
+  template <class Archive>
+  void serialize(Archive& ar, const unsigned int version) {
+    ar & platforms;
+    ar & images;
+    ar & vertices;
+    ar & verticesNormal;
+    ar & verticesColor;
+    if (version > 0) {
+      ar & lines;
+      ar & linesNormal;
+      ar & linesColor;
+      if (version > 1) {
+        ar & transform;
+      }
+    }
+  }
+};
+/*----------------------------------------------------------------*/
+
+
+// interface used to export/import MVS depth-map data;
+// see MVS::ExportDepthDataRaw() and MVS::ImportDepthDataRaw() for usage example:
+//  - image-resolution at which the depth-map was estimated
+//  - depth-map-resolution, for now only the same resolution as the image is supported
+//  - min/max-depth of the values in the depth-map
+//  - image-file-name is the path to the reference color image
+//  - image-IDs are the reference view ID and neighbor view IDs used to estimate the depth-map
+//  - camera/rotation/position matrices (row-major) is the absolute pose corresponding to the reference view
+//  - depth-map represents the pixel depth
+//  - normal-map (optional) represents the 3D point normal in camera space; same resolution as the depth-map
+//  - confidence-map (optional) represents the 3D point confidence (usually a value in [0,1]); same resolution as the depth-map
+struct HeaderDepthDataRaw {
+  enum {
+    HAS_DEPTH = (1<<0),
+    HAS_NORMAL = (1<<1),
+    HAS_CONF = (1<<2),
+  };
+  uint16_t name; // file type
+  uint8_t type; // content type
+  uint8_t padding; // reserve
+  uint32_t imageWidth, imageHeight; // image resolution
+  uint32_t depthWidth, depthHeight; // depth-map resolution
+  float dMin, dMax; // depth range for this view
+  // image file name length followed by the characters: uint16_t nFileNameSize; char* FileName
+  // number of view IDs followed by view ID and neighbor view IDs: uint32_t nIDs; uint32_t* IDs
+  // camera, rotation and position matrices (row-major): double K[3][3], R[3][3], C[3]
+  // depth, normal, confidence maps: float depthMap[height][width], normalMap[height][width][3], confMap[height][width]
+  inline HeaderDepthDataRaw() : name(0), type(0), padding(0) {}
+  static uint16_t HeaderDepthDataRawName() { return *reinterpret_cast<const uint16_t*>("DR"); }
+};
+/*----------------------------------------------------------------*/
+
+class MvsExport
+{
+public:
+
+  static void saveFrames(const std::vector<Frame::Ptr> &frames, const std::string &directory);
+
+private:
+
+};
+
+}; // namespace io
+} // namespace realm
+
+
+#endif //OPENREALM_MVS_EXPORT_H

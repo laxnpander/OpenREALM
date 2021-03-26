@@ -39,6 +39,7 @@ set(HEADER_FILES
         ${root}/include/realm_io/cv_import.h
         ${root}/include/realm_io/gis_export.h
         ${root}/include/realm_io/gdal_continuous_writer.h
+        ${root}/include/realm_io/mvs_export.h
         ${root}/include/realm_io/realm_export.h
         ${root}/include/realm_io/realm_import.h
         ${root}/include/realm_io/utilities.h
@@ -49,6 +50,7 @@ set(SOURCE_FILES
         ${root}/src/cv_import.cpp
         ${root}/src/gis_export.cpp
         ${root}/src/gdal_continuous_writer.cpp
+        ${root}/src/mvs_export.cpp
         ${root}/src/realm_export.cpp
         ${root}/src/realm_import.cpp
         ${root}/src/utilities.cpp
@@ -187,6 +189,7 @@ if(TESTS_ENABLED)
 
     add_executable(run_realm_io_tests
             test/test_realm_io.cpp
+            test/mvs_io_test.cpp
             test/cv_io_test.cpp
             test/realm_io_test.cpp
             )
