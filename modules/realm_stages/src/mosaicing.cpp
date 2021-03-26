@@ -215,7 +215,7 @@ void Mosaicing::saveAll()
   // Check NaN
   cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
-  /*// 2D map output
+  // 2D map output
   if (m_settings_save.save_ortho_rgb_one)
     io::saveCvGridMapLayer(*m_global_map, m_utm_reference->zone, m_utm_reference->band, "color_rgb", m_stage_path + "/ortho/ortho.png");
   if (m_settings_save.save_elevation_one)
@@ -230,9 +230,8 @@ void Mosaicing::saveAll()
     io::saveGeoTIFF(m_global_map->getSubmap({"num_observations"}), m_utm_reference->zone, m_stage_path + "/nobs/nobs.tif");
   if (m_settings_save.save_ortho_gtiff_one)
     io::saveGeoTIFF(m_global_map->getSubmap({"color_rgb"}), m_utm_reference->zone, m_stage_path + "/ortho/ortho.tif", true, m_settings_save.split_gtiff_channels);
-  std::cout << "test-1" << std::endl;
   if (m_settings_save.save_elevation_one)
-    io::saveGeoTIFF(m_global_map->getSubmap({"elevation"}), m_utm_reference->zone, m_stage_path + "/elevation/gtiff/elevation.tif");*/
+    io::saveGeoTIFF(m_global_map->getSubmap({"elevation"}), m_utm_reference->zone, m_stage_path + "/elevation/gtiff/elevation.tif");
 
   io::MvsExport::saveFrames(m_frames, m_stage_path + "/mvs");
 

@@ -26,7 +26,7 @@ public:
   void close() override;
   void reset() override;
 
-  cv::Mat getTrackedMapPoints() const override {};
+  PointCloud::Ptr getTrackedMapPoints() override;
   bool drawTrackedImage(cv::Mat &) const override;
 
   // Transport from realm to ros
@@ -42,12 +42,13 @@ private:
   int m_id_previous;
   long m_t_first;
 
-  std::unique_ptr<std::thread> m_thread_slam;
+  uint32_t m_max_point_id;
+  uint32_t m_base_point_id;
+
   std::unique_ptr<SlamManager> m_slam;
   std::shared_ptr<SlamParams>  m_slam_params;
 
   cv::Mat convertPose(const Eigen::Matrix<double, 3, 4> &mat_eigen);
-  cv::Mat extractMapPoints();
 };
 
 }

@@ -5,7 +5,9 @@ using namespace realm;
 Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set)
   : m_resizing(1.0),
     m_id_previous(-1),
-    m_t_first(0)
+    m_t_first(0),
+    m_max_point_id(0),
+    m_base_point_id(0)
 {
   m_resizing = (*vslam_set)["resizing"].toDouble();
 
@@ -81,7 +83,6 @@ Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   m_slam_params->nbmaxkps_ = static_cast<int>(nbwcells * nbhcells);
 
   m_slam.reset(new SlamManager(m_slam_params));
-  //m_thread_slam.reset(new std::thread(&SlamManager::run, m_slam.get()));
 }
 
 Ov2Slam::~Ov2Slam()
@@ -123,21 +124,21 @@ VisualSlamIF::State Ov2Slam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
     if (m_id_previous == -1)
     {
       frame->setVisualPose(T_c2w);
-      frame->setSparseCloud(extractMapPoints(), true);
+      frame->setSparseCloud(getTrackedMapPoints(), true);
       m_id_previous = m_slam->pcurframe_->kfid_;
       return State::INITIALIZED;
     }
     else if (m_id_previous < m_slam->pcurframe_->kfid_)
     {
       frame->setVisualPose(T_c2w);
-      frame->setSparseCloud(extractMapPoints(), true);
+      frame->setSparseCloud(getTrackedMapPoints(), true);
       m_id_previous = m_slam->pcurframe_->kfid_;
       return State::KEYFRAME_INSERT;
     }
     else
     {
       frame->setVisualPose(T_c2w);
-      frame->setSparseCloud(extractMapPoints(), true);
+      frame->setSparseCloud(getTrackedMapPoints(), true);
       return State::FRAME_INSERT;
     }
   }
@@ -165,8 +166,9 @@ cv::Mat Ov2Slam::convertPose(const Eigen::Matrix<double, 3, 4> &mat_eigen)
   return mat_cv;
 }
 
-cv::Mat Ov2Slam::extractMapPoints()
+PointCloud::Ptr Ov2Slam::getTrackedMapPoints()
 {
+  std::vector<uint32_t> point_ids;
   cv::Mat points;
 
   std::unordered_map<int, Keypoint> keypoints = m_slam->pcurframe_->mapkps_;
@@ -181,8 +183,10 @@ cv::Mat Ov2Slam::extractMapPoints()
        Eigen::Vector3d point_eigen = point_o2v->getPoint();
        cv::Mat point_cv = (cv::Mat_<double>(1, 3) << point_eigen.x(), point_eigen.y(), point_eigen.z());
        points.push_back(point_cv);
+
+       point_ids.push_back(static_cast<uint32_t>(point_o2v->lmid_));
      }
   }
 
-  return points;
+  return std::make_shared<PointCloud>(point_ids, points);
 }
