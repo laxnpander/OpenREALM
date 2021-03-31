@@ -209,6 +209,12 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 
 void Mosaicing::saveAll()
 {
+  if(!m_global_map || !m_global_map->exists("elevation"))
+  {
+    LOG_F(ERROR, "No global map created, skipping saveAll()");
+    return;
+  }
+
   // Check NaN
   cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
@@ -353,25 +359,32 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
   CvGridMap::Ptr mesh_sampled;
   if (m_downsample_publish_mesh > 10e-6)
   {
-    // Downsampling was set by the user in settings
-    LOG_F(INFO, "Downsampling mesh publish to %4.2f [m/gridcell]...", m_downsample_publish_mesh);
-    mesh_sampled = std::make_shared<CvGridMap>(map->cloneSubmap({"elevation", "color_rgb"}));
+    if (map && map->exists("elevation") && map->exists("color_rgb")) {
 
-    cv::Mat valid = ((*mesh_sampled)["elevation"] == (*mesh_sampled)["elevation"]);
+      // Downsampling was set by the user in settings
+      LOG_F(INFO, "Downsampling mesh publish to %4.2f [m/gridcell]...", m_downsample_publish_mesh);
+      mesh_sampled = std::make_shared<CvGridMap>(map->cloneSubmap({"elevation", "color_rgb"}));
 
-    // TODO: Change resolution correction is not cool -> same in ortho rectification
-    // Check ranges of input elevation, this is necessary to correct resizing interpolation errors
-    double ele_min, ele_max;
-    cv::Point2i min_loc, max_loc;
-    cv::minMaxLoc((*mesh_sampled)["elevation"], &ele_min, &ele_max, &min_loc, &max_loc, valid);
+      cv::Mat valid = ((*mesh_sampled)["elevation"] == (*mesh_sampled)["elevation"]);
 
-    mesh_sampled->changeResolution(m_downsample_publish_mesh);
+      // TODO: Change resolution correction is not cool -> same in ortho rectification
+      // Check ranges of input elevation, this is necessary to correct resizing interpolation errors
+      double ele_min, ele_max;
+      cv::Point2i min_loc, max_loc;
+      cv::minMaxLoc((*mesh_sampled)["elevation"], &ele_min, &ele_max, &min_loc, &max_loc, valid);
 
-    // After resizing through bilinear interpolation there can occure bad elevation values at the border
-    cv::Mat mask_low = ((*mesh_sampled)["elevation"] < ele_min);
-    cv::Mat mask_high = ((*mesh_sampled)["elevation"] > ele_max);
-    (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_low);
-    (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_high);
+      mesh_sampled->changeResolution(m_downsample_publish_mesh);
+
+      // After resizing through bilinear interpolation there can occure bad elevation values at the border
+      cv::Mat mask_low = ((*mesh_sampled)["elevation"] < ele_min);
+      cv::Mat mask_high = ((*mesh_sampled)["elevation"] > ele_max);
+      (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_low);
+      (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_high);
+    }
+    else
+    {
+      LOG_F(WARNING, "Could not publish downsampled mesh, no global map existed.");
+    }
   }
   else
   {
