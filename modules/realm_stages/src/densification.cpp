@@ -8,7 +8,7 @@ using namespace stages;
 Densification::Densification(const StageSettings::Ptr &stage_set,
                              const DensifierSettings::Ptr &densifier_set,
                              double rate)
-: StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+: StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
   m_use_filter_bilat((*stage_set)["use_filter_bilat"].toInt() > 0),
   m_use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),
   m_depth_min_current(0.0),

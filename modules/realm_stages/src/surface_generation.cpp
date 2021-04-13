@@ -9,7 +9,7 @@ using namespace stages;
 using namespace realm::ortho;
 
 SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double rate)
-: StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt()),
+: StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt(), bool((*settings)["log_to_file"].toInt())),
   m_try_use_elevation((*settings)["try_use_elevation"].toInt() > 0),
   m_knn_max_iter((*settings)["knn_max_iter"].toInt()),
   m_is_projection_plane_offset_computed(false),

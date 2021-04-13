@@ -8,7 +8,7 @@ using namespace realm;
 using namespace stages;
 
 OrthoRectification::OrthoRectification(const StageSettings::Ptr &stage_set, double rate)
-    : StageBase("ortho_rectification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+    : StageBase("ortho_rectification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_do_publish_pointcloud((*stage_set)["publish_pointcloud"].toInt() > 0),
       m_GSD((*stage_set)["GSD"].toDouble()),
       m_settings_save({(*stage_set)["save_ortho_rgb"].toInt() > 0,

@@ -10,7 +10,7 @@ using namespace realm;
 using namespace stages;
 
 Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
-    : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+    : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_utm_reference(nullptr),
       m_global_map(nullptr),
       //m_mesher(nullptr),

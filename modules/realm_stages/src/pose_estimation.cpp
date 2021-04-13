@@ -12,7 +12,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                                const CameraSettings::Ptr &cam_set,
                                const ImuSettings::Ptr &imu_set,
                                double rate)
-    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_is_georef_initialized(false),
       m_use_vslam((*stage_set)["use_vslam"].toInt() > 0),
       m_use_imu((*stage_set)["use_imu"].toInt() > 0),
