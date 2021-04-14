@@ -8,7 +8,7 @@ using namespace stages;
 Densification::Densification(const StageSettings::Ptr &stage_set,
                              const DensifierSettings::Ptr &densifier_set,
                              double rate)
-: StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+: StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
   m_use_filter_bilat((*stage_set)["use_filter_bilat"].toInt() > 0),
   m_use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),
   m_depth_min_current(0.0),
@@ -338,24 +338,30 @@ void Densification::reset()
 
 void Densification::initStageCallback()
 {
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/sparse"))
+  if (!io::dirExists(m_stage_path + "/sparse") && m_settings_save.save_sparse)
     io::createDir(m_stage_path + "/sparse");
-  if (!io::dirExists(m_stage_path + "/dense"))
+  if (!io::dirExists(m_stage_path + "/dense") && m_settings_save.save_dense)
     io::createDir(m_stage_path + "/dense");
-  if (!io::dirExists(m_stage_path + "/bilat"))
+  if (!io::dirExists(m_stage_path + "/bilat") && m_settings_save.save_bilat)
     io::createDir(m_stage_path + "/bilat");
-  if (!io::dirExists(m_stage_path + "/guided"))
+  if (!io::dirExists(m_stage_path + "/guided") && m_settings_save.save_guided)
     io::createDir(m_stage_path + "/guided");
-  if (!io::dirExists(m_stage_path + "/normals"))
+  if (!io::dirExists(m_stage_path + "/normals") && m_settings_save.save_normals)
     io::createDir(m_stage_path + "/normals");
-  if (!io::dirExists(m_stage_path + "/imgs"))
+  if (!io::dirExists(m_stage_path + "/imgs") && m_settings_save.save_imgs)
     io::createDir(m_stage_path + "/imgs");
-  if (!io::dirExists(m_stage_path + "/thumb"))
+  if (!io::dirExists(m_stage_path + "/thumb") && m_settings_save.save_thumb)
     io::createDir(m_stage_path + "/thumb");
 }
 

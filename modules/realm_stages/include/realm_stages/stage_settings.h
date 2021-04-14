@@ -19,6 +19,7 @@ class StageSettings : public SettingsBase
       add("type", Parameter_t<std::string>{"", "Stage type, e.g. pose_estimation, densification, ..."});
       add("queue_size", Parameter_t<int>{5, "Size of the measurement input queue, implemented as ringbuffer"});
       add("path_output", Parameter_t<std::string>{"", "Path to output folder."});
+      add("log_to_file", Parameter_t<int>{1, "Write log to stage directory"});
     }
 };
 
