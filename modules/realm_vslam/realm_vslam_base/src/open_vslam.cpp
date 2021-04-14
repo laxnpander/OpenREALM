@@ -145,8 +145,16 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
 
 void OpenVslam::close()
 {
-  m_vslam->request_terminate();
-  m_vslam->shutdown();
+  // In the current OpenVSLAM build, we don't have a way to know we shut
+  // down other than seeing if we requested a terminate previously.  The internal flag isn't exposed.
+  // So, we assume if we've requested termination, that we have also shut down.
+  // This prevents a crash that could occur if close() was accidentally called twice.
+  if (!m_vslam->terminate_is_requested())
+  {
+    m_vslam->request_terminate();
+    m_vslam->shutdown();
+  }
+
   m_keyframe_updater->requestFinish();
   m_keyframe_updater->join();
 }
