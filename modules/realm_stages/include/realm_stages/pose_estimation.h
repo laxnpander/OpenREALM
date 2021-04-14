@@ -54,6 +54,17 @@ class PoseEstimation : public StageBase
         bool save_frames;
         bool save_keyframes;
         bool save_keyframes_full;
+
+        bool save_required()
+        {
+          return save_trajectory_gnss || save_trajectory_visual ||
+                 save_frames || save_keyframes || save_keyframes_full;
+        }
+
+        bool save_trajectory()
+        {
+          return save_trajectory_gnss || save_trajectory_visual;
+        }
     };
 
   public:

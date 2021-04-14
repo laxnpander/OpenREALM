@@ -168,18 +168,24 @@ Frame::Ptr OrthoRectification::getNewFrame()
 
 void OrthoRectification::initStageCallback()
 {
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/elevation"))
+  if (!io::dirExists(m_stage_path + "/elevation") && m_settings_save.save_elevation)
     io::createDir(m_stage_path + "/elevation");
-  if (!io::dirExists(m_stage_path + "/angle"))
+  if (!io::dirExists(m_stage_path + "/angle") && m_settings_save.save_elevation_angle)
     io::createDir(m_stage_path + "/angle");
-  if (!io::dirExists(m_stage_path + "/gtiff"))
+  if (!io::dirExists(m_stage_path + "/gtiff") && m_settings_save.save_ortho_gtiff)
     io::createDir(m_stage_path + "/gtiff");
-  if (!io::dirExists(m_stage_path + "/ortho"))
+  if (!io::dirExists(m_stage_path + "/ortho") && m_settings_save.save_ortho_rgb)
     io::createDir(m_stage_path + "/ortho");
 }
 

@@ -30,6 +30,12 @@ class OrthoRectification : public StageBase
         bool save_ortho_gtiff;
         bool save_elevation;
         bool save_elevation_angle;
+
+      bool save_required()
+      {
+        return save_ortho_rgb || save_ortho_gtiff ||
+               save_elevation || save_elevation_angle;
+      }
     };
 
   public:

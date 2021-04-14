@@ -130,14 +130,20 @@ void SurfaceGeneration::saveIter(const CvGridMap &surface, uint32_t id)
 
 void SurfaceGeneration::initStageCallback()
 {
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/elevation"))
+  if (!io::dirExists(m_stage_path + "/elevation") && m_settings_save.save_elevation)
     io::createDir(m_stage_path + "/elevation");
-  if (!io::dirExists(m_stage_path + "/normals"))
+  if (!io::dirExists(m_stage_path + "/normals") && m_settings_save.save_normals)
     io::createDir(m_stage_path + "/normals");
 }
 
