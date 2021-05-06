@@ -200,6 +200,9 @@ double SurfaceGeneration::computeProjectionPlaneOffset(const Frame::Ptr &frame)
     offset = z_coord[(z_coord.size() - 1) / 2];
 
     LOG_F(INFO, "Sparse cloud was utilized to compute an initial projection plane at elevation = %4.2f.", offset);
+
+    // Only consider the plane offset computed if we had a sparse cloud to work with.
+    m_is_projection_plane_offset_computed = true;
   }
   else
   {
@@ -214,7 +217,6 @@ DigitalSurfaceModel::Ptr SurfaceGeneration::createPlanarSurface(const Frame::Ptr
   if (!m_is_projection_plane_offset_computed)
   {
     m_projection_plane_offset = computeProjectionPlaneOffset(frame);
-    m_is_projection_plane_offset_computed = true;
   }
 
   // Create planar surface in world frame
