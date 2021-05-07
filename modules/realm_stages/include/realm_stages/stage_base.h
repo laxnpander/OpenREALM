@@ -66,8 +66,11 @@ class StageBase : public WorkerThreadBase
      * @brief Basic constructor for stage class
      * @param name Name of the stage, should be set by derived stage
      * @param path Path to the input/output folder for stage informations
+     * @param rate The rate to run the stage at
+     * @param queue_size The maximum depth of the main queue for the stage
+     * @param log_to_file True to log message to the stage directory, false to log to stdout/stderr only
      */
-    StageBase(const std::string &name, const std::string &path, double rate, int queue_size);
+    StageBase(const std::string &name, const std::string &path, double rate, int queue_size, bool log_to_file);
 
     /*!
      * @brief Communication thread of the stage will receive data from the previous stage and feed it into the
@@ -203,6 +206,11 @@ class StageBase : public WorkerThreadBase
      * @brief Path of the stage package. Is used for output writing.
      */
     std::string m_stage_path;
+
+    /*!
+     * @brief flag to indicate if we should write to a separate log file or not
+     */
+    bool m_log_to_file;
 
     /*!
      * @brief This function consists of a result frame, a defined topic as description for the data (for example:

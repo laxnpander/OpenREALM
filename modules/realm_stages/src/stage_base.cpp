@@ -6,11 +6,12 @@
 
 using namespace realm;
 
-StageBase::StageBase(const std::string &name, const std::string &path, double rate, int queue_size)
-: WorkerThreadBase("Stage [" + name + "]", 0.1*static_cast<int64_t>(1/rate*1000.0), true),
+StageBase::StageBase(const std::string &name, const std::string &path, double rate, int queue_size, bool log_to_file)
+: WorkerThreadBase("Stage [" + name + "]", static_cast<int64_t>(1/rate*1000.0), true),
   m_stage_name(name),
   m_stage_path(path),
   m_queue_size(queue_size),
+  m_log_to_file(log_to_file),
   m_is_output_dir_initialized(false),
   m_t_statistics_period(10),
   m_counter_frames_in(0),
@@ -32,8 +33,11 @@ void StageBase::initStagePath(const std::string &abs_path)
   initStageCallback();
   m_is_output_dir_initialized = true;
 
-  // Init logging
-  loguru::add_file((m_stage_path + "/stage.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+  // Init logging if enabled
+  if (m_log_to_file)
+  {
+    loguru::add_file((m_stage_path + "/stage.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+  }
 
   LOG_F(INFO, "Successfully initialized!");
   LOG_F(INFO, "Stage path set to: %s", m_stage_path.c_str());
@@ -68,7 +72,7 @@ void StageBase::registerDepthMapTransport(const std::function<void(const cv::Mat
   m_transport_depth_map = func;
 }
 
-void StageBase::registerPointCloudTransport(const std::function<void(const PointCloud::Ptr&, const std::string&)> &func)
+void StageBase::registerPointCloudTransport(const std::function<void(const cv::Mat&, const std::string&)> &func)
 {
   m_transport_pointcloud = func;
 }

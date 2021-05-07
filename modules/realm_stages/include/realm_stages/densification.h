@@ -42,6 +42,11 @@ class Densification : public StageBase
         bool save_sparse;
         bool save_thumb;
         bool save_normals;
+
+      bool save_required()
+      {
+        return save_bilat || save_dense || save_guided || save_imgs || save_sparse || save_thumb || save_normals;
+      }
     };
 
   public:
