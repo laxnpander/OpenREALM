@@ -519,9 +519,9 @@ cv::Mat Frame::getOrientation() const
 
 void Frame::applyTransformationToSparseCloud(const cv::Mat &T)
 {
-  cv::Mat sparse_data = m_sparse_cloud->data();
-  if (sparse_data.rows > 0)
+  if (m_sparse_cloud && !m_sparse_cloud->empty())
   {
+    cv::Mat sparse_data = m_sparse_cloud->data();
     m_mutex_sparse_points.lock();
     for (uint32_t i = 0; i < sparse_data.rows; ++i)
     {

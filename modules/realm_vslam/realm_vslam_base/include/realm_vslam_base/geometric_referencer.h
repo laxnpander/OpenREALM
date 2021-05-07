@@ -26,7 +26,7 @@ namespace realm
     };
 
   public:
-    explicit GeometricReferencer(double th_error);
+    explicit GeometricReferencer(double th_error, int min_nrof_frames);
 
     void init(const std::vector<Frame::Ptr> &frames) override;
 
@@ -37,6 +37,8 @@ namespace realm
     void update(const Frame::Ptr &frame) override;
 
     bool isInitialized() override;
+
+    double computeScaleChange(const Frame::Ptr &frame) override;
 
   private:
 
@@ -50,6 +52,8 @@ namespace realm
     double m_scale;
     double m_th_error;
     double m_error;
+
+    int m_min_nrof_frames;
 
     std::mutex m_mutex_t_c2g;
     cv::Mat m_transformation_w2g;

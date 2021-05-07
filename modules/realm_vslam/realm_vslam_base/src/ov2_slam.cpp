@@ -1,4 +1,5 @@
 #include <realm_vslam_base/ov2_slam.h>
+#include <realm_core/timer.h>
 
 using namespace realm;
 
@@ -22,7 +23,7 @@ Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   m_slam_params->stereo_                      = false;
   m_slam_params->bforce_realtime_             = (*vslam_set)["force_realtime"].toInt() > 0;
   m_slam_params->slam_mode_                   = true;
-  m_slam_params->buse_loop_closer_            = true;
+  m_slam_params->buse_loop_closer_            = (*vslam_set)["buse_loop_closer"].toInt() > 0;
   m_slam_params->bdo_stereo_rect_             = false;
   m_slam_params->alpha_                       = (*vslam_set)["alpha"].toDouble();
   m_slam_params->finit_parallax_              = (*vslam_set)["finit_parallax"].toFloat();
@@ -93,6 +94,7 @@ Ov2Slam::~Ov2Slam()
 void Ov2Slam::reset()
 {
   m_slam->reset();
+  m_id_previous = -1;
 }
 
 void Ov2Slam::close()
@@ -104,7 +106,7 @@ VisualSlamIF::State Ov2Slam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(m_resizing);
 
-  const double timestamp = static_cast<double>(frame->getTimestamp())/10e9;
+  const double timestamp = static_cast<double>(frame->getTimestamp())/10e3;
   LOG_IF_F(INFO, true, "Time stamp of frame: %4.2f [s]", timestamp);
 
   cv::Mat img = frame->getResizedImageRaw();

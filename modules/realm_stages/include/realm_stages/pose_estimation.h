@@ -104,6 +104,11 @@ class PoseEstimation : public StageBase
 
     // Threshold for error of georeference before initializing
     double m_th_error_georef;
+    int m_min_nrof_frames_georef;
+
+    // Scale changes are constantly checked to identify divergence. Flag can be set to auto reset on divergence.
+    bool m_do_auto_reset;
+    double m_th_scale_change;
 
     // settings
     FallbackStrategy m_strategy_fallback;

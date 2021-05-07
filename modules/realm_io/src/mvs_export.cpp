@@ -9,6 +9,8 @@ void MvsExport::saveFrames(const std::vector<Frame::Ptr> &frames, const std::str
 {
   Frame::Ptr first_frame = frames.front();
 
+  UTMPose utm = first_frame->getGnssUtm();
+
   MvsInterface interface{};
 
   MvsInterface::Platform platform;
@@ -26,7 +28,7 @@ void MvsExport::saveFrames(const std::vector<Frame::Ptr> &frames, const std::str
   std::unordered_map<uint32_t, MvsInterface::Vertex> sparse_cloud_map;
 
   std::vector<Frame::Ptr> frames_selected;
-  for (int i = 0; i < frames.size(); i+=4)
+  for (int i = 0; i < frames.size(); i++)
     frames_selected.push_back(frames[i]);
 
   for (int i = 0; i < frames_selected.size(); ++i)
@@ -36,7 +38,7 @@ void MvsExport::saveFrames(const std::vector<Frame::Ptr> &frames, const std::str
 
     MvsInterface::Platform::Pose pose;
     pose.R         = f->getCamera()->R();
-    pose.C         = MvsInterface::Pos3d(t.at<double>(0), t.at<double>(1), t.at<double>(2));
+    pose.C         = MvsInterface::Pos3d(t.at<double>(0) - utm.easting, t.at<double>(1) - utm.northing, t.at<double>(2));
     platform.poses.push_back(pose);
 
     std::string filename = directory + "/image_" + std::to_string(i) + ".png";
@@ -68,8 +70,8 @@ void MvsExport::saveFrames(const std::vector<Frame::Ptr> &frames, const std::str
       else
       {
         MvsInterface::Vertex vertex;
-        vertex.X.x = static_cast<float>(points.at<double>(j, 0));
-        vertex.X.y = static_cast<float>(points.at<double>(j, 1));
+        vertex.X.x = static_cast<float>(points.at<double>(j, 0) - utm.easting);
+        vertex.X.y = static_cast<float>(points.at<double>(j, 1) - utm.northing);
         vertex.X.z = static_cast<float>(points.at<double>(j, 2));
         vertex.views.push_back(view);
         sparse_cloud_map[id] = vertex;

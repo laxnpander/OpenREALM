@@ -13,6 +13,7 @@ Densification::Densification(const StageSettings::Ptr &stage_set,
   m_use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),
   m_depth_min_current(0.0),
   m_depth_max_current(0.0),
+  m_do_drop_planar((*stage_set)["compute_normals"].toInt() > 0),
   m_compute_normals((*stage_set)["compute_normals"].toInt() > 0),
   m_rcvd_frames(0),
   m_settings_save({(*stage_set)["save_bilat"].toInt() > 0,
@@ -53,7 +54,8 @@ void Densification::addFrame(const Frame::Ptr &frame)
     LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud() != nullptr ? frame->getSparseCloud()->size() : 0);
 
     LOG_F(INFO, "Frame #%u not suited for dense reconstruction. Passing through...", frame->getFrameId());
-    m_transport_frame(frame, "output/frame");
+    if (!m_do_drop_planar)
+      m_transport_frame(frame, "output/frame");
     updateStatisticsBadFrame();
     return;
   }

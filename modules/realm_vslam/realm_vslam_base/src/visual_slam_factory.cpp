@@ -2,7 +2,7 @@
 
 #include <realm_vslam_base/visual_slam_factory.h>
 
-#ifdef USE_ORB_SLAM3
+#if defined USE_ORB_SLAM2 || defined USE_ORB_SLAM3
   #include <realm_vslam_base/orb_slam.h>
 #endif
 
@@ -33,6 +33,11 @@ VisualSlamIF::Ptr VisualSlamFactory::create(const VisualSlamSettings::Ptr &vslam
                                             const ImuSettings::Ptr &imu_set)
 {
   // If compiled with ORB SLAM 2
+#ifdef USE_ORB_SLAM2
+  if ((*vslam_set)["type"].toString() == "ORB_SLAM2")
+      return std::make_shared<OrbSlam>(vslam_set, cam_set);
+#endif
+
 #ifdef USE_ORB_SLAM3
   if ((*vslam_set)["type"].toString() == "ORB_SLAM3")
   {

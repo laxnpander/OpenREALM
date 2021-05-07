@@ -1,6 +1,7 @@
 
 
 #include <realm_io/exif_import.h>
+#include <realm_core/timer.h>
 
 #include <realm_core/loguru.h>
 
@@ -88,7 +89,7 @@ Frame::Ptr io::Exiv2FrameReader::loadFrameFromExiv2(const std::string &camera_id
     /*========== OPTIONAL KEYS ==========*/
     uint64_t timestamp_val;
     if (!readMetaTagTimestamp(exif_data, xmp_data, &timestamp_val))
-      timestamp_val = getCurrentTimeNano();
+      timestamp_val = Timer::getCurrentTimeMilliseconds();
 
     return std::make_shared<Frame>(camera_id, frame_id, timestamp_val, img, utm, cam, computeOrientationFromHeading(utm.heading));
   }

@@ -25,6 +25,14 @@ endif()
 
 set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
+#find_package(ORB_SLAM2 REQUIRED)
+#set(VSLAM_IMPL_LIB ORB_SLAM2)
+#set(VSLAM_IMPL_LIB_HEADERS ${ORB_SLAM2_INCLUDE_DIR})
+#set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/orb_slam.h)
+#set(VSLAM_IF_SOURCES ${root}/src/orb_slam.cpp)
+#set(VSLAM_IF_COMPILE_FLAG "-DUSE_ORB_SLAM2=ON")
+#message(STATUS "Selected ORB SLAM 2 for visual pose estimation")
+
 #find_package(ORB_SLAM3 REQUIRED)
 #set(VSLAM_IMPL_LIB ORB_SLAM3)
 #set(VSLAM_IMPL_LIB_HEADERS ${ORB_SLAM3_INCLUDE_DIR})

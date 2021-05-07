@@ -48,6 +48,10 @@ if(WITH_EXIV2)
     add_compile_definitions(WITH_EXIV2)
 endif()
 
+if(WITH_PCL)
+    add_compile_definitions(WITH_PCL)
+endif()
+
 if(WITH_densifier)
     list(APPEND HEADER_FILES include/realm_stages/densification.h)
     list(APPEND SOURCE_FILES src/densification.cpp)

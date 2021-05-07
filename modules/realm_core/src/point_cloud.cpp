@@ -16,7 +16,7 @@ PointCloud::PointCloud(const std::vector<uint32_t> &point_ids, const cv::Mat &da
 
 bool PointCloud::empty()
 {
-  if (m_data.rows == 0)
+  if (m_data.empty() || m_data.rows == 0)
     return true;
   return false;
 }

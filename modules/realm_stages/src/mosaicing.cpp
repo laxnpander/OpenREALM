@@ -1,10 +1,12 @@
 
 
 #include <realm_core/loguru.h>
-
 #include <realm_core/tree_node.h>
-
 #include <realm_stages/mosaicing.h>
+
+#ifdef WITH_PCL
+#include <realm_io/pcl_export.h>
+#endif
 
 using namespace realm;
 using namespace stages;
@@ -158,7 +160,7 @@ bool Mosaicing::process()
     LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // MVS export
-    m_frames.push_back(frame);
+    //m_frames.push_back(frame);
 
     has_processed = true;
   }
@@ -233,16 +235,18 @@ void Mosaicing::saveAll()
   if (m_settings_save.save_elevation_one)
     io::saveGeoTIFF(m_global_map->getSubmap({"elevation"}), m_utm_reference->zone, m_stage_path + "/elevation/gtiff/elevation.tif");
 
-  io::MvsExport::saveFrames(m_frames, m_stage_path + "/mvs");
+  //io::MvsExport::saveFrames(m_frames, m_stage_path + "/mvs");
 
   // 3D Point cloud output
+#if WITH_PCL
   if (m_settings_save.save_dense_ply)
   {
-    //if (_global_map->exists("elevation_normal"))
-    //  io::saveElevationPointsToPLY(*_global_map, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
-    //else
-    //  io::saveElevationPointsToPLY(*_global_map, "elevation", "", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
+    if (m_global_map->exists("elevation_normal"))
+      io::saveElevationPointsToPLY(*m_global_map, "elevation", "elevation_normal", "color_rgb", "valid", m_stage_path + "/elevation/ply", "elevation");
+    else
+      io::saveElevationPointsToPLY(*m_global_map, "elevation", "", "color_rgb", "valid", m_stage_path + "/elevation/ply", "elevation");
   }
+#endif
 
   // 3D Mesh output
   if (m_settings_save.save_elevation_mesh_one)

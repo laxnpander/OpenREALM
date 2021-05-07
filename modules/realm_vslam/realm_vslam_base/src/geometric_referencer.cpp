@@ -7,13 +7,14 @@
 
 using namespace realm;
 
-GeometricReferencer::GeometricReferencer(double th_error)
+GeometricReferencer::GeometricReferencer(double th_error, int min_nrof_frames)
 : m_is_initialized(false),
   m_is_buisy(false),
   m_prev_nrof_unique(0),
   m_scale(0.0),
   m_th_error(th_error),
-  m_error(0.0)
+  m_error(0.0),
+  m_min_nrof_frames(min_nrof_frames)
 {
 
 }
@@ -28,6 +29,30 @@ bool GeometricReferencer::isInitialized()
 {
   std::unique_lock<std::mutex> lock(m_mutex_is_initialized);
   return m_is_initialized;
+}
+
+double GeometricReferencer::computeScaleChange(const Frame::Ptr &frame)
+{
+  if (!frame->isDepthComputed())
+    return -1.0;
+
+  SpatialMeasurement::Ptr s_curr = std::make_shared<SpatialMeasurement>();
+  s_curr->first = frame->getDefaultPose();
+  s_curr->second = frame->getVisualPose();
+
+  SpatialMeasurement::Ptr s_prev = m_spatials.back();
+
+  double scale = computeTwoPointScale(s_curr, s_prev, 0.02*frame->getMedianSceneDepth());
+  if (scale > 0.0)
+  {
+    // Compute scale difference in percent
+    return fabs(1.0-scale/m_scale)*100.0;
+  }
+  else
+  {
+    // Scale was below detectable threshold. No satisfying computation possible
+    return -1.0;
+  }
 }
 
 void GeometricReferencer::setBuisy()
@@ -66,8 +91,10 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   // Identify valid measurements
   std::vector<Frame::Ptr> valid_input;
   for (const auto &f : frames)
-    if (f->getSparseCloud()->size() > 5)
+    if (f->getSparseCloud() != nullptr && f->getSparseCloud()->size() > 50 && f->isDepthComputed())
+    {
       valid_input.push_back(f);
+    }
 
   if (valid_input.empty())
   {
@@ -114,7 +141,7 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
   }
 
   // Check if enough measurements and if more scales estimates than in the iteration before were computed
-  if (unique_spatials.size() < 3 || unique_spatials.size() == m_prev_nrof_unique)
+  if (unique_spatials.size() < m_min_nrof_frames || unique_spatials.size() == m_prev_nrof_unique)
   {
     LOG_F(INFO, "### GEOREFERENCE ABORTED ###");
     LOG_F(INFO, "Unique frames: %lu", unique_spatials.size());
@@ -157,7 +184,7 @@ void GeometricReferencer::init(const std::vector<Frame::Ptr> &frames)
 
 void GeometricReferencer::update(const Frame::Ptr &frame)
 {
-  if (isBuisy())
+  if (isBuisy() || !frame->isDepthComputed())
     return;
 
   SpatialMeasurement::Ptr s_curr = std::make_shared<SpatialMeasurement>();

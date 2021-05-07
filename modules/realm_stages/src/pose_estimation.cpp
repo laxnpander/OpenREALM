@@ -24,6 +24,9 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
       m_do_delay_keyframes((*stage_set)["do_delay_keyframes"].toInt() > 0),
       m_do_suppress_outdated_pose_pub((*stage_set)["suppress_outdated_pose_pub"].toInt() > 0),
       m_th_error_georef((*stage_set)["th_error_georef"].toDouble()),
+      m_min_nrof_frames_georef((*stage_set)["min_nrof_frames_georef"].toInt()),
+      m_do_auto_reset(false),
+      m_th_scale_change(20.0),
       m_overlap_max((*stage_set)["overlap_max"].toDouble()),
       m_overlap_max_fallback((*stage_set)["overlap_max_fallback"].toDouble()),
       m_settings_save({(*stage_set)["save_trajectory_gnss"].toInt() > 0,
@@ -59,7 +62,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
     m_vslam->registerUpdateTransport(update_func);
 
     // Create geo reference initializer
-    m_georeferencer = std::make_shared<GeometricReferencer>(m_th_error_georef);
+    m_georeferencer = std::make_shared<GeometricReferencer>(m_th_error_georef, m_min_nrof_frames_georef);
   }
 
   evaluateFallbackStrategy(m_strategy_fallback);
@@ -177,7 +180,25 @@ bool PoseEstimation::process()
       // Branch accurate pose and georef initialized
       if (m_is_georef_initialized)
       {
-        if (m_do_update_georef && !m_georeferencer->isBuisy())
+        double scale_change = m_georeferencer->computeScaleChange(frame);
+        LOG_F(INFO, "Scale change of current frame: %4.2f%%", scale_change);
+
+        bool is_scale_consistent = (scale_change < m_th_scale_change);
+        if (!is_scale_consistent)
+        {
+          LOG_F(WARNING, "Detected scale divergence.");
+          frame->setPoseAccurate(false);
+          frame->setKeyframe(false);
+
+          if (m_do_auto_reset)
+          {
+            LOG_F(WARNING, "Resetting.");
+            m_reset_requested = true;
+            reset();
+          }
+        }
+
+        if (is_scale_consistent && m_do_update_georef && !m_georeferencer->isBuisy())
         {
           std::thread t(std::bind(&GeospatialReferencerIF::update, m_georeferencer, frame));
           t.detach();
@@ -301,7 +322,7 @@ void PoseEstimation::reset()
 
   // Reset georeferencing
   if (m_use_vslam)
-    m_georeferencer.reset(new GeometricReferencer(m_th_error_georef));
+    m_georeferencer.reset(new GeometricReferencer(m_th_error_georef, m_min_nrof_frames_georef));
   m_stage_publisher->requestReset();
   m_is_georef_initialized = false;
   m_reset_requested = false;
@@ -427,6 +448,9 @@ double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
 
 Frame::Ptr PoseEstimation::getNewFrameTracking()
 {
+  LOG_F(INFO, "Input frame buffer: %i/%i", m_buffer_no_pose.size(), m_queue_size);
+  LOG_IF_F(WARNING, m_buffer_no_pose.size() >= 0.8*m_queue_size, "Input frame buffer is at 80%!");
+
   std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
   Frame::Ptr frame = m_buffer_no_pose.front();
   m_buffer_no_pose.pop_front();
@@ -609,8 +633,10 @@ void PoseEstimationIO::publishPose(const Frame::Ptr &frame)
 void PoseEstimationIO::publishSparseCloud(const Frame::Ptr &frame)
 {
   PointCloud::Ptr sparse_cloud = frame->getSparseCloud();
-  if (!sparse_cloud->empty())
-    m_stage_handle->m_transport_pointcloud(sparse_cloud, "output/pointcloud");
+  if (!sparse_cloud || sparse_cloud->empty())
+    return;
+
+  m_stage_handle->m_transport_pointcloud(sparse_cloud, "output/pointcloud");
 }
 
 void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
@@ -649,8 +675,8 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 
 void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
 {
-  long t_world = getCurrentTimeMilliseconds();       // millisec
-  uint64_t t_frame = frame->getTimestamp()/10e6;  // millisec
+  long t_world = Timer::getCurrentTimeMilliseconds();       // millisec
+  uint64_t t_frame = frame->getTimestamp();  	              // millisec
 
   // Check if either first measurement ever (does not have to be keyframe)
   // Or if first keyframe
@@ -670,6 +696,7 @@ void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
 
   // Time until schedule
   long t_remain = ((long)dt) - (getCurrentTimeMilliseconds() - m_t_ref.first);
+
   LOG_F(INFO, "Scheduled publish frame #%u in %4.2fs", frame->getFrameId(), (double)t_remain/10e3);
 }
 

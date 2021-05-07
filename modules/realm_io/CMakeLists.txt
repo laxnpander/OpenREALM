@@ -142,7 +142,6 @@ endif()
 
 if (WITH_PCL)
     find_package(PCL 1.7 REQUIRED)
-    list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
     add_compile_definitions(WITH_PCL)
 
     include_directories(
@@ -150,7 +149,8 @@ if (WITH_PCL)
             ${PCL_LIBRARY_DIRS})
     target_link_libraries(${LIBRARY_NAME}
             PRIVATE
-            ${PCL_LIBRARIES})
+            ${PCL_LIBRARIES}
+            )
 else()
     message(STATUS "** WARNING ** PCL Disabled.  Some I/O features will not be present.")
 endif()

@@ -19,10 +19,6 @@
 #include <realm_io/utilities.h>
 //#include <realm_ortho/delaunay_2d.h>
 
-#ifdef WITH_PCL
-#include <realm_io/pcl_export.h>
-#endif
-
 namespace realm
 {
 namespace stages

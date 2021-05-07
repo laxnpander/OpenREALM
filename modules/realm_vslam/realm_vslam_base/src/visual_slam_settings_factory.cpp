@@ -8,6 +8,8 @@ using namespace realm;
 VisualSlamSettings::Ptr VisualSlamSettingsFactory::load(const std::string &filepath, const std::string &directory)
 {
   std::string method = VisualSlamSettings::sneakParameterFromFile<std::string>("type", filepath);
+  if (method == "ORB_SLAM2")
+    return loadOrbSlam2(filepath, directory);
   if (method == "ORB_SLAM3")
     return loadOrbSlam2(filepath, directory);
   if (method == "OPEN_VSLAM")

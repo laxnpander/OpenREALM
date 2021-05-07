@@ -71,6 +71,9 @@ class Densification : public StageBase
     bool process() override;
   private:
 
+    //! Flag to drop frames that could not be stereo reconstructed
+    bool m_do_drop_planar;
+
     //! Flag for use of bilateral depth filtering
     bool m_use_filter_bilat;
 
