@@ -187,18 +187,23 @@ bool PoseEstimation::process()
         if (!is_scale_consistent)
         {
           LOG_F(WARNING, "Detected scale divergence.");
-          frame->setPoseAccurate(false);
-          frame->setKeyframe(false);
 
-          if (m_do_auto_reset)
-          {
-            LOG_F(WARNING, "Resetting.");
-            m_reset_requested = true;
-            reset();
-          }
+          // For now, just warn that our scale may be off until we resolve the issues discussed here:
+          // https://github.com/laxnpander/OpenREALM/pull/59
+
+          // frame->setPoseAccurate(false);
+          // frame->setKeyframe(false);
+          //
+          // if (m_do_auto_reset)
+          // {
+          //   LOG_F(WARNING, "Resetting.");
+          //   m_reset_requested = true;
+          // reset();
+          // }
         }
 
-        if (is_scale_consistent && m_do_update_georef && !m_georeferencer->isBuisy())
+        // if (is_scale_consistent && m_do_update_georef && !m_georeferencer->isBuisy())
+        if (m_do_update_georef && !m_georeferencer->isBuisy())
         {
           std::thread t(std::bind(&GeospatialReferencerIF::update, m_georeferencer, frame));
           t.detach();
