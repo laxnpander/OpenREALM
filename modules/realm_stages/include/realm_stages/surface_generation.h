@@ -41,6 +41,7 @@ class SurfaceGeneration : public StageBase
 
     std::mutex m_mutex_params;
     bool m_try_use_elevation;
+    bool m_compute_all_frames;
 
     int m_knn_max_iter;
 

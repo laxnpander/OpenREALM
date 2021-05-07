@@ -11,6 +11,7 @@ using namespace realm::ortho;
 SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double rate)
 : StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt(), bool((*settings)["log_to_file"].toInt())),
   m_try_use_elevation((*settings)["try_use_elevation"].toInt() > 0),
+  m_compute_all_frames((*settings)["compute_all_frames"].toInt() > 0),
   m_knn_max_iter((*settings)["knn_max_iter"].toInt()),
   m_is_projection_plane_offset_computed(false),
   m_projection_plane_offset(0.0),
@@ -101,6 +102,12 @@ bool SurfaceGeneration::changeParam(const std::string& name, const std::string &
     m_try_use_elevation = (val == "true" || val == "1");
     return true;
   }
+  else if (name == "compute_all_frames")
+  {
+    m_compute_all_frames = (val == "true" || val == "1");
+    return true;
+  }
+
   return false;
 }
 
@@ -151,6 +158,7 @@ void SurfaceGeneration::printSettingsToLog()
 {
   LOG_F(INFO, "### Stage process settings ###");
   LOG_F(INFO, "- try_use_elevation: %i", m_try_use_elevation);
+  LOG_F(INFO, "- compute_all_frames: %i", m_compute_all_frames);
   LOG_F(INFO, "- mode_surface_normals: %i", static_cast<int>(m_mode_surface_normals));
 
   LOG_F(INFO, "### Stage save settings ###");
@@ -214,7 +222,7 @@ double SurfaceGeneration::computeProjectionPlaneOffset(const Frame::Ptr &frame)
 
 DigitalSurfaceModel::Ptr SurfaceGeneration::createPlanarSurface(const Frame::Ptr &frame)
 {
-  if (!m_is_projection_plane_offset_computed)
+  if (!m_is_projection_plane_offset_computed || m_compute_all_frames)
   {
     m_projection_plane_offset = computeProjectionPlaneOffset(frame);
   }
