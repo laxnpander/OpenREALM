@@ -50,6 +50,48 @@ class Mosaicing : public StageBase
         bool save_num_obs_one;
         bool save_num_obs_all;
         bool save_dense_ply;
+
+        bool save_required()
+        {
+          return split_gtiff_channels || save_ortho_rgb_one || save_ortho_rgb_all ||
+                 save_ortho_gtiff_one || save_ortho_gtiff_all || save_elevation_one || save_elevation_all ||
+                 save_elevation_var_one || save_elevation_var_all ||
+                 save_elevation_obs_angle_one || save_elevation_obs_angle_all ||
+                 save_elevation_mesh_one || save_num_obs_one || save_num_obs_all || save_dense_ply;
+        }
+
+        bool save_elevation()
+        {
+          return save_elevation_one || save_elevation_all ||
+                 save_elevation_obs_angle_one || save_elevation_obs_angle_all ||
+                 save_elevation_var_one || save_elevation_var_all ||
+                 save_elevation_mesh_one;
+        }
+
+        bool save_ortho()
+        {
+          return save_ortho_rgb_one || save_ortho_rgb_all || save_ortho_gtiff_one || save_ortho_gtiff_all;
+        }
+
+        bool save_nobs()
+        {
+          return save_num_obs_one || save_num_obs_all;
+        }
+
+        bool save_obs_angle()
+        {
+          return save_elevation_obs_angle_one || save_elevation_obs_angle_all;
+        }
+
+        bool save_variance()
+        {
+          return save_elevation_var_one || save_elevation_var_all;
+        }
+
+        bool save_elevation_map()
+        {
+          return save_elevation_one || save_elevation_all;
+        }
     };
 
   public:

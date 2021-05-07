@@ -12,7 +12,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                                const CameraSettings::Ptr &cam_set,
                                const ImuSettings::Ptr &imu_set,
                                double rate)
-    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_is_georef_initialized(false),
       m_use_vslam((*stage_set)["use_vslam"].toInt() > 0),
       m_use_imu((*stage_set)["use_imu"].toInt() > 0),
@@ -325,21 +325,30 @@ bool PoseEstimation::changeParam(const std::string& name, const std::string &val
 
 void PoseEstimation::initStageCallback()
 {
+  // The publisher has to decide on it's own to create folders
+  // So inform it, even if we don't log ourselves
+  m_stage_publisher->setOutputPath(m_stage_path);
+
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/trajectory"))
+  if (!io::dirExists(m_stage_path + "/trajectory") && m_settings_save.save_trajectory())
     io::createDir(m_stage_path + "/trajectory");
-  if (!io::dirExists(m_stage_path + "/keyframes"))
+  if (!io::dirExists(m_stage_path + "/keyframes") && m_settings_save.save_keyframes)
     io::createDir(m_stage_path + "/keyframes");
-  if (!io::dirExists(m_stage_path + "/keyframes_full"))
+  if (!io::dirExists(m_stage_path + "/keyframes_full") && m_settings_save.save_keyframes_full)
     io::createDir(m_stage_path + "/keyframes_full");
-  if (!io::dirExists(m_stage_path + "/frames"))
+  if (!io::dirExists(m_stage_path + "/frames") && m_settings_save.save_frames)
     io::createDir(m_stage_path + "/frames");
 
-  m_stage_publisher->setOutputPath(m_stage_path);
 }
 
 void PoseEstimation::printSettingsToLog()
@@ -536,7 +545,10 @@ void PoseEstimationIO::setOutputPath(const std::string &path)
 
 void PoseEstimationIO::initLog(const std::string &filepath)
 {
-  loguru::add_file((filepath + "/publisher.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+  // Only log to file if the parent stage is doing so
+  if (m_stage_handle->m_log_to_file) {
+    loguru::add_file((filepath + "/publisher.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+  }
 
   LOG_F(INFO, "Successfully initialized %s publisher!", m_stage_handle->m_stage_name.c_str());
 }

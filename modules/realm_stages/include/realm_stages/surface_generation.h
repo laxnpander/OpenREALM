@@ -25,6 +25,11 @@ class SurfaceGeneration : public StageBase
     {
         bool save_elevation;
         bool save_normals;
+
+      bool save_required()
+      {
+        return save_elevation || save_normals;
+      }
     };
 
   public:

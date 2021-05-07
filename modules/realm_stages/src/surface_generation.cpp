@@ -9,7 +9,7 @@ using namespace stages;
 using namespace realm::ortho;
 
 SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double rate)
-: StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt()),
+: StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt(), bool((*settings)["log_to_file"].toInt())),
   m_try_use_elevation((*settings)["try_use_elevation"].toInt() > 0),
   m_knn_max_iter((*settings)["knn_max_iter"].toInt()),
   m_is_projection_plane_offset_computed(false),
@@ -130,14 +130,20 @@ void SurfaceGeneration::saveIter(const CvGridMap &surface, uint32_t id)
 
 void SurfaceGeneration::initStageCallback()
 {
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/elevation"))
+  if (!io::dirExists(m_stage_path + "/elevation") && m_settings_save.save_elevation)
     io::createDir(m_stage_path + "/elevation");
-  if (!io::dirExists(m_stage_path + "/normals"))
+  if (!io::dirExists(m_stage_path + "/normals") && m_settings_save.save_normals)
     io::createDir(m_stage_path + "/normals");
 }
 

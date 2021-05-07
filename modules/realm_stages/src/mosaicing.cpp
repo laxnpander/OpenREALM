@@ -10,7 +10,7 @@ using namespace realm;
 using namespace stages;
 
 Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
-    : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+    : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_utm_reference(nullptr),
       m_global_map(nullptr),
       //m_mesher(nullptr),
@@ -295,30 +295,35 @@ Frame::Ptr Mosaicing::getNewFrame()
 
 void Mosaicing::initStageCallback()
 {
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/elevation"))
+  if (!io::dirExists(m_stage_path + "/elevation") && m_settings_save.save_elevation())
     io::createDir(m_stage_path + "/elevation");
-  if (!io::dirExists(m_stage_path + "/elevation/color_map"))
+  if (!io::dirExists(m_stage_path + "/elevation/color_map") && m_settings_save.save_elevation_map())
     io::createDir(m_stage_path + "/elevation/color_map");
-  if (!io::dirExists(m_stage_path + "/elevation/ply"))
+  if (!io::dirExists(m_stage_path + "/elevation/ply") && m_settings_save.save_dense_ply)
     io::createDir(m_stage_path + "/elevation/ply");
-  if (!io::dirExists(m_stage_path + "/elevation/pcd"))
-    io::createDir(m_stage_path + "/elevation/pcd");
-  if (!io::dirExists(m_stage_path + "/elevation/mesh"))
+  if (!io::dirExists(m_stage_path + "/elevation/mesh") && m_settings_save.save_elevation_mesh_one)
     io::createDir(m_stage_path + "/elevation/mesh");
-  if (!io::dirExists(m_stage_path + "/elevation/gtiff"))
+  if (!io::dirExists(m_stage_path + "/elevation/gtiff") && m_settings_save.save_elevation_map())
     io::createDir(m_stage_path + "/elevation/gtiff");
-  if (!io::dirExists(m_stage_path + "/obs_angle"))
+
+  if (!io::dirExists(m_stage_path + "/obs_angle") && m_settings_save.save_obs_angle())
     io::createDir(m_stage_path + "/obs_angle");
-  if (!io::dirExists(m_stage_path + "/variance"))
+  if (!io::dirExists(m_stage_path + "/variance") && m_settings_save.save_variance())
     io::createDir(m_stage_path + "/variance");
-  if (!io::dirExists(m_stage_path + "/ortho"))
+  if (!io::dirExists(m_stage_path + "/ortho") && m_settings_save.save_ortho())
     io::createDir(m_stage_path + "/ortho");
-  if (!io::dirExists(m_stage_path + "/nobs"))
+  if (!io::dirExists(m_stage_path + "/nobs") && m_settings_save.save_nobs())
     io::createDir(m_stage_path + "/nobs");
 }
 
