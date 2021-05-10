@@ -8,16 +8,19 @@ stages:
 
 jobs:
   include:
+      # os: linux
+      # dist: bionic
+      # os: linux
+      # dist: focal
     - stage: compile
-     # os: linux
-     # dist: bionic
       os: linux
       dist: xenial
-      script: docker exec -i build bash < install_openrealm_lib.sh
-     # os: linux
-     # dist: focal
+      script:
+        docker exec -i build bash < install_openrealm_lib.sh
     - stage: test
-      script: docker exec -it build ~/cmake_ws/src/OpenREALM/tools/run_unit_tests.sh
+      script:
+        docker exec -i build bash < install_openrealm_lib.sh
+        docker exec -it build ~/cmake_ws/src/OpenREALM/tools/run_unit_tests.sh
 
 services:
   - docker
