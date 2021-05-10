@@ -19,7 +19,7 @@ jobs:
         docker exec -i build bash < install_openrealm_lib.sh
     - stage: test
       script:
-        docker exec -i build bash < install_openrealm_lib.sh
+        docker exec -i build bash < install_openrealm_lib.sh &&
         docker exec -it build ~/cmake_ws/src/OpenREALM/tools/run_unit_tests.sh
 
 services:
