@@ -1,14 +1,22 @@
 # https://docs.travis-ci.com/user/reference/bionic
 # https://docs.travis-ci.com/user/installing-dependencies
 language: c++
+
+stages:
+  - compile
+  - test
+
 jobs:
   include:
-    - os: linux
-      dist: bionic
-    - os: linux
+    - stage: compile
+     # os: linux
+     # dist: bionic
+      os: linux
       dist: xenial
-    - os: linux
-      dist: focal
+     # os: linux
+     # dist: focal
+    - stage: test
+
 services:
   - docker
 
