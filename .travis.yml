@@ -16,11 +16,11 @@ jobs:
       os: linux
       dist: xenial
       script:
-        docker exec -it build bash < install_openrealm_lib.sh
+        docker exec -i build bash < install_openrealm_lib.sh
     - stage: test
       script:
-        docker exec -it build bash < install_openrealm_lib.sh &&
-        docker exec -it build bash < run_unit_tests.sh
+        docker exec -i build bash < install_openrealm_lib.sh &&
+        docker exec -i build bash < run_unit_tests.sh
 
 services:
   - docker
