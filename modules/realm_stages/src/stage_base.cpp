@@ -72,7 +72,7 @@ void StageBase::registerDepthMapTransport(const std::function<void(const cv::Mat
   m_transport_depth_map = func;
 }
 
-void StageBase::registerPointCloudTransport(const std::function<void(const cv::Mat&, const std::string&)> &func)
+void StageBase::registerPointCloudTransport(const std::function<void(const PointCloud::Ptr&, const std::string&)> &func)
 {
   m_transport_pointcloud = func;
 }
