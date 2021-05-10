@@ -187,18 +187,23 @@ bool PoseEstimation::process()
         if (!is_scale_consistent)
         {
           LOG_F(WARNING, "Detected scale divergence.");
-          frame->setPoseAccurate(false);
-          frame->setKeyframe(false);
 
-          if (m_do_auto_reset)
-          {
-            LOG_F(WARNING, "Resetting.");
-            m_reset_requested = true;
-            reset();
-          }
+          // For now, just warn that our scale may be off until we resolve the issues discussed here:
+          // https://github.com/laxnpander/OpenREALM/pull/59
+
+          // frame->setPoseAccurate(false);
+          // frame->setKeyframe(false);
+          //
+          // if (m_do_auto_reset)
+          // {
+          //   LOG_F(WARNING, "Resetting.");
+          //   m_reset_requested = true;
+          // reset();
+          // }
         }
 
-        if (is_scale_consistent && m_do_update_georef && !m_georeferencer->isBuisy())
+        // if (is_scale_consistent && m_do_update_georef && !m_georeferencer->isBuisy())
+        if (m_do_update_georef && !m_georeferencer->isBuisy())
         {
           std::thread t(std::bind(&GeospatialReferencerIF::update, m_georeferencer, frame));
           t.detach();
@@ -595,11 +600,18 @@ bool PoseEstimationIO::process()
     if (!(m_stage_handle->m_do_suppress_outdated_pose_pub && m_stage_handle->m_buffer_do_publish.size() > 1))
       publishPose(frame);
 
+    // Check what type of frame
+    bool is_gnss_frame = !m_stage_handle->m_use_vslam && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback;
+    bool is_vslam_frame = frame->isKeyframe() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max;
+    bool is_vslam_fallback_frame = m_stage_handle->m_use_fallback && !frame->hasAccuratePose() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback;
+
     // Keyframes to be published (big data packages -> publish only if needed)
-    if ((m_stage_handle->m_use_fallback && !frame->hasAccuratePose() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback)
-         ||(!m_stage_handle->m_use_vslam && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback)
-         || (frame->isKeyframe() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max))
+    if (is_gnss_frame || is_vslam_frame || is_vslam_fallback_frame)
     {
+      if (is_vslam_fallback_frame)
+      {
+        LOG_F(INFO, "VSLAM tracking lost, using GNSS fallback for frame %d!", frame->getFrameId());
+      }
       m_stage_handle->updatePreviousRoi(frame);
       if (m_do_delay_keyframes)
         scheduleFrame(frame);
