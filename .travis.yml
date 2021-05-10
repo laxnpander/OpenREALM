@@ -13,9 +13,11 @@ jobs:
      # dist: bionic
       os: linux
       dist: xenial
+      script: docker exec -i build bash < install_openrealm_lib.sh
      # os: linux
      # dist: focal
     - stage: test
+      script: docker exec -it build ~/cmake_ws/src/OpenREALM/tools/run_unit_tests.sh
 
 services:
   - docker
@@ -24,6 +26,3 @@ before_install:
   - docker pull laxnpander/openrealm-base:latest
   - docker run -it -d --name build laxnpander/openrealm-base:latest bash
   - wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_openrealm_lib.sh
-
-script:
-  - docker exec -i build bash < install_openrealm_lib.sh
