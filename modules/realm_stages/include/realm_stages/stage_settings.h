@@ -74,6 +74,7 @@ class SurfaceGenerationSettings : public StageSettings
     SurfaceGenerationSettings()
     {
       add("try_use_elevation", Parameter_t<int>{0, "Flag for trying to use surface points for elevation map generation"});
+      add("compute_all_frames", Parameter_t<int>{0, "When in PLANAR mode, estimate the elevation of every frame using sparse data rather than locking on the first"});
       add("knn_max_iter", Parameter_t<int>{5, "Maximum number of iterations for each cell to find the closest 3D point in the dense cloud"});
       add("mode_surface_normals", Parameter_t<int>{0, "0 - None, 1 - Random neighbours, 2 - Furthest neighbours, 3 - Best-fit"});
       add("save_valid", Parameter_t<int>{0, "Save valid elevation grid element mask"});
