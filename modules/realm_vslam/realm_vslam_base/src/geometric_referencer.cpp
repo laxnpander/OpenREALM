@@ -40,19 +40,30 @@ double GeometricReferencer::computeScaleChange(const Frame::Ptr &frame)
   s_curr->first = frame->getDefaultPose();
   s_curr->second = frame->getVisualPose();
 
-  SpatialMeasurement::Ptr s_prev = m_spatials.back();
+  int dit = 1;
+  if (m_spatials.size() > 3)
+    dit = m_spatials.size() / 3;
 
-  double scale = computeTwoPointScale(s_curr, s_prev, 0.02*frame->getMedianSceneDepth());
-  if (scale > 0.0)
+  std::vector<double> scales;
+  for (int i = 0; i < m_spatials.size(); i+=dit)
   {
+    SpatialMeasurement::Ptr s_ref = m_spatials[i];
+    double scale = computeTwoPointScale(s_curr, s_ref, 0.02*frame->getMedianSceneDepth());
+
+    if (scale > 0.0)
+      scales.push_back(scale);
+  }
+
+  // Use only if there is more than one scale estimate
+  if (scales.size() > 1)
+  {
+    double scale_avr = std::accumulate(scales.begin(), scales.end(), 0.0)/scales.size();
+
     // Compute scale difference in percent
-    return fabs(1.0-scale/m_scale)*100.0;
+    return fabs(1.0-scale_avr/m_scale)*100.0;
   }
-  else
-  {
-    // Scale was below detectable threshold. No satisfying computation possible
-    return -1.0;
-  }
+
+  return -1.0;
 }
 
 void GeometricReferencer::setBuisy()

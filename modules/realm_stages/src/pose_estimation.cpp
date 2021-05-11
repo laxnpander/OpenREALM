@@ -180,7 +180,7 @@ bool PoseEstimation::process()
       if (m_is_georef_initialized)
       {
         double scale_change = m_georeferencer->computeScaleChange(frame);
-        LOG_F(INFO, "Scale change of current frame: %4.2f%%", scale_change);
+        LOG_F(INFO, "Info [Scale Drift]: Scale change of current frame: %4.2f%%", scale_change);
 
         bool is_scale_consistent = (scale_change < m_th_scale_change);
         if (!is_scale_consistent)
