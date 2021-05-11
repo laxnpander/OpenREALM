@@ -138,6 +138,7 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
     // If we had tracking, then lost it then OpenVSlam initiated a reset and we should reset our local frames as well
     LOG_F(INFO, "Internal OpenVSLAM reset detected, resetting keyframe updater (State: %d was %d)", tracker_state, m_previous_state);
     resetKeyframeUpdater();
+    m_reset_callback();
   }
 
   m_previous_state = tracker_state;
@@ -179,6 +180,11 @@ void OpenVslam::resetKeyframeUpdater() {
   // at 0 again, we still have a unique id for all the points.
   m_base_point_id = m_max_point_id+1;
 
+}
+
+void OpenVslam::registerResetCallback(const VisualSlamIF::ResetFuncCb &func)
+{
+  m_reset_callback = func;
 }
 
 PointCloud::Ptr OpenVslam::getTrackedMapPoints()
@@ -335,5 +341,6 @@ bool OpenVslamKeyframeUpdater::process()
 
 void OpenVslamKeyframeUpdater::reset()
 {
+  std::lock_guard<std::mutex> lock(m_mutex_keyframes);
   m_keyframe_links.clear();
 }

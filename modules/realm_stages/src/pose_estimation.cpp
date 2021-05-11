@@ -53,8 +53,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
 
     // Set reset callback from vSLAM to this node
     // therefore if SLAM resets itself, node is being informed
-    std::function<void(void)> reset_func = std::bind(&PoseEstimation::reset, this);
-    m_vslam->registerResetCallback(reset_func);
+    m_vslam->registerResetCallback([=](){ reset(); });
 
     // Set pose update callback
     namespace ph = std::placeholders;
@@ -229,8 +228,8 @@ bool PoseEstimation::process()
     {
       // Branch: Georef is not calculated yet
       LOG_F(INFO, "Size of init buffer: %lu", m_buffer_pose_init.size());
-      std::thread t(std::bind(&GeospatialReferencerIF::init, m_georeferencer, m_buffer_pose_init));
-      t.detach();
+      std::thread th(std::bind(&GeospatialReferencerIF::init, m_georeferencer, m_buffer_pose_init));
+      th.detach();
       has_processed = true;
     }
     else if (m_is_georef_initialized && !m_buffer_pose_all.empty())
@@ -240,8 +239,8 @@ bool PoseEstimation::process()
       if (!m_buffer_pose_init.empty())
         m_buffer_pose_init.clear();
 
-      std::thread t(std::bind(&PoseEstimation::applyGeoreferenceToBuffer, this));
-      t.detach();
+      std::thread th(std::bind(&PoseEstimation::applyGeoreferenceToBuffer, this));
+      th.detach();
       has_processed = true;
     }
   }

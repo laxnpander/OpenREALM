@@ -62,6 +62,8 @@ private:
   std::shared_ptr<openvslam::publish::map_publisher> m_map_publisher;
   std::unique_ptr<OpenVslamKeyframeUpdater> m_keyframe_updater;
 
+  VisualSlamIF::ResetFuncCb m_reset_callback;
+
   uint32_t extractPointId(openvslam::data::landmark* lm);
 
   cv::Mat getLastDrawnFrame() const;
@@ -70,6 +72,8 @@ private:
 
   void resetOpenVSlam();
   void resetKeyframeUpdater();
+
+  void registerResetCallback(const ResetFuncCb &func) override;
 };
 
 class OpenVslamKeyframeUpdater : public WorkerThreadBase
