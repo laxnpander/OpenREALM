@@ -1,6 +1,7 @@
 
 
 #include <realm_vslam_base/open_vslam.h>
+#include <realm_core/timer.h>
 
 #include <openvslam/config.h>
 #include <openvslam/data/landmark.h>
@@ -15,9 +16,9 @@ OpenVslam::OpenVslam(const VisualSlamSettings::Ptr &vslam_set, const CameraSetti
    m_nrof_keyframes(0),
    m_previous_state(openvslam::tracker_state_t::NotInitialized),
    m_last_keyframe(nullptr),
+   m_max_keyframe_links(10),
    m_resizing((*vslam_set)["resizing"].toDouble()),
-   m_path_vocabulary((*vslam_set)["path_vocabulary"].toString()),
-   m_keyframe_updater(new OpenVslamKeyframeUpdater("Keyframe Updater", 100, false))
+   m_path_vocabulary((*vslam_set)["path_vocabulary"].toString())
 {
   // ov: OpenVSLAM
   // or: OpenREALM
@@ -49,7 +50,6 @@ OpenVslam::OpenVslam(const VisualSlamSettings::Ptr &vslam_set, const CameraSetti
   m_map_publisher = m_vslam->get_map_publisher();
 
   m_vslam->startup();
-  m_keyframe_updater->start();
 }
 
 VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initial)
@@ -57,7 +57,7 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(m_resizing);
 
-  // ORB SLAM returns a transformation from the world to the camera frame (T_w2c). In case we provide an initial guess
+  // OpenVSLAM returns a transformation from the world to the camera frame (T_w2c). In case we provide an initial guess
   // of the current pose, we have to invert this before, because in OpenREALM the standard is defined as T_c2w.
   cv::Mat T_w2c;
   openvslam::Mat44_t T_w2c_eigen;
@@ -122,8 +122,11 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
       // We want to keep all keyframes once created
       m_last_keyframe->set_not_to_be_erased();
 
-      // Pass to keyframe updater, which regularly checks if points or pose have changed
-      m_keyframe_updater->add(frame, m_last_keyframe);
+      // Add to keyframe links for future updates
+      addKeyframeLink(frame, m_last_keyframe);
+
+      std::thread th([=](){ updateKeyframes(); });
+      th.detach();
 
       m_nrof_keyframes = current_nrof_keyframes;
       return State::KEYFRAME_INSERT;
@@ -136,8 +139,8 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
   else if ((m_previous_state == openvslam::tracker_state_t::Tracking || m_previous_state == openvslam::tracker_state_t::Lost) &&
             (tracker_state == openvslam::tracker_state_t::NotInitialized || tracker_state == openvslam::tracker_state_t::Initializing)) {
     // If we had tracking, then lost it then OpenVSlam initiated a reset and we should reset our local frames as well
-    LOG_F(INFO, "Internal OpenVSLAM reset detected, resetting keyframe updater (State: %d was %d)", tracker_state, m_previous_state);
-    resetKeyframeUpdater();
+    LOG_F(INFO, "Internal OpenVSLAM reset detected (State: %d was %d)", tracker_state, m_previous_state);
+    internalReset();
     m_reset_callback();
   }
 
@@ -157,9 +160,6 @@ void OpenVslam::close()
     m_vslam->request_terminate();
     m_vslam->shutdown();
   }
-
-  m_keyframe_updater->requestFinish();
-  m_keyframe_updater->join();
 }
 
 void OpenVslam::reset()
@@ -168,10 +168,8 @@ void OpenVslam::reset()
   m_vslam->request_reset();
 }
 
-void OpenVslam::resetKeyframeUpdater() {
-  LOG_F(INFO, "Resetting keyframe updater...");
-  m_keyframe_updater->requestReset();
-
+void OpenVslam::internalReset()
+{
   std::lock_guard<std::mutex> lock(m_mutex_last_keyframe);
   m_last_keyframe = nullptr;
   m_nrof_keyframes = 0;
@@ -180,6 +178,7 @@ void OpenVslam::resetKeyframeUpdater() {
   // at 0 again, we still have a unique id for all the points.
   m_base_point_id = m_max_point_id+1;
 
+  m_keyframe_links.clear();
 }
 
 void OpenVslam::registerResetCallback(const VisualSlamIF::ResetFuncCb &func)
@@ -265,25 +264,18 @@ void OpenVslam::queueImuData(const VisualSlamIF::ImuData &imu)
   // TBD
 }
 
-OpenVslamKeyframeUpdater::OpenVslamKeyframeUpdater(const std::string &thread_name, int64_t sleep_time, bool verbose)
-  : WorkerThreadBase(thread_name, sleep_time, verbose)
+void OpenVslam::addKeyframeLink(Frame::Ptr &frame_realm, openvslam::data::keyframe* frame_ovslam)
 {
+  // Keep only a maximum number of links, so the list does not grow indefinitely
+  if (m_keyframe_links.size() > m_max_keyframe_links)
+    m_keyframe_links.pop_front();
+
+  m_keyframe_links.emplace_back(std::make_pair(frame_realm, m_last_keyframe));
 }
 
-void OpenVslamKeyframeUpdater::add(const std::weak_ptr<Frame> &frame_realm, openvslam::data::keyframe *frame_vslam)
+void OpenVslam::updateKeyframes()
 {
-  // We create a connection between the OpenREALM frames and the OpenVSLAM keyframes, so we can update points and
-  // poses easily
-  std::lock_guard<std::mutex> lock(m_mutex_keyframes);
-  m_keyframe_links.emplace_back(std::make_pair(frame_realm, frame_vslam));
-}
-
-bool OpenVslamKeyframeUpdater::process()
-{
-  // We need to lock down the addition of keyframes while inside the iterator
-  std::lock_guard<std::mutex> lock(m_mutex_keyframes);
-
-  bool has_processed = false;
+  long t = Timer::getCurrentTimeMilliseconds();
 
   for (auto it = m_keyframe_links.begin(); it != m_keyframe_links.end(); it++)
   {
@@ -323,24 +315,16 @@ bool OpenVslamKeyframeUpdater::process()
 
       if (sparse_cloud->size() != new_surface_points.rows)
       {
-        LOG_IF_F(INFO, m_verbose, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), sparse_cloud->size(), new_surface_points.rows);
+        LOG_F(INFO, "Updating frame %u: %u --> %u", frame_realm->getFrameId(), sparse_cloud->size(), new_surface_points.rows);
         frame_realm->setSparseCloud(std::make_shared<PointCloud>(new_surface_point_ids, new_surface_points), true);
       }
-
-      has_processed = true;
     }
     else
     {
-      LOG_IF_F(INFO, m_verbose, "Frame object out of scope. Deleting reference.");
+      LOG_F(INFO, "Frame object out of scope. Deleting reference.");
       // Frame is not existing anymore, delete from dequeue
       it = m_keyframe_links.erase(it);
     }
   }
-  return has_processed;
-}
-
-void OpenVslamKeyframeUpdater::reset()
-{
-  std::lock_guard<std::mutex> lock(m_mutex_keyframes);
-  m_keyframe_links.clear();
+  LOG_F(INFO, "Timing [Update KFs]: %lu ms", Timer::getCurrentTimeMilliseconds()-t);
 }

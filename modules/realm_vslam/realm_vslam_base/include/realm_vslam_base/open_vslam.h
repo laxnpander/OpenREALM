@@ -54,13 +54,15 @@ private:
   mutable std::mutex m_mutex_last_keyframe;
   openvslam::data::keyframe* m_last_keyframe;
 
+  unsigned int m_max_keyframe_links;
+  std::list<std::pair<std::weak_ptr<Frame>, openvslam::data::keyframe*>> m_keyframe_links;
+
   openvslam::tracker_state_t m_previous_state;
 
   std::shared_ptr<openvslam::system> m_vslam;
   std::shared_ptr<openvslam::config> m_config;
   std::shared_ptr<openvslam::publish::frame_publisher> m_frame_publisher;
   std::shared_ptr<openvslam::publish::map_publisher> m_map_publisher;
-  std::unique_ptr<OpenVslamKeyframeUpdater> m_keyframe_updater;
 
   VisualSlamIF::ResetFuncCb m_reset_callback;
 
@@ -70,31 +72,10 @@ private:
   cv::Mat invertPose(const cv::Mat &pose) const;
   cv::Mat convertToCv(const openvslam::Mat44_t &mat) const;
 
-  void resetOpenVSlam();
-  void resetKeyframeUpdater();
-
+  void internalReset();
+  void addKeyframeLink(Frame::Ptr &frame_realm, openvslam::data::keyframe* frame_ovslam);
+  void updateKeyframes();
   void registerResetCallback(const ResetFuncCb &func) override;
-};
-
-class OpenVslamKeyframeUpdater : public WorkerThreadBase
-{
-public:
-  OpenVslamKeyframeUpdater(const std::string &thread_name, int64_t sleep_time, bool verbose);
-
-  void add(const std::weak_ptr<Frame> &frame_realm, openvslam::data::keyframe* frame_vslam);
-
-private:
-
-  /// Container for OpenREALM frames to corresponding OpenVSLAM keyframe
-  std::list<std::pair<std::weak_ptr<Frame>, openvslam::data::keyframe*>> m_keyframe_links;
-
-  /// Mutex to prevent modifying the keyframes list while inside an iterator
-  mutable std::mutex m_mutex_keyframes;
-
-  bool process() override;
-
-  void reset() override;
-
 };
 
 } // namespace realm

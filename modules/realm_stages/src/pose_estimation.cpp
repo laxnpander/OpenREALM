@@ -67,7 +67,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
   evaluateFallbackStrategy(m_strategy_fallback);
 
   // Create Pose Estimation publisher
-  m_stage_publisher.reset(new PoseEstimationIO(this, rate, m_do_delay_keyframes));
+  m_stage_publisher.reset(new PoseEstimationIO(this, 2*rate, m_do_delay_keyframes));
   m_stage_publisher->start();
 
   // Creation of reference plane, currently only the one below is supported
@@ -204,8 +204,8 @@ bool PoseEstimation::process()
         // if (is_scale_consistent && m_do_update_georef && !m_georeferencer->isBuisy())
         if (m_do_update_georef && !m_georeferencer->isBuisy())
         {
-          std::thread t(std::bind(&GeospatialReferencerIF::update, m_georeferencer, frame));
-          t.detach();
+          std::thread th(std::bind(&GeospatialReferencerIF::update, m_georeferencer, frame));
+          th.detach();
         }
         pushToBufferAll(frame);
       }
