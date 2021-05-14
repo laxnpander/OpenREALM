@@ -94,15 +94,26 @@ void StageBase::registerCvGridMapTransport(const std::function<void(const CvGrid
 
 void StageBase::setStatisticsPeriod(uint32_t s)
 {
-    std::unique_lock<std::mutex> lock(m_mutex_statistics);
+  std::unique_lock<std::mutex> lock(m_mutex_statistics);
   m_t_statistics_period = s;
+}
+
+void StageBase::logCurrentStatistics() const
+{
+  LOG_SCOPE_F(INFO, "Stage [%s] statistics", m_stage_name.c_str());
+  LOG_F(INFO, "Total frames: %i ", m_stage_statistics.frames_total);
+  LOG_F(INFO, "Processed frames: %i ", m_stage_statistics.frames_processed);
+  LOG_F(INFO, "Bad frames: %i ", m_stage_statistics.frames_bad);
+  LOG_F(INFO, "Dropped frames: %i ", m_stage_statistics.frames_dropped);
+  LOG_F(INFO, "Fps in: %4.2f ", m_stage_statistics.fps_in);
+  LOG_F(INFO, "Fps out: %4.2f ", m_stage_statistics.fps_out);
 }
 
 void StageBase::updateStatisticsIncoming()
 {
-    std::unique_lock<std::mutex> lock(m_mutex_statistics);
-    m_counter_frames_in++;
-    m_stage_statistics.frames_total++;
+  std::unique_lock<std::mutex> lock(m_mutex_statistics);
+  m_counter_frames_in++;
+  m_stage_statistics.frames_total++;
 }
 
 void StageBase::updateStatisticsSkippedFrame()
@@ -152,7 +163,7 @@ void StageBase::evaluateStatistic()
   m_counter_frames_in = 0;
   m_counter_frames_out = 0;
 
-  LOG_F(INFO, "FPS in: %f, out: %f", fps_in, fps_out);
+  logCurrentStatistics();
 
   m_stage_statistics.fps_in = fps_in;
   m_stage_statistics.fps_out = fps_out;

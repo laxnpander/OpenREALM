@@ -196,7 +196,7 @@ class StageBase : public WorkerThreadBase
      * @brief Statistics for the stage including processing time, queue depths, and other useful information
      */
     StageStatistics m_stage_statistics{};
-    std::mutex m_mutex_statistics;
+    mutable std::mutex m_mutex_statistics;
 
     /*!
      * @brief Short name of the implemented stage. Should be written by derived classes
@@ -275,6 +275,12 @@ class StageBase : public WorkerThreadBase
      * @param s Period of time in seconds
      */
     void setStatisticsPeriod(uint32_t s);
+
+    /*!
+     * @brief Function can be called to log the current statistics. Shouldn't be called on every processed frame to not
+     * pollute the log.
+     */
+    void logCurrentStatistics() const;
 
     /*!
     @brief Gets the current stage queue depth
