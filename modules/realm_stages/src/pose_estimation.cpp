@@ -153,9 +153,6 @@ bool PoseEstimation::process()
   // Trigger; true if there happened any processing in this cycle.
   bool has_processed = false;
 
-  // Prepare timing
-  long t;
-
   // Grab georeference flag once at the beginning, to avoid multithreading problems
   if (m_use_vslam)
     m_is_georef_initialized = m_georeferencer->isInitialized();
@@ -166,12 +163,11 @@ bool PoseEstimation::process()
     // Grab frame from buffer with no poses
     Frame::Ptr frame = getNewFrameTracking();
 
-    LOG_F(INFO, "Processing frame #%i with timestamp %lu!", frame->getFrameId(), frame->getTimestamp());
+    LOG_IF_F(INFO, m_stage_statistics.frames_processed % 10 == 0, "Buffer [all, init, publish]: %lu, %lu, %lu",
+             m_buffer_pose_all.size(), m_buffer_pose_init.size(), m_buffer_do_publish.size());
 
     // Track current frame -> compute visual accurate pose
-    t = getCurrentTimeMilliseconds();
     track(frame);
-    LOG_F(INFO, "Timing [Tracking]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Identify buffer for push
     if (frame->hasAccuratePose())
@@ -249,7 +245,8 @@ bool PoseEstimation::process()
 
 void PoseEstimation::track(Frame::Ptr &frame)
 {
-  LOG_F(INFO, "Tracking frame #%i in visual SLAM...!", frame->getFrameId());
+  LOG_SCOPE_FUNCTION(INFO);
+  LOG_F(INFO, "Frame id: #%i, timestamp: %lu", frame->getFrameId(), frame->getTimestamp());
 
   // Check if initial guess should be computed
   cv::Mat T_c2w_initial;
@@ -461,8 +458,9 @@ double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
 
 Frame::Ptr PoseEstimation::getNewFrameTracking()
 {
-  LOG_F(INFO, "Input frame buffer: %i/%i", m_buffer_no_pose.size(), m_queue_size);
-  LOG_IF_F(WARNING, m_buffer_no_pose.size() >= 0.8*m_queue_size, "Input frame buffer is at 80%!");
+  double perc_queue = static_cast<double>(m_buffer_no_pose.size()) / m_queue_size * 100.0;
+  LOG_IF_F(INFO,    perc_queue <  80, "Input frame buffer at %4.2f%%", perc_queue);
+  LOG_IF_F(WARNING, perc_queue >= 80, "Input frame buffer at %4.2f%%", perc_queue);
 
   std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
   Frame::Ptr frame = m_buffer_no_pose.front();
@@ -557,7 +555,7 @@ void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
 }
 
 PoseEstimationIO::PoseEstimationIO(PoseEstimation* stage, double rate, bool do_delay_keyframes)
-    : WorkerThreadBase("Publisher [pose_estimation]", static_cast<int64_t>(1/rate*1000.0), true),
+    : WorkerThreadBase("Publisher [pose_estimation]", static_cast<int64_t>(1/rate*1000.0), false),
       m_is_time_ref_set(false),
       m_is_new_output_path_set(false),
       m_do_delay_keyframes(do_delay_keyframes),
@@ -574,21 +572,10 @@ void PoseEstimationIO::setOutputPath(const std::string &path)
   m_is_new_output_path_set = true;
 }
 
-void PoseEstimationIO::initLog(const std::string &filepath)
-{
-  // Only log to file if the parent stage is doing so
-  if (m_stage_handle->m_log_to_file) {
-    loguru::add_file((filepath + "/publisher.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
-  }
-
-  LOG_F(INFO, "Successfully initialized %s publisher!", m_stage_handle->m_stage_name.c_str());
-}
-
 bool PoseEstimationIO::process()
 {
   if (m_is_new_output_path_set)
   {
-    initLog(m_path_output);
     m_is_new_output_path_set = false;
   }
 

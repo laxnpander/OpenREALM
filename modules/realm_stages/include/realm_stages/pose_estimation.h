@@ -199,7 +199,6 @@ class PoseEstimationIO : public WorkerThreadBase
     PoseEstimationIO(PoseEstimation* stage, double rate, bool do_delay_keyframes);
     bool process() override;
     void setOutputPath(const std::string &path);
-    void initLog(const std::string &filepath);
 
   private:
     bool m_is_time_ref_set;
