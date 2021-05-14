@@ -32,6 +32,7 @@ struct StageStatistics {
   uint32_t frames_total{};
   uint32_t frames_dropped{};
   uint32_t frames_bad{};
+  uint32_t frames_processed{};
   Statistics queue_statistics{};
   Statistics process_statistics{};
 };
@@ -295,6 +296,12 @@ class StageBase : public WorkerThreadBase
      * @brief Update function to be called by the derived class to update the incoming frame rate statistic.
      */
     void updateStatisticsBadFrame();
+
+    /*!
+     * @brief Update function to be called by derived class to update number of processed frames in the statistic.
+     * Information might be redundant with total and dropped frames.
+     */
+    void updateStatisticsProcessedFrame();
 
     /*!
      * @brief Update function to be called by the derived class to update the outgoing frame rate statistic.

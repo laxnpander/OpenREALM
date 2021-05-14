@@ -117,6 +117,12 @@ void StageBase::updateStatisticsBadFrame()
   m_stage_statistics.frames_bad++;
 }
 
+void StageBase::updateStatisticsProcessedFrame()
+{
+  std::unique_lock<std::mutex> lock(m_mutex_statistics);
+  m_stage_statistics.frames_processed++;
+}
+
 void StageBase::updateStatisticsOutgoing()
 {
     std::unique_lock<std::mutex> lock(m_mutex_statistics);

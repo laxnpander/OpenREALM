@@ -467,6 +467,9 @@ Frame::Ptr PoseEstimation::getNewFrameTracking()
   std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
   Frame::Ptr frame = m_buffer_no_pose.front();
   m_buffer_no_pose.pop_front();
+
+  updateStatisticsProcessedFrame();
+
   return std::move(frame);
 }
 

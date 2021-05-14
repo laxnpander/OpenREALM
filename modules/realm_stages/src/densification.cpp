@@ -79,6 +79,8 @@ bool Densification::process()
   Frame::Ptr frame_processed;
   Depthmap::Ptr depthmap = processStereoReconstruction(m_buffer_reco, frame_processed);
   popFromBufferReco();
+  updateStatisticsProcessedFrame();
+
   LOG_IF_F(INFO, m_verbose, "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds() - t);
   if (!depthmap)
     return true;

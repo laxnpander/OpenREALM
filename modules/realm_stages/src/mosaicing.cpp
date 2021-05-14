@@ -299,6 +299,7 @@ Frame::Ptr Mosaicing::getNewFrame()
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   Frame::Ptr frame = m_buffer.front();
   m_buffer.pop_front();
+  updateStatisticsProcessedFrame();
   return std::move(frame);
 }
 
