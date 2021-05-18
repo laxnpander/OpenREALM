@@ -7,6 +7,7 @@
 #include <openvslam/data/landmark.h>
 #include <openvslam/publish/map_publisher.h>
 #include <openvslam/publish/frame_publisher.h>
+#include <future>
 
 using namespace realm;
 
@@ -125,9 +126,12 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
       // Add to keyframe links for future updates
       addKeyframeLink(frame, m_last_keyframe);
 
-      std::thread th([=](){ updateKeyframes(); });
-      th.detach();
-
+      // Make sure our future is either valid or ready, meaning computation is complete
+      if (!m_future_update_keyframes.valid() || m_future_update_keyframes.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        m_future_update_keyframes = std::async(std::launch::async, [=](){ updateKeyframes(); });
+      } else {
+        LOG_F(WARNING, "OpenVSLAM updateKeyframes did not finish before next frame was processed. Skipping update!");
+      }
       m_nrof_keyframes = current_nrof_keyframes;
       return State::KEYFRAME_INSERT;
     }
