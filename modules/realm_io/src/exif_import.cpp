@@ -35,9 +35,9 @@ std::map<std::string, bool> io::Exiv2FrameReader::probeImage(const std::string &
     tag_existence[m_frame_tags.camera_id] = probeTag(m_frame_tags.camera_id, exif_data, xmp_data);
     tag_existence[m_frame_tags.timestamp] = probeTag(m_frame_tags.timestamp, exif_data, xmp_data);
     tag_existence[m_frame_tags.latitude] = probeTag(m_frame_tags.latitude, exif_data, xmp_data);
-    tag_existence[m_frame_tags.latitude] = probeTag(m_frame_tags.latituderef, exif_data, xmp_data);
+    tag_existence[m_frame_tags.latituderef] = probeTag(m_frame_tags.latituderef, exif_data, xmp_data);
     tag_existence[m_frame_tags.longitude] = probeTag(m_frame_tags.longitude, exif_data, xmp_data);
-    tag_existence[m_frame_tags.longitude] = probeTag(m_frame_tags.longituderef, exif_data, xmp_data);
+    tag_existence[m_frame_tags.longituderef] = probeTag(m_frame_tags.longituderef, exif_data, xmp_data);
     tag_existence[m_frame_tags.altitude] = probeTag(m_frame_tags.altitude, exif_data, xmp_data);
     tag_existence[m_frame_tags.heading] = probeTag(m_frame_tags.heading, exif_data, xmp_data);
   }
@@ -281,12 +281,16 @@ bool io::Exiv2FrameReader::probeTag(const std::string &tag, Exiv2::ExifData &exi
   if (isXmpTag(tag))
   {
     if (xmp_data.findKey(Exiv2::XmpKey(tag)) != xmp_data.end())
+    {
       return true;
+    }
   }
   else
   {
     if (exif_data.findKey(Exiv2::ExifKey(tag)) != exif_data.end())
+    {
       return true;
+    }
   }
   return false;
 }
