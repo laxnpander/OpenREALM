@@ -22,29 +22,41 @@ OpenVslam::OpenVslam(const VisualSlamSettings::Ptr &vslam_set, const CameraSetti
 {
   // ov: OpenVSLAM
   // or: OpenREALM
-  YAML::Node settings;
-  settings["Camera.name"] = "cam";
-  settings["Camera.setup"] = "monocular";
-  settings["Camera.model"] = "perspective";
-  settings["Camera.color_order"] = "RGB";
-  settings["Camera.fx"] = (*cam_set)["fx"].toDouble() * m_resizing;
-  settings["Camera.fy"] = (*cam_set)["fy"].toDouble() * m_resizing;
-  settings["Camera.cx"] = (*cam_set)["cx"].toDouble() * m_resizing;
-  settings["Camera.cy"] = (*cam_set)["cy"].toDouble() * m_resizing;
-  settings["Camera.k1"] = (*cam_set)["k1"].toDouble();
-  settings["Camera.k2"] = (*cam_set)["k2"].toDouble();
-  settings["Camera.p1"] = (*cam_set)["p1"].toDouble();
-  settings["Camera.p2"] = (*cam_set)["p2"].toDouble();
-  settings["Camera.k3"] = (*cam_set)["k3"].toDouble();
-  settings["Camera.fps"] = (*cam_set)["fps"].toDouble();
-  settings["Camera.cols"] = static_cast<unsigned int>((*cam_set)["width"].toInt() * m_resizing);
-  settings["Camera.rows"] = static_cast<unsigned int>((*cam_set)["height"].toInt() * m_resizing);
-  settings["Feature.max_num_keypoints"] = (*vslam_set)["nrof_features"].toInt();
-  settings["Feature.scale_factor"] = (*vslam_set)["scale_factor"].toFloat();
-  settings["Feature.ini_fast_threshold"] = (*vslam_set)["ini_th_FAST"].toInt();
-  settings["Feature.min_fast_threshold"] = (*vslam_set)["min_th_FAST"].toInt();
+  YAML::Node yaml_config;
 
-  m_config = std::make_shared<openvslam::config>(settings, "");
+  YAML::Node yaml_cam;
+  yaml_cam["name"]  = "cam";
+  yaml_cam["model"] = "perspective";
+  yaml_cam["setup"] = "monocular";
+  yaml_cam["color_order"] = "RGB";
+  yaml_cam["fx"] = (*cam_set)["fx"].toDouble() * m_resizing;
+  yaml_cam["fy"] = (*cam_set)["fy"].toDouble() * m_resizing;
+  yaml_cam["cx"] = (*cam_set)["cx"].toDouble() * m_resizing;
+  yaml_cam["cy"] = (*cam_set)["cy"].toDouble() * m_resizing;
+  yaml_cam["k1"] = (*cam_set)["k1"].toDouble();
+  yaml_cam["k2"] = (*cam_set)["k2"].toDouble();
+  yaml_cam["p1"] = (*cam_set)["p1"].toDouble();
+  yaml_cam["p2"] = (*cam_set)["p2"].toDouble();
+  yaml_cam["k3"] = (*cam_set)["k3"].toDouble();
+  yaml_cam["fps"] = (*cam_set)["fps"].toDouble();
+  yaml_cam["cols"] = static_cast<unsigned int>((*cam_set)["width"].toInt() * m_resizing);
+  yaml_cam["rows"] = static_cast<unsigned int>((*cam_set)["height"].toInt() * m_resizing);
+  yaml_config["Camera"] = yaml_cam;
+
+  YAML::Node yaml_features;
+  yaml_features["max_num_keypoints"] = (*vslam_set)["nrof_features"].toInt();
+  yaml_features["ini_max_num_keypoints"] = 2*(*vslam_set)["nrof_features"].toInt();
+  yaml_features["scale_factor"] = (*vslam_set)["scale_factor"].toFloat();
+  yaml_features["num_levels"] = (*vslam_set)["n_pyr_levels"].toInt();;
+  yaml_features["ini_fast_threshold"] = (*vslam_set)["ini_th_FAST"].toInt();
+  yaml_features["min_fast_threshold"] = (*vslam_set)["min_th_FAST"].toInt();
+  yaml_config["Feature"] = yaml_features;
+
+  YAML::Node yaml_mapping;
+  yaml_mapping["baseline_dist_thr_ratio"] = 0.02;
+  yaml_config["Mapping"] = yaml_mapping;
+
+  m_config = std::make_shared<openvslam::config>(yaml_config, "");
   m_vslam = std::make_shared<openvslam::system>(m_config, m_path_vocabulary);
   m_frame_publisher = m_vslam->get_frame_publisher();
   m_map_publisher = m_vslam->get_map_publisher();
@@ -60,11 +72,13 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
   // OpenVSLAM returns a transformation from the world to the camera frame (T_w2c). In case we provide an initial guess
   // of the current pose, we have to invert this before, because in OpenREALM the standard is defined as T_c2w.
   cv::Mat T_w2c;
-  openvslam::Mat44_t T_w2c_eigen;
+  std::shared_ptr<openvslam::Mat44_t> T_w2c_eigen;
   if (T_c2w_initial.empty())
   {
     T_w2c_eigen = m_vslam->feed_monocular_frame(frame->getResizedImageRaw(), frame->getTimestamp() * 10e-9);
-    T_w2c = convertToCv(T_w2c_eigen);
+
+    if (T_w2c_eigen != nullptr)
+      T_w2c = convertToCv(*T_w2c_eigen);
   }
   else
   {
@@ -251,7 +265,15 @@ cv::Mat OpenVslam::convertToCv(const openvslam::Mat44_t &mat_eigen) const
       mat_eigen(2, 0), mat_eigen(2, 1), mat_eigen(2, 2), mat_eigen(2, 3),
       mat_eigen(3, 0), mat_eigen(3, 1), mat_eigen(3, 2), mat_eigen(3, 3)
       );
-  return mat_cv;
+
+  // Invert pose
+  cv::Mat mat_cv_inv = cv::Mat::eye(4, 4, mat_cv.type());
+  cv::Mat R_t = (mat_cv.rowRange(0, 3).colRange(0, 3)).t();
+  cv::Mat t = -R_t*mat_cv.rowRange(0, 3).col(3);
+  R_t.copyTo(mat_cv_inv.rowRange(0, 3).colRange(0, 3));
+  t.copyTo(mat_cv_inv.rowRange(0, 3).col(3));
+
+  return mat_cv_inv;
 }
 
 void OpenVslam::printSettingsToLog()

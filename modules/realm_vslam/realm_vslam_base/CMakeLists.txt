@@ -47,7 +47,7 @@ set(VSLAM_IMPL_LIB openvslam::openvslam)
 set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
 set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
 set(VSLAM_IF_SOURCES ${root}/src/open_vslam.cpp)
-set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM" "-DUSE_DBOW2")
+set(VSLAM_IF_COMPILE_FLAG "-DUSE_OPEN_VSLAM")
 message(STATUS "Selected OpenVSLAM for visual pose estimation")
 
 #find_package(ov2slam REQUIRED)
