@@ -13,6 +13,7 @@
 #include <openvslam/data/keyframe.h>
 #include <openvslam/data/landmark.h>
 #include <yaml-cpp/yaml.h>
+#include <future>
 
 namespace realm
 {
@@ -65,6 +66,8 @@ private:
   std::shared_ptr<openvslam::publish::map_publisher> m_map_publisher;
 
   VisualSlamIF::ResetFuncCb m_reset_callback;
+
+  std::future<void> m_future_update_keyframes;
 
   uint32_t extractPointId(openvslam::data::landmark* lm);
 
