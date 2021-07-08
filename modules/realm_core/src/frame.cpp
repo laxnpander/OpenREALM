@@ -350,6 +350,10 @@ void Frame::setKeyframe(bool flag)
 void Frame::setPoseAccurate(bool flag)
 {
   std::lock_guard<std::mutex> lock(m_mutex_flags);
+  // If we are clearing the flag, clear the georeferenced pose data as well
+  if (!flag) {
+    m_camera_model->setPose(getDefaultPose());
+  }
   m_has_accurate_pose = flag;
 }
 

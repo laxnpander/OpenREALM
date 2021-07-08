@@ -38,6 +38,7 @@ class PoseEstimationSettings : public StageSettings
                                                                            "This ensures higher pose and map point quality, as the frames are refined with consecutive frames."});
       add("suppress_outdated_pose_pub", Parameter_t<int>{0, "Flag to suppress publish of outdated poses after georeference computation."});
       add("th_error_georef", Parameter_t<double>{1.0, "Threshold of error for georeference until initialization is performed."});
+      add("init_lost_frames_reset_count", Parameter_t<int>{15, "The number of lost frames allowed during georeferencing before a VSLAM reset is issued."});
       add("min_nrof_frames_georef", Parameter_t<int>{5, "Minimum number of unique frames required before georeference is initialized."});
       add("overlap_max", Parameter_t<double>{0.0, "Maximum overlap for all publishes, even keyframes"});
       add("overlap_max_fallback", Parameter_t<double>{0.0, "Maximum overlap for fallback publishes, e.g. GNSS only imgs"});

@@ -98,6 +98,10 @@ class PoseEstimation : public StageBase
     // Flag to disable fallback solution based on lat/lon/alt/heading completely
     bool m_use_fallback;
 
+    // The maximum number of lost frames when initializing before attempting a reset
+    int m_init_lost_frames_reset_count;
+    int m_init_lost_frames;
+
     // Flag to disable using an initial guess of the camera pose to make tracking more stable in the visual SLAM
     bool m_use_initial_guess;
 

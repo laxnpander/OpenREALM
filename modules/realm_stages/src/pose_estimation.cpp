@@ -19,6 +19,8 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
       m_set_all_frames_keyframes((*stage_set)["set_all_frames_keyframes"].toInt() > 0),
       m_strategy_fallback(PoseEstimation::FallbackStrategy((*stage_set)["fallback_strategy"].toInt())),
       m_use_fallback(false),
+      m_init_lost_frames_reset_count((*stage_set)["init_lost_frames_reset_count"].toInt()),
+      m_init_lost_frames(0),
       m_use_initial_guess((*stage_set)["use_initial_guess"].toInt() > 0),
       m_do_update_georef((*stage_set)["update_georef"].toInt() > 0),
       m_do_delay_keyframes((*stage_set)["do_delay_keyframes"].toInt() > 0),
@@ -270,6 +272,20 @@ void PoseEstimation::track(Frame::Ptr &frame)
   switch (state)
   {
     case VisualSlamIF::State::LOST:
+
+      // If we haven't yet initialized, make sure we haven't completely lost tracking.  If we have, force a reset
+      // to hopefully recover.
+      if (!m_is_georef_initialized) {
+        m_init_lost_frames++;
+
+        if (m_init_lost_frames > m_init_lost_frames_reset_count) {
+          LOG_F(WARNING, "Lost tracking while initializing georeferencing, resetting VSLAM to reacquire reference...");
+          std::unique_lock<std::mutex> lock(m_mutex_vslam);
+          m_vslam->reset();
+          m_init_lost_frames = 0;
+        }
+      }
+
       if (estimatePercOverlap(frame) < m_overlap_max_fallback)
         pushToBufferPublish(frame);
       LOG_F(WARNING, "No tracking.");
@@ -320,6 +336,8 @@ void PoseEstimation::reset()
   m_buffer_pose_all.clear();
   m_buffer_no_pose.clear();
   m_buffer_pose_init.clear();
+
+  m_init_lost_frames = 0;
 
   // Reset georeferencing
   if (m_use_vslam)
@@ -381,6 +399,8 @@ void PoseEstimation::printSettingsToLog()
   LOG_F(INFO, "- do_update_georef: %i", m_do_update_georef);
   LOG_F(INFO, "- do_suppress_outdated_pose_pub: %i", m_do_suppress_outdated_pose_pub);
   LOG_F(INFO, "- th_error_georef: %4.2f", m_th_error_georef);
+  LOG_F(INFO, "- min_nrof_frames_georef: %d", m_min_nrof_frames_georef);
+  LOG_F(INFO, "- init_lost_frames_reset_count: %df", m_init_lost_frames_reset_count);
   LOG_F(INFO, "- overlap_max: %4.2f", m_overlap_max);
   LOG_F(INFO, "- overlap_max_fallback: %4.2f", m_overlap_max_fallback);
 
