@@ -127,12 +127,18 @@ void SurfaceGeneration::publish(const Frame::Ptr &frame)
 void SurfaceGeneration::saveIter(const CvGridMap &surface, uint32_t id)
 {
   // Invalid points are marked with NaN
-  cv::Mat valid = (surface["elevation"] == surface["elevation"]);
+  if (!surface["elevation"].empty()) {
+    cv::Mat valid = (surface["elevation"] == surface["elevation"]);
 
-  if (m_settings_save.save_elevation)
-    io::saveImageColorMap(surface["elevation"], valid, m_stage_path + "/elevation", "elevation", id, io::ColormapType::ELEVATION);
-  if (m_settings_save.save_normals && surface.exists("elevation_normal"))
-    io::saveImageColorMap(surface["elevation_normal"], valid, m_stage_path + "/normals", "normal", id, io::ColormapType::NORMALS);
+    if (m_settings_save.save_elevation)
+      io::saveImageColorMap(surface["elevation"], valid, m_stage_path + "/elevation", "elevation", id,
+                            io::ColormapType::ELEVATION);
+    if (m_settings_save.save_normals && surface.exists("elevation_normal"))
+      io::saveImageColorMap(surface["elevation_normal"], valid, m_stage_path + "/normals", "normal", id,
+                            io::ColormapType::NORMALS);
+  } else {
+    LOG_F(WARNING, "Elevation surface was empty, skipping saveIter()!");
+  }
 }
 
 void SurfaceGeneration::initStageCallback()
