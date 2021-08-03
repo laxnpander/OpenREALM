@@ -204,7 +204,11 @@ bool Tileing::process()
         Tile::Ptr tile_merged;
         if (tile_cached)
         {
-          tile_merged = merge(tile, tile_cached);
+          // Currently merge appears to be having issues properly combining tiles, leading to
+          // odd artifacts.  Merge is slightly more intensive, but works cleaner.  I am not yet sure why merge
+          // is having issues.
+          //tile_merged = merge(tile, tile_cached);
+          tile_merged = blend(tile, tile_cached);
           tile_cached->unlock();
         }
         else
