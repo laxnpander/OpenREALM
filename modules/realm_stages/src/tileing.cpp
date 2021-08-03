@@ -259,24 +259,15 @@ Tile::Ptr Tileing::blend(const Tile::Ptr &t1, const Tile::Ptr &t2)
   CvGridMap::Ptr& src = t2->data();
   CvGridMap::Ptr& dst = t1->data();
 
-  // Cells in the elevation, which have no value are marked as NaN. Therefore v == v returns false for those.
-  cv::Mat src_mask = ((*src)["elevation"] == (*src)["elevation"]);
+  // There are apparently a number of issues with NaN comparisons breaking in various ways.  See:
+  // https://github.com/opencv/opencv/issues/16465
+  // To avoid these, use patchNaNs before using boolean comparisons
+  cv::patchNaNs((*dst)["elevation_angle"],0);
+  cv::Mat dst_mask = ((*src)["elevation_angle"] > (*dst)["elevation_angle"]);// | ((*src)["elevated"] & dst_not_elevated));
 
-  // Find all the cells, that are better in the destination tile
-  // First get all elements in the destination tile, that are not elevated (have an elevation, but were not 3D reconstructed)
-  cv::Mat dst_not_elevated;
-  cv::bitwise_not((*dst)["elevated"], dst_not_elevated);
-
-  // Now remove all cells from the source tile, that have a smaller elevation angle than the destination, except those
-  // that are elevated where the destination is not.
-  cv::Mat dst_mask = ((*src)["elevation_angle"] < (*dst)["elevation_angle"]) | ((*src)["elevated"] & dst_not_elevated);
-
-  // Now remove them
-  src_mask.setTo(0, dst_mask);
-
-  (*src)["color_rgb"].copyTo((*dst)["color_rgb"], src_mask);
-  (*src)["elevation"].copyTo((*dst)["elevation"], src_mask);
-  (*src)["elevation_angle"].copyTo((*dst)["elevation_angle"], src_mask);
+  (*src)["color_rgb"].copyTo((*dst)["color_rgb"], dst_mask);
+  (*src)["elevation"].copyTo((*dst)["elevation"], dst_mask);
+  (*src)["elevation_angle"].copyTo((*dst)["elevation_angle"], dst_mask);
 
   return t1;
 }
