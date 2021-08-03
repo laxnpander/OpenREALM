@@ -494,10 +494,15 @@ void CvGridMap::mergeMatrices(const cv::Mat &from, cv::Mat &to, int flag_merge_h
       break;
     case REALM_OVERWRITE_ZERO:
       cv::Mat mask;
-      if (to.type() == CV_32F || to.type() == CV_64F)
-        mask = (to != to) & (from == from);
-      else
+      if (to.type() == CV_32F || to.type() == CV_64F) {
+        cv::Mat to_mask = to.clone();
+        cv::Mat from_mask = from.clone();
+        cv::patchNaNs(to_mask, 0);
+        cv::patchNaNs(from_mask, 0);
+        mask = (to_mask == 0) & (from_mask != 0);
+      } else {
         mask = (to == 0) & (from > 0);
+      }
       from.copyTo(to, mask);
       break;
   }
