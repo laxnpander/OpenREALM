@@ -240,6 +240,8 @@ void Mosaicing::saveAll()
     io::saveGeoTIFF(m_global_map->getSubmap({"color_rgb"}), m_utm_reference->zone, m_stage_path + "/ortho/ortho.tif", true, m_settings_save.split_gtiff_channels);
   if (m_settings_save.save_elevation_one)
     io::saveGeoTIFF(m_global_map->getSubmap({"elevation"}), m_utm_reference->zone, m_stage_path + "/elevation/gtiff/elevation.tif");
+  if (m_settings_save.save_elevation_obs_angle_one)
+    io::saveGeoTIFF(m_global_map->getSubmap({"elevation_angle"}), m_utm_reference->zone, m_stage_path + "/obs_angle/angle.tif");
 
   //io::MvsExport::saveFrames(m_frames, m_stage_path + "/mvs");
 
