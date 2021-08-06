@@ -38,8 +38,9 @@ public:
   /*!
    * @brief Besides member initialization the required lookup tables to map zoom level to image resolution are created.
    * @param verbosity Flag to set verbose output
+   * @param verbosity Flag to use TMS standard for tile, false to use Google/OSM
    */
-  explicit MapTiler(bool verbosity);
+  explicit MapTiler(bool verbosity, bool use_tms);
 
   ~MapTiler() = default;
   MapTiler(const MapTiler &other) = default;
@@ -74,6 +75,9 @@ private:
 
   /// Shift of the coordinate frame origin
   double m_origin_shift;
+
+  /// Whether to use TMS or Google/OSM standards for the y origin
+  bool m_use_tms;
 
   /// Size of the tiles in [pix], usually this is 256
   int m_tile_size;

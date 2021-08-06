@@ -27,6 +27,7 @@ using namespace stages;
 
 Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("tileing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
+      m_generate_tms_tiles((*stage_set)["tms_tiles"].toInt() > 0),
       m_utm_reference(nullptr),
       m_map_tiler(nullptr),
       m_tile_cache(nullptr),
@@ -372,7 +373,7 @@ void Tileing::initStageCallback()
   // across different devies. Consequently it is not created in the constructor but here.
   if (!m_map_tiler)
   {
-    m_map_tiler = std::make_shared<MapTiler>(true);
+    m_map_tiler = std::make_shared<MapTiler>(true, m_generate_tms_tiles);
     m_tile_cache = std::make_shared<TileCache>("tile_cache", 500, m_stage_path + "/tiles", false);
     m_tile_cache->start();
   }

@@ -14,7 +14,7 @@ namespace realm
 
 /*!
  * @brief Tile is a container class that is defined by a coordinate (x,y) in a specific zoom level following the
- * Tiled Map Service specification and a multi-layered grid map holding the data.
+ * Tiled Map Service or Google/OSM specification and a multi-layered grid map holding the data.
  */
 class Tile
 {
@@ -24,12 +24,13 @@ public:
 public:
   /*!
    * @brief Non-default constructor
-   * @param zoom_level Zoom level or z-coordinate according to TMS standard
-   * @param tx Tile index in x-direction according to TMS standard
-   * @param ty Tile index in y-direction according to TMS standard
+   * @param zoom_level Zoom level or z-coordinate according to TMS or Google/OSM specification
+   * @param tx Tile index in x-direction according to TMS or Google/OSM specification
+   * @param ty Tile index in y-direction according to TMS or Google/OSM specification
    * @param map Multi-layered grid map holding the data for the tile
+   * @param is_tms Indicates this is a TMS rather than google tile
    */
-  Tile(int zoom_level, int tx, int ty, const CvGridMap &map);
+  Tile(int zoom_level, int tx, int ty, const CvGridMap &map, bool is_tms);
 
   /*!
    * @brief Locks the tile when being accessed or modified to prevent multi-threading problems.
@@ -40,6 +41,12 @@ public:
    * @brief Releases the lock on the tile for other processes to access or write it.
    */
   void unlock();
+
+  /*!
+   * @brief Indicates if this is a TMS or Google/OSM tile
+   * @return True if tms
+   */
+  bool is_tms() const;
 
   /*!
    * @brief Getter for the zoom level
@@ -69,14 +76,17 @@ public:
 
 private:
 
-  /// Zoom level according to TMS standard
+  /// Zoom level according to TMS or Google/OSM specification
   int m_zoom_level;
 
-  /// Tile index according to TMS standard
+  /// Tile index according to TMS or Google/OSM specification
   cv::Point2i m_index;
 
   /// Multi-layered grid map container
   CvGridMap::Ptr m_data;
+
+  /// Indicates this is a tms tiles
+  bool m_tms;
 
   /// Main mutex to prevent simultaneous access from different threads
   std::mutex m_mutex_data;

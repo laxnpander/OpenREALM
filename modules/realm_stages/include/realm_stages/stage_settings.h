@@ -132,7 +132,7 @@ class TileingSettings : public StageSettings
 public:
   TileingSettings()
   {
-
+    add("tms_tiles", Parameter_t<int>{1, "Generate output tiles using TMS standard. If false, Google/OSM standard is used."});
   }
 };
 

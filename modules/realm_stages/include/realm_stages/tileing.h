@@ -66,6 +66,9 @@ class Tileing : public StageBase
 
     UTMPose::Ptr m_utm_reference;
 
+    /// If true, uses the TMS standard for y (bottom-top) rather than the Google/OSM standard (top-bottom)
+    bool m_generate_tms_tiles;
+
     /// Warper to transform incoming grid maps from UTM coordinates to Web Mercator (EPSG:3857)
     gis::GdalWarper m_warper;
 
