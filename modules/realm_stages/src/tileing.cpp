@@ -360,23 +360,36 @@ Frame::Ptr Tileing::getNewFrame()
   return (std::move(frame));
 }
 
+void Tileing::initStagePath(std::string stage_path) {
+  StageBase::initStagePath(stage_path);
+}
+void Tileing::initStagePath(std::string stage_path, std::string cache_path) {
+  // Set our cache path first before calling down to the stage initialization
+  // The stage initialization callback will create directories and start the cache up.
+  m_cache_path = cache_path;
+  initStagePath(stage_path);
+}
 
 void Tileing::initStageCallback()
 {
+  if (m_cache_path.empty()) {
+    m_cache_path = m_stage_path + "/tiles";
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
-  // Then sub directories
-  if (!io::dirExists(m_stage_path + "/tiles"))
-    io::createDir(m_stage_path + "/tiles");
+  // Initialize cache path
+  if (!io::dirExists(m_cache_path))
+    io::createDir(m_cache_path);
 
   // We can only create the map tiler,  when we have the final initialized stage path, which might be synchronized
   // across different devies. Consequently it is not created in the constructor but here.
   if (!m_map_tiler)
   {
     m_map_tiler = std::make_shared<MapTiler>(true, m_generate_tms_tiles);
-    m_tile_cache = std::make_shared<TileCache>("tile_cache", 500, m_stage_path + "/tiles", false);
+    m_tile_cache = std::make_shared<TileCache>("tile_cache", 500, m_cache_path, false);
     m_tile_cache->start();
   }
 }

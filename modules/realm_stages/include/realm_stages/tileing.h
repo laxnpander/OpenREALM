@@ -54,6 +54,9 @@ class Tileing : public StageBase
   public:
     explicit Tileing(const StageSettings::Ptr &stage_set, double rate);
     ~Tileing();
+
+    void initStagePath(std::string stage_path);
+    void initStagePath(std::string stage_path, std::string cache_path);
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
     void saveAll();
@@ -72,8 +75,11 @@ class Tileing : public StageBase
     /// The minimum zoom level to generate
     int m_min_tile_zoom;
 
-    // The maximum zoom to generate.  May not be generated if GSD isn't sufficient
+    /// The maximum zoom to generate.  May not be generated if GSD isn't sufficient
     int m_max_tile_zoom;
+
+    /// The directory to store the output map tiles in, defaults to log directory
+    std::string m_cache_path;
 
     /// Warper to transform incoming grid maps from UTM coordinates to Web Mercator (EPSG:3857)
     gis::GdalWarper m_warper;
