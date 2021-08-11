@@ -28,6 +28,8 @@ using namespace stages;
 Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
     : StageBase("tileing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_generate_tms_tiles((*stage_set)["tms_tiles"].toInt() > 0),
+      m_min_tile_zoom((*stage_set)["min_zoom"].toInt()),
+      m_max_tile_zoom((*stage_set)["max_zoom"].toInt()),
       m_utm_reference(nullptr),
       m_map_tiler(nullptr),
       m_tile_cache(nullptr),
@@ -136,7 +138,7 @@ bool Tileing::process()
 
     t = getCurrentTimeMilliseconds();
 
-    std::map<int, MapTiler::TiledMap> tiled_map_max_zoom = m_map_tiler->createTiles(map_3857);
+    std::map<int, MapTiler::TiledMap> tiled_map_max_zoom = m_map_tiler->createTiles(map_3857, m_max_tile_zoom, m_max_tile_zoom);
 
     LOG_F(INFO, "Timing [Tileing]: %lu ms", getCurrentTimeMilliseconds()-t);
 
@@ -191,7 +193,7 @@ bool Tileing::process()
     // They can be required for the blending for example though, which is why we computed them on maximum resolution
     map_3857->remove("elevated");
 
-    std::map<int, MapTiler::TiledMap> tiled_map_range = m_map_tiler->createTiles(map_3857, 11, zoom_level_max - 1);
+    std::map<int, MapTiler::TiledMap> tiled_map_range = m_map_tiler->createTiles(map_3857, m_min_tile_zoom, zoom_level_max - 1);
 
     for (const auto& tiled_map : tiled_map_range)
     {

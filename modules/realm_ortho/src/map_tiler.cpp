@@ -50,6 +50,17 @@ std::map<int, MapTiler::TiledMap> MapTiler::createTiles(const CvGridMap::Ptr &ma
     zoom_level_max = zoom_level_base;
   }
 
+  // There isn't really a reason to make the image MUCH larger than GSD, so correct that here.  computeZoom should already
+  // perform minor upscaling for us.
+  if (zoom_level_max > zoom_level_base)
+  {
+    LOG_F(WARNING, "Maximum zoom level requested (%d) was greater than GSD based estimate (%d).  Using max GSD.", zoom_level_max, zoom_level_base);
+    if (zoom_level_max == zoom_level_min) {
+      zoom_level_min = zoom_level_base;
+    }
+    zoom_level_max = zoom_level_base;
+  }
+
   if (zoom_level_min > zoom_level_max)
     throw(std::invalid_argument("Error computing tiles: Minimum zoom level larger than maximum."));
 

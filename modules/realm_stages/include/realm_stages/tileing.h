@@ -69,6 +69,12 @@ class Tileing : public StageBase
     /// If true, uses the TMS standard for y (bottom-top) rather than the Google/OSM standard (top-bottom)
     bool m_generate_tms_tiles;
 
+    /// The minimum zoom level to generate
+    int m_min_tile_zoom;
+
+    // The maximum zoom to generate.  May not be generated if GSD isn't sufficient
+    int m_max_tile_zoom;
+
     /// Warper to transform incoming grid maps from UTM coordinates to Web Mercator (EPSG:3857)
     gis::GdalWarper m_warper;
 
