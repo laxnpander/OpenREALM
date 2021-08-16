@@ -78,11 +78,8 @@ std::map<int, MapTiler::TiledMap> MapTiler::createTiles(const CvGridMap::Ptr &ma
     // Therefore first identify how many tiles we have to split our map into by computing the tile indices
     cv::Rect2i tile_bounds_idx = computeTileBounds(roi, zoom_level);
 
-    LOG_F(INFO, "SENTERA: Tile bounds idx: %d, %d", tile_bounds_idx.x, tile_bounds_idx.y);
-
     // With the tile indices we can compute the exact region of interest in the geographic frame in meters
     cv::Rect2d tile_bounds_meters = computeTileBoundsMeters(tile_bounds_idx, zoom_level);
-    LOG_F(INFO, "SENTERA: Tile bounds meters: %f, %f  %f x %f", tile_bounds_meters.x, tile_bounds_meters.y, tile_bounds_meters.width, tile_bounds_meters.height);
 
     // Because our map is not yet guaranteed to have exactly the size of the tile region, we have to perform padding to
     // to fit exactly the tile map boundaries

@@ -61,6 +61,9 @@ class Tileing : public StageBase
     bool process() override;
     void saveAll();
 
+    void deleteCache();
+    void deleteCache(std::string layer);
+
   private:
     std::deque<Frame::Ptr> m_buffer;
     std::mutex m_mutex_buffer;
@@ -77,6 +80,9 @@ class Tileing : public StageBase
 
     /// The maximum zoom to generate.  May not be generated if GSD isn't sufficient
     int m_max_tile_zoom;
+
+    /// Indicates we should wipe the cache directory when starting or resetting the stage
+    bool m_delete_cache_on_init;
 
     /// The directory to store the output map tiles in, defaults to log directory
     std::string m_cache_path;

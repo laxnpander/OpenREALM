@@ -30,6 +30,7 @@ Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
       m_generate_tms_tiles((*stage_set)["tms_tiles"].toInt() > 0),
       m_min_tile_zoom((*stage_set)["min_zoom"].toInt()),
       m_max_tile_zoom((*stage_set)["max_zoom"].toInt()),
+      m_delete_cache_on_init((*stage_set)["delete_cache_on_init"].toInt() > 0),
       m_utm_reference(nullptr),
       m_map_tiler(nullptr),
       m_tile_cache(nullptr),
@@ -246,6 +247,19 @@ bool Tileing::process()
   return has_processed;
 }
 
+void Tileing::deleteCache() {
+  if (m_tile_cache)
+  {
+    m_tile_cache->deleteCache();
+  }
+}
+
+void Tileing::deleteCache(std::string layer) {
+  if (m_tile_cache) {
+    m_tile_cache->deleteCache(layer);
+  }
+}
+
 Tile::Ptr Tileing::merge(const Tile::Ptr &t1, const Tile::Ptr &t2)
 {
   if (t2->data()->empty())
@@ -390,6 +404,9 @@ void Tileing::initStageCallback()
   {
     m_map_tiler = std::make_shared<MapTiler>(true, m_generate_tms_tiles);
     m_tile_cache = std::make_shared<TileCache>("tile_cache", 500, m_cache_path, false);
+    if (m_delete_cache_on_init) {
+      deleteCache();
+    }
     m_tile_cache->start();
   }
 }

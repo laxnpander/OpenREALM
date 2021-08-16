@@ -55,6 +55,9 @@ public:
   void flushAll();
   void loadAll();
 
+  void deleteCache();
+  void deleteCache(std::string layer);
+
 private:
 
   bool m_has_init_directories;
@@ -64,6 +67,7 @@ private:
 
   std::mutex m_mutex_cache;
   std::map<int, CacheElementGrid> m_cache;
+  std::mutex m_mutex_file_write;
 
   std::mutex m_mutex_do_update;
   bool m_do_update;
@@ -78,10 +82,10 @@ private:
 
   void reset() override;
 
-  void load(const CacheElement::Ptr &element) const;
-  void write(const CacheElement::Ptr &element) const;
+  void load(const CacheElement::Ptr &element);
+  void write(const CacheElement::Ptr &element);
 
-  void flush(const CacheElement::Ptr &element) const;
+  void flush(const CacheElement::Ptr &element);
 
   bool isCached(const CacheElement::Ptr &element) const;
 
