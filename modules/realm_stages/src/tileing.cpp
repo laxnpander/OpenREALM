@@ -46,11 +46,6 @@ Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
 
 Tileing::~Tileing()
 {
-  if (m_tile_cache)
-  {
-    m_tile_cache->requestFinish();
-    m_tile_cache->join();
-  }
 }
 
 void Tileing::addFrame(const Frame::Ptr &frame)
@@ -346,9 +341,14 @@ void Tileing::reset()
 
 void Tileing::finishCallback()
 {
+  if (m_tile_cache)
+  {
+    m_tile_cache->requestFinish();
+    m_tile_cache->join();
+  }
+
   // Trigger savings
   saveAll();
-
 }
 
 Frame::Ptr Tileing::getNewFrame()
