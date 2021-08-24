@@ -259,7 +259,6 @@ void TileCache::loadAll()
 
 void TileCache::deleteCache()
 {
-  std::lock_guard<std::mutex> lock(m_mutex_file_write);
   // Remove all cache items
   flushAll();
   m_has_init_directories = false;
@@ -271,7 +270,6 @@ void TileCache::deleteCache()
 
 void TileCache::deleteCache(std::string layer)
 {
-  std::lock_guard<std::mutex> lock(m_mutex_file_write);
   // Attempt to remove the specific layer name
   flushAll();
   m_has_init_directories = false;
@@ -280,7 +278,6 @@ void TileCache::deleteCache(std::string layer)
 
 void TileCache::load(const CacheElement::Ptr &element)
 {
-  std::lock_guard<std::mutex> lock(m_mutex_file_write);
   for (const auto &meta : element->layer_meta)
   {
     std::string filename = m_dir_toplevel + "/"
@@ -327,7 +324,6 @@ void TileCache::load(const CacheElement::Ptr &element)
 
 void TileCache::write(const CacheElement::Ptr &element)
 {
-  std::lock_guard<std::mutex> lock(m_mutex_file_write);
   for (const auto &meta : element->layer_meta)
   {
     cv::Mat data = element->tile->data()->get(meta.name);

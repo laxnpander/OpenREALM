@@ -67,7 +67,6 @@ private:
 
   std::mutex m_mutex_cache;
   std::map<int, CacheElementGrid> m_cache;
-  std::mutex m_mutex_file_write;
 
   std::mutex m_mutex_do_update;
   bool m_do_update;
