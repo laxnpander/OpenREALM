@@ -43,6 +43,7 @@ set(root ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(openvslam REQUIRED)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(OpenMP REQUIRED)
 set(VSLAM_IMPL_LIB openvslam::openvslam)
 set(VSLAM_IMPL_LIB_HEADERS ${OpenVSLAM_INCLUDE_DIR})
 set(VSLAM_IF_HEADERS ${root}/include/realm_vslam_base/open_vslam.h)
