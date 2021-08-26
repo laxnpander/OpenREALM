@@ -1,14 +1,27 @@
 # https://docs.travis-ci.com/user/reference/bionic
 # https://docs.travis-ci.com/user/installing-dependencies
 language: c++
+
+stages:
+  - compile
+  - test
+
 jobs:
   include:
-    - os: linux
-      dist: bionic
-    - os: linux
+      # os: linux
+      # dist: bionic
+      # os: linux
+      # dist: focal
+    - stage: compile
+      os: linux
       dist: xenial
-    - os: linux
-      dist: focal
+      script:
+        docker exec -i build bash < install_openrealm_lib.sh
+    - stage: test
+      script:
+        docker exec -i build bash < install_openrealm_lib.sh &&
+        docker exec -i build bash < run_unit_tests.sh
+
 services:
   - docker
 
@@ -16,6 +29,4 @@ before_install:
   - docker pull laxnpander/openrealm-base:latest
   - docker run -it -d --name build laxnpander/openrealm-base:latest bash
   - wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/tools/install_openrealm_lib.sh
-
-script:
-  - docker exec -i build bash < install_openrealm_lib.sh
+  - wget https://raw.githubusercontent.com/laxnpander/OpenREALM/dev/travis/run_unit_tests.sh

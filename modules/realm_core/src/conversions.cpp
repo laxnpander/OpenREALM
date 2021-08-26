@@ -39,8 +39,14 @@ UTMPose gis::convertToUTM(const WGSPose &wgs)
 
   double x = wgs.longitude;
   double y = wgs.latitude;
-  if (!coord_trans->Transform(1, &x, &y))
-    throw(std::runtime_error("Error converting wgs84 coordinates to utm: Transformation failed"));
+  bool result = coord_trans->Transform(1, &x, &y);
+
+  // Underlying library is C malloc, have to clean up the resulting pointer to avoid a leak
+  delete coord_trans;
+
+  if (!result) {
+    throw(std::runtime_error("Error converting utm coordinates to wgs84: Transformation failed"));
+  }
 
   return UTMPose(x, y, wgs.altitude, wgs.heading, (uint8_t)zone, band);
 }
@@ -61,8 +67,14 @@ WGSPose gis::convertToWGS84(const UTMPose &utm)
 
   double x = utm.easting;
   double y = utm.northing;
-  if (!coord_trans->Transform(1, &x, &y))
+  bool result = coord_trans->Transform(1, &x, &y);
+
+  // Underlying library is C malloc, have to clean up the resulting pointer to avoid a leak
+  delete coord_trans;
+
+  if (!result) {
     throw(std::runtime_error("Error converting utm coordinates to wgs84: Transformation failed"));
+  }
 
   return WGSPose{y, x, utm.altitude, utm.heading};
 }

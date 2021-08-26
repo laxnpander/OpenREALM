@@ -54,6 +54,17 @@ class PoseEstimation : public StageBase
         bool save_frames;
         bool save_keyframes;
         bool save_keyframes_full;
+
+        bool save_required()
+        {
+          return save_trajectory_gnss || save_trajectory_visual ||
+                 save_frames || save_keyframes || save_keyframes_full;
+        }
+
+        bool save_trajectory()
+        {
+          return save_trajectory_gnss || save_trajectory_visual;
+        }
     };
 
   public:
@@ -63,6 +74,8 @@ class PoseEstimation : public StageBase
                    const ImuSettings::Ptr &imu_set,
                    double rate);
     ~PoseEstimation();
+
+    void finishCallback() override;
     void addFrame(const Frame::Ptr &frame) override;
     bool process() override;
 
@@ -85,6 +98,10 @@ class PoseEstimation : public StageBase
     // Flag to disable fallback solution based on lat/lon/alt/heading completely
     bool m_use_fallback;
 
+    // The maximum number of lost frames when initializing before attempting a reset
+    int m_init_lost_frames_reset_count;
+    int m_init_lost_frames;
+
     // Flag to disable using an initial guess of the camera pose to make tracking more stable in the visual SLAM
     bool m_use_initial_guess;
 
@@ -102,6 +119,11 @@ class PoseEstimation : public StageBase
 
     // Threshold for error of georeference before initializing
     double m_th_error_georef;
+    int m_min_nrof_frames_georef;
+
+    // Scale changes are constantly checked to identify divergence. Flag can be set to auto reset on divergence.
+    bool m_do_auto_reset;
+    double m_th_scale_change;
 
     // settings
     FallbackStrategy m_strategy_fallback;
@@ -181,7 +203,6 @@ class PoseEstimationIO : public WorkerThreadBase
     PoseEstimationIO(PoseEstimation* stage, double rate, bool do_delay_keyframes);
     bool process() override;
     void setOutputPath(const std::string &path);
-    void initLog(const std::string &filepath);
 
   private:
     bool m_is_time_ref_set;

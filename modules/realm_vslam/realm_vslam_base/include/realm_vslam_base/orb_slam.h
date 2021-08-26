@@ -13,10 +13,17 @@
 #include <realm_vslam_base/visual_slam_IF.h>
 #include <realm_vslam_base/visual_slam_settings.h>
 
+#ifdef USE_ORB_SLAM2
+#include <ORB_SLAM2/System.h>
+#include <ORB_SLAM2/KeyFrame.h>
+namespace ORB_SLAM = ORB_SLAM2;
+#endif
 
-// CPU implementation
+#ifdef USE_ORB_SLAM3
 #include <ORB_SLAM3/System.h>
 #include <ORB_SLAM3/KeyFrame.h>
+namespace ORB_SLAM = ORB_SLAM3;
+#endif
 
 namespace realm
 {
@@ -34,10 +41,8 @@ class OrbSlam : public VisualSlamIF
     void close() override;
     void reset() override;
 
-    void queueImuData(const ImuData &data) override;
-
     // Getter
-    cv::Mat getTrackedMapPoints() const override;
+    PointCloud::Ptr getTrackedMapPoints() override;
     bool drawTrackedImage(cv::Mat &) const override;
 
     // Transport from realm to ros
@@ -59,19 +64,23 @@ class OrbSlam : public VisualSlamIF
     std::string m_path_vocabulary;
     cv::FileStorage m_settings_file;
 
-    std::vector<ORB_SLAM3::IMU::Point> m_imu_queue;
-
-
     // Map of orbslam inserted keyframe ids to realm frames
     std::map<uint32_t , uint32_t> m_orb_to_frame_ids;
 
     // Cpu handles
-    ORB_SLAM3::System *m_slam;
+    ORB_SLAM::System *m_slam;
 
     VisualSlamIF::PoseUpdateFuncCb m_pose_update_func_cb;
 
     cv::Mat invertPose(const cv::Mat &pose) const;
-    void keyframeUpdateCb(ORB_SLAM3::KeyFrame* kf);
+    void keyframeUpdateCb(ORB_SLAM::KeyFrame* kf);
+
+    // ORB_SLAM3 only
+#ifdef USE_ORB_SLAM3
+  std::vector<ORB_SLAM::IMU::Point> m_imu_queue;
+
+  void queueImuData(const ImuData &data) override;
+#endif
 };
 
 }

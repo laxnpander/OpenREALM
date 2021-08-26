@@ -26,7 +26,7 @@ using namespace realm;
 using namespace stages;
 
 Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
-    : StageBase("tileing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+    : StageBase("tileing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_utm_reference(nullptr),
       m_map_tiler(nullptr),
       m_tile_cache(nullptr),
@@ -358,6 +358,7 @@ Frame::Ptr Tileing::getNewFrame()
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   Frame::Ptr frame = m_buffer.front();
   m_buffer.pop_front();
+  updateStatisticsProcessedFrame();
   return (std::move(frame));
 }
 

@@ -30,7 +30,8 @@ RUN set -ex \
     && cd ~ && mkdir OpenREALM && cd OpenREALM \
     && git clone https://github.com/laxnpander/OpenREALM.git \
     && cd OpenREALM && OPEN_REALM_DIR=$(pwd) \
-    && cd $OPEN_REALM_DIR && mkdir build && cd build && cmake -DTESTS_ENABLED=ON .. \
+    && git submodule init && git submodule update \
+    && cd $OPEN_REALM_DIR && mkdir build && cd build && cmake -DTESTS_ENABLED=ON -DWITH_PCL=ON .. \
     && make -j $(nproc --all) && make install
 
 # Install ROS Noetic

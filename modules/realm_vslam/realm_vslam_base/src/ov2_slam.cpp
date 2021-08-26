@@ -1,11 +1,14 @@
 #include <realm_vslam_base/ov2_slam.h>
+#include <realm_core/timer.h>
 
 using namespace realm;
 
 Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings::Ptr &cam_set)
   : m_resizing(1.0),
     m_id_previous(-1),
-    m_t_first(0)
+    m_t_first(0),
+    m_max_point_id(0),
+    m_base_point_id(0)
 {
   m_resizing = (*vslam_set)["resizing"].toDouble();
 
@@ -20,7 +23,7 @@ Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   m_slam_params->stereo_                      = false;
   m_slam_params->bforce_realtime_             = (*vslam_set)["force_realtime"].toInt() > 0;
   m_slam_params->slam_mode_                   = true;
-  m_slam_params->buse_loop_closer_            = true;
+  m_slam_params->buse_loop_closer_            = (*vslam_set)["buse_loop_closer"].toInt() > 0;
   m_slam_params->bdo_stereo_rect_             = false;
   m_slam_params->alpha_                       = (*vslam_set)["alpha"].toDouble();
   m_slam_params->finit_parallax_              = (*vslam_set)["finit_parallax"].toFloat();
@@ -81,7 +84,6 @@ Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   m_slam_params->nbmaxkps_ = static_cast<int>(nbwcells * nbhcells);
 
   m_slam.reset(new SlamManager(m_slam_params));
-  //m_thread_slam.reset(new std::thread(&SlamManager::run, m_slam.get()));
 }
 
 Ov2Slam::~Ov2Slam()
@@ -92,6 +94,7 @@ Ov2Slam::~Ov2Slam()
 void Ov2Slam::reset()
 {
   m_slam->reset();
+  m_id_previous = -1;
 }
 
 void Ov2Slam::close()
@@ -103,7 +106,7 @@ VisualSlamIF::State Ov2Slam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(m_resizing);
 
-  const double timestamp = static_cast<double>(frame->getTimestamp())/10e9;
+  const double timestamp = static_cast<double>(frame->getTimestamp())/10e3;
   LOG_IF_F(INFO, true, "Time stamp of frame: %4.2f [s]", timestamp);
 
   cv::Mat img = frame->getResizedImageRaw();
@@ -123,21 +126,21 @@ VisualSlamIF::State Ov2Slam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
     if (m_id_previous == -1)
     {
       frame->setVisualPose(T_c2w);
-      frame->setSparseCloud(extractMapPoints(), true);
+      frame->setSparseCloud(getTrackedMapPoints(), true);
       m_id_previous = m_slam->pcurframe_->kfid_;
       return State::INITIALIZED;
     }
     else if (m_id_previous < m_slam->pcurframe_->kfid_)
     {
       frame->setVisualPose(T_c2w);
-      frame->setSparseCloud(extractMapPoints(), true);
+      frame->setSparseCloud(getTrackedMapPoints(), true);
       m_id_previous = m_slam->pcurframe_->kfid_;
       return State::KEYFRAME_INSERT;
     }
     else
     {
       frame->setVisualPose(T_c2w);
-      frame->setSparseCloud(extractMapPoints(), true);
+      frame->setSparseCloud(getTrackedMapPoints(), true);
       return State::FRAME_INSERT;
     }
   }
@@ -165,8 +168,9 @@ cv::Mat Ov2Slam::convertPose(const Eigen::Matrix<double, 3, 4> &mat_eigen)
   return mat_cv;
 }
 
-cv::Mat Ov2Slam::extractMapPoints()
+PointCloud::Ptr Ov2Slam::getTrackedMapPoints()
 {
+  std::vector<uint32_t> point_ids;
   cv::Mat points;
 
   std::unordered_map<int, Keypoint> keypoints = m_slam->pcurframe_->mapkps_;
@@ -181,8 +185,10 @@ cv::Mat Ov2Slam::extractMapPoints()
        Eigen::Vector3d point_eigen = point_o2v->getPoint();
        cv::Mat point_cv = (cv::Mat_<double>(1, 3) << point_eigen.x(), point_eigen.y(), point_eigen.z());
        points.push_back(point_cv);
+
+       point_ids.push_back(static_cast<uint32_t>(point_o2v->lmid_));
      }
   }
 
-  return points;
+  return std::make_shared<PointCloud>(point_ids, points);
 }

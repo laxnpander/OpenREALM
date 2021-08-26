@@ -32,6 +32,7 @@ struct StageStatistics {
   uint32_t frames_total{};
   uint32_t frames_dropped{};
   uint32_t frames_bad{};
+  uint32_t frames_processed{};
   Statistics queue_statistics{};
   Statistics process_statistics{};
 };
@@ -57,7 +58,7 @@ class StageBase : public WorkerThreadBase
     using FrameTransportFunc = std::function<void(const realm::Frame::Ptr &, const std::string &)>;
     using PoseTransportFunc = std::function<void(const cv::Mat &, uint8_t zone, char band, const std::string &)>;
     using DepthMapTransportFunc = std::function<void(const cv::Mat &, const std::string &)>;
-    using PointCloudTransportFunc = std::function<void(const cv::Mat &, const std::string &)>;
+    using PointCloudTransportFunc = std::function<void(const PointCloud::Ptr &, const std::string &)>;
     using ImageTransportFunc = std::function<void(const cv::Mat &, const std::string &)>;
     using MeshTransportFunc = std::function<void(const std::vector<Face> &, const std::string &)>;
     using CvGridMapTransportFunc = std::function<void(const CvGridMap &, uint8_t zone, char band, const std::string &)>;
@@ -66,8 +67,11 @@ class StageBase : public WorkerThreadBase
      * @brief Basic constructor for stage class
      * @param name Name of the stage, should be set by derived stage
      * @param path Path to the input/output folder for stage informations
+     * @param rate The rate to run the stage at
+     * @param queue_size The maximum depth of the main queue for the stage
+     * @param log_to_file True to log message to the stage directory, false to log to stdout/stderr only
      */
-    StageBase(const std::string &name, const std::string &path, double rate, int queue_size);
+    StageBase(const std::string &name, const std::string &path, double rate, int queue_size, bool log_to_file);
 
     /*!
      * @brief Communication thread of the stage will receive data from the previous stage and feed it into the
@@ -192,7 +196,7 @@ class StageBase : public WorkerThreadBase
      * @brief Statistics for the stage including processing time, queue depths, and other useful information
      */
     StageStatistics m_stage_statistics{};
-    std::mutex m_mutex_statistics;
+    mutable std::mutex m_mutex_statistics;
 
     /*!
      * @brief Short name of the implemented stage. Should be written by derived classes
@@ -203,6 +207,11 @@ class StageBase : public WorkerThreadBase
      * @brief Path of the stage package. Is used for output writing.
      */
     std::string m_stage_path;
+
+    /*!
+     * @brief flag to indicate if we should write to a separate log file or not
+     */
+    bool m_log_to_file;
 
     /*!
      * @brief This function consists of a result frame, a defined topic as description for the data (for example:
@@ -268,6 +277,12 @@ class StageBase : public WorkerThreadBase
     void setStatisticsPeriod(uint32_t s);
 
     /*!
+     * @brief Function can be called to log the current statistics. Shouldn't be called on every processed frame to not
+     * pollute the log.
+     */
+    void logCurrentStatistics() const;
+
+    /*!
     @brief Gets the current stage queue depth
     */
     virtual uint32_t getQueueDepth() = 0;
@@ -287,6 +302,12 @@ class StageBase : public WorkerThreadBase
      * @brief Update function to be called by the derived class to update the incoming frame rate statistic.
      */
     void updateStatisticsBadFrame();
+
+    /*!
+     * @brief Update function to be called by derived class to update number of processed frames in the statistic.
+     * Information might be redundant with total and dropped frames.
+     */
+    void updateStatisticsProcessedFrame();
 
     /*!
      * @brief Update function to be called by the derived class to update the outgoing frame rate statistic.

@@ -19,6 +19,7 @@ class StageSettings : public SettingsBase
       add("type", Parameter_t<std::string>{"", "Stage type, e.g. pose_estimation, densification, ..."});
       add("queue_size", Parameter_t<int>{5, "Size of the measurement input queue, implemented as ringbuffer"});
       add("path_output", Parameter_t<std::string>{"", "Path to output folder."});
+      add("log_to_file", Parameter_t<int>{1, "Write log to stage directory"});
     }
 };
 
@@ -37,6 +38,8 @@ class PoseEstimationSettings : public StageSettings
                                                                            "This ensures higher pose and map point quality, as the frames are refined with consecutive frames."});
       add("suppress_outdated_pose_pub", Parameter_t<int>{0, "Flag to suppress publish of outdated poses after georeference computation."});
       add("th_error_georef", Parameter_t<double>{1.0, "Threshold of error for georeference until initialization is performed."});
+      add("init_lost_frames_reset_count", Parameter_t<int>{15, "The number of lost frames allowed during georeferencing before a VSLAM reset is issued."});
+      add("min_nrof_frames_georef", Parameter_t<int>{5, "Minimum number of unique frames required before georeference is initialized."});
       add("overlap_max", Parameter_t<double>{0.0, "Maximum overlap for all publishes, even keyframes"});
       add("overlap_max_fallback", Parameter_t<double>{0.0, "Maximum overlap for fallback publishes, e.g. GNSS only imgs"});
       add("save_trajectory_gnss", Parameter_t<int>{0, "Save gnss trajectory of receiver"});
@@ -52,7 +55,7 @@ class DensificationSettings : public StageSettings
   public:
     DensificationSettings()
     {
-      add("use_sparse_disparity", Parameter_t<int>{0, "Flag to use sparse disparity map for pseudo densification."});
+      add("do_drop_planar", Parameter_t<int>{0, "Flag to drop frames that can not be stereo reconstructed."});
       add("use_filter_bilat", Parameter_t<int>{0, "Flag to use bilateral filter for disparity map."});
       add("use_filter_guided", Parameter_t<int>{0, "Flag to use guided filter. Only possible with stereo reconstruction."});
       add("compute_normals", Parameter_t<int>{0, "Flag to compute surface normals from disparity map."});
@@ -72,6 +75,7 @@ class SurfaceGenerationSettings : public StageSettings
     SurfaceGenerationSettings()
     {
       add("try_use_elevation", Parameter_t<int>{0, "Flag for trying to use surface points for elevation map generation"});
+      add("compute_all_frames", Parameter_t<int>{0, "When in PLANAR mode, estimate the elevation of every frame using sparse data rather than locking on the first"});
       add("knn_max_iter", Parameter_t<int>{5, "Maximum number of iterations for each cell to find the closest 3D point in the dense cloud"});
       add("mode_surface_normals", Parameter_t<int>{0, "0 - None, 1 - Random neighbours, 2 - Furthest neighbours, 3 - Best-fit"});
       add("save_valid", Parameter_t<int>{0, "Save valid elevation grid element mask"});

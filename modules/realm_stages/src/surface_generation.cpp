@@ -9,8 +9,9 @@ using namespace stages;
 using namespace realm::ortho;
 
 SurfaceGeneration::SurfaceGeneration(const StageSettings::Ptr &settings, double rate)
-: StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt()),
+: StageBase("surface_generation", (*settings)["path_output"].toString(), rate, (*settings)["queue_size"].toInt(), bool((*settings)["log_to_file"].toInt())),
   m_try_use_elevation((*settings)["try_use_elevation"].toInt() > 0),
+  m_compute_all_frames((*settings)["compute_all_frames"].toInt() > 0),
   m_knn_max_iter((*settings)["knn_max_iter"].toInt()),
   m_is_projection_plane_offset_computed(false),
   m_projection_plane_offset(0.0),
@@ -101,6 +102,12 @@ bool SurfaceGeneration::changeParam(const std::string& name, const std::string &
     m_try_use_elevation = (val == "true" || val == "1");
     return true;
   }
+  else if (name == "compute_all_frames")
+  {
+    m_compute_all_frames = (val == "true" || val == "1");
+    return true;
+  }
+
   return false;
 }
 
@@ -120,24 +127,36 @@ void SurfaceGeneration::publish(const Frame::Ptr &frame)
 void SurfaceGeneration::saveIter(const CvGridMap &surface, uint32_t id)
 {
   // Invalid points are marked with NaN
-  cv::Mat valid = (surface["elevation"] == surface["elevation"]);
+  if (!surface["elevation"].empty()) {
+    cv::Mat valid = (surface["elevation"] == surface["elevation"]);
 
-  if (m_settings_save.save_elevation)
-    io::saveImageColorMap(surface["elevation"], valid, m_stage_path + "/elevation", "elevation", id, io::ColormapType::ELEVATION);
-  if (m_settings_save.save_normals && surface.exists("elevation_normal"))
-    io::saveImageColorMap(surface["elevation_normal"], valid, m_stage_path + "/normals", "normal", id, io::ColormapType::NORMALS);
+    if (m_settings_save.save_elevation)
+      io::saveImageColorMap(surface["elevation"], valid, m_stage_path + "/elevation", "elevation", id,
+                            io::ColormapType::ELEVATION);
+    if (m_settings_save.save_normals && surface.exists("elevation_normal"))
+      io::saveImageColorMap(surface["elevation_normal"], valid, m_stage_path + "/normals", "normal", id,
+                            io::ColormapType::NORMALS);
+  } else {
+    LOG_F(WARNING, "Elevation surface was empty, skipping saveIter()!");
+  }
 }
 
 void SurfaceGeneration::initStageCallback()
 {
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/elevation"))
+  if (!io::dirExists(m_stage_path + "/elevation") && m_settings_save.save_elevation)
     io::createDir(m_stage_path + "/elevation");
-  if (!io::dirExists(m_stage_path + "/normals"))
+  if (!io::dirExists(m_stage_path + "/normals") && m_settings_save.save_normals)
     io::createDir(m_stage_path + "/normals");
 }
 
@@ -145,6 +164,7 @@ void SurfaceGeneration::printSettingsToLog()
 {
   LOG_F(INFO, "### Stage process settings ###");
   LOG_F(INFO, "- try_use_elevation: %i", m_try_use_elevation);
+  LOG_F(INFO, "- compute_all_frames: %i", m_compute_all_frames);
   LOG_F(INFO, "- mode_surface_normals: %i", static_cast<int>(m_mode_surface_normals));
 
   LOG_F(INFO, "### Stage save settings ###");
@@ -162,6 +182,7 @@ Frame::Ptr SurfaceGeneration::getNewFrame()
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   Frame::Ptr frame = m_buffer.front();
   m_buffer.pop_front();
+  updateStatisticsProcessedFrame();
   return (std::move(frame));
 }
 
@@ -186,7 +207,7 @@ double SurfaceGeneration::computeProjectionPlaneOffset(const Frame::Ptr &frame)
   {
     std::vector<double> z_coord;
 
-    cv::Mat points = frame->getSparseCloud();
+    cv::Mat points = frame->getSparseCloud()->data();
     for (int i = 0; i < points.rows; ++i)
       z_coord.push_back(points.at<double>(i, 2));
 
@@ -194,6 +215,9 @@ double SurfaceGeneration::computeProjectionPlaneOffset(const Frame::Ptr &frame)
     offset = z_coord[(z_coord.size() - 1) / 2];
 
     LOG_F(INFO, "Sparse cloud was utilized to compute an initial projection plane at elevation = %4.2f.", offset);
+
+    // Only consider the plane offset computed if we had a sparse cloud to work with.
+    m_is_projection_plane_offset_computed = true;
   }
   else
   {
@@ -205,10 +229,9 @@ double SurfaceGeneration::computeProjectionPlaneOffset(const Frame::Ptr &frame)
 
 DigitalSurfaceModel::Ptr SurfaceGeneration::createPlanarSurface(const Frame::Ptr &frame)
 {
-  if (!m_is_projection_plane_offset_computed)
+  if (!m_is_projection_plane_offset_computed || m_compute_all_frames)
   {
     m_projection_plane_offset = computeProjectionPlaneOffset(frame);
-    m_is_projection_plane_offset_computed = true;
   }
 
   // Create planar surface in world frame

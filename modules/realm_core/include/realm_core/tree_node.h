@@ -121,7 +121,7 @@ const std::shared_ptr<TreeNode<T>> TreeNode<T>::findChild(const T &data) const
 {
   for (size_t i{0}; i < m_children.size(); ++i)
   {
-    if (m_children[i]->getData() == data)
+    if (m_children[i]->data() == data)
     {
       return m_children[i];
     }
@@ -139,7 +139,7 @@ std::shared_ptr<TreeNode<T>> TreeNode<T>::findChild(const T &data)
 {
   for (size_t i{0}; i < m_children.size(); ++i)
   {
-    if (m_children[i]->getData() == data)
+    if (m_children[i]->data() == data)
     {
       return m_children[i];
     }

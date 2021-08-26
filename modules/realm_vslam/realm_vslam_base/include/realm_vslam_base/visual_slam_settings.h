@@ -91,6 +91,7 @@ public:
   Ov2SlamSettings()
   {
     add("force_realtime", Parameter_t<int>{0, ""});
+    add("buse_loop_closer", Parameter_t<int>{0, ""});
     add("use_shi_tomasi", Parameter_t<int>{0, ""});
     add("use_brief", Parameter_t<int>{0, ""});
     add("use_fast", Parameter_t<int>{0, ""});

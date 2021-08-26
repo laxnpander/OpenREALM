@@ -39,6 +39,7 @@ set(HEADER_FILES
         ${root}/include/realm_io/cv_import.h
         ${root}/include/realm_io/gis_export.h
         ${root}/include/realm_io/gdal_continuous_writer.h
+        ${root}/include/realm_io/mvs_export.h
         ${root}/include/realm_io/realm_export.h
         ${root}/include/realm_io/realm_import.h
         ${root}/include/realm_io/utilities.h
@@ -49,6 +50,7 @@ set(SOURCE_FILES
         ${root}/src/cv_import.cpp
         ${root}/src/gis_export.cpp
         ${root}/src/gdal_continuous_writer.cpp
+        ${root}/src/mvs_export.cpp
         ${root}/src/realm_export.cpp
         ${root}/src/realm_import.cpp
         ${root}/src/utilities.cpp
@@ -140,7 +142,6 @@ endif()
 
 if (WITH_PCL)
     find_package(PCL 1.7 REQUIRED)
-    list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
     add_compile_definitions(WITH_PCL)
 
     include_directories(
@@ -148,7 +149,8 @@ if (WITH_PCL)
             ${PCL_LIBRARY_DIRS})
     target_link_libraries(${LIBRARY_NAME}
             PRIVATE
-            ${PCL_LIBRARIES})
+            ${PCL_LIBRARIES}
+            )
 else()
     message(STATUS "** WARNING ** PCL Disabled.  Some I/O features will not be present.")
 endif()
@@ -187,6 +189,7 @@ if(TESTS_ENABLED)
 
     add_executable(run_realm_io_tests
             test/test_realm_io.cpp
+            test/mvs_io_test.cpp
             test/cv_io_test.cpp
             test/realm_io_test.cpp
             )

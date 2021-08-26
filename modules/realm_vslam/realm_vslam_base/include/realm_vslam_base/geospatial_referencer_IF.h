@@ -24,6 +24,7 @@ class GeospatialReferencerIF
     virtual void update(const Frame::Ptr &frame) = 0;
     virtual bool isBuisy() = 0;
     virtual bool isInitialized() = 0;
+    virtual double computeScaleChange(const Frame::Ptr &frame) {};
 };
 
 } // namespace realm

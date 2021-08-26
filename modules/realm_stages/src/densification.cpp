@@ -8,11 +8,12 @@ using namespace stages;
 Densification::Densification(const StageSettings::Ptr &stage_set,
                              const DensifierSettings::Ptr &densifier_set,
                              double rate)
-: StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+: StageBase("densification", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
   m_use_filter_bilat((*stage_set)["use_filter_bilat"].toInt() > 0),
   m_use_filter_guided((*stage_set)["use_filter_guided"].toInt() > 0),
   m_depth_min_current(0.0),
   m_depth_max_current(0.0),
+  m_do_drop_planar((*stage_set)["compute_normals"].toInt() > 0),
   m_compute_normals((*stage_set)["compute_normals"].toInt() > 0),
   m_rcvd_frames(0),
   m_settings_save({(*stage_set)["save_bilat"].toInt() > 0,
@@ -50,10 +51,11 @@ void Densification::addFrame(const Frame::Ptr &frame)
     LOG_F(INFO, "Frame #%u:", frame->getFrameId());
     LOG_F(INFO, "Keyframe? %s", frame->isKeyframe() ? "Yes" : "No");
     LOG_F(INFO, "Accurate Pose? %s", frame->hasAccuratePose() ? "Yes" : "No");
-    LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud().rows);
+    LOG_F(INFO, "Surface? %i Points", frame->getSparseCloud() != nullptr ? frame->getSparseCloud()->size() : 0);
 
     LOG_F(INFO, "Frame #%u not suited for dense reconstruction. Passing through...", frame->getFrameId());
-    m_transport_frame(frame, "output/frame");
+    if (!m_do_drop_planar)
+      m_transport_frame(frame, "output/frame");
     updateStatisticsBadFrame();
     return;
   }
@@ -77,6 +79,8 @@ bool Densification::process()
   Frame::Ptr frame_processed;
   Depthmap::Ptr depthmap = processStereoReconstruction(m_buffer_reco, frame_processed);
   popFromBufferReco();
+  updateStatisticsProcessedFrame();
+
   LOG_IF_F(INFO, m_verbose, "Timing [Dense Reconstruction]: %lu ms", getCurrentTimeMilliseconds() - t);
   if (!depthmap)
     return true;
@@ -303,7 +307,7 @@ void Densification::saveIter(const Frame::Ptr &frame, const cv::Mat &normals)
     io::saveImageColorMap(normals, (depthmap_data > 0), m_stage_path + "/normals", "normals", frame->getFrameId(), io::ColormapType::NORMALS);
   if (m_settings_save.save_sparse)
   {
-    cv::Mat depthmap_sparse = stereo::computeDepthMapFromPointCloud(frame->getResizedCamera(), frame->getSparseCloud().colRange(0, 3));
+    cv::Mat depthmap_sparse = stereo::computeDepthMapFromPointCloud(frame->getResizedCamera(), frame->getSparseCloud()->data().colRange(0, 3));
     io::saveDepthMap(depthmap_sparse, m_stage_path + "/sparse/sparse_%06i.tif", frame->getFrameId());
   }
   if (m_settings_save.save_dense)
@@ -338,24 +342,30 @@ void Densification::reset()
 
 void Densification::initStageCallback()
 {
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/sparse"))
+  if (!io::dirExists(m_stage_path + "/sparse") && m_settings_save.save_sparse)
     io::createDir(m_stage_path + "/sparse");
-  if (!io::dirExists(m_stage_path + "/dense"))
+  if (!io::dirExists(m_stage_path + "/dense") && m_settings_save.save_dense)
     io::createDir(m_stage_path + "/dense");
-  if (!io::dirExists(m_stage_path + "/bilat"))
+  if (!io::dirExists(m_stage_path + "/bilat") && m_settings_save.save_bilat)
     io::createDir(m_stage_path + "/bilat");
-  if (!io::dirExists(m_stage_path + "/guided"))
+  if (!io::dirExists(m_stage_path + "/guided") && m_settings_save.save_guided)
     io::createDir(m_stage_path + "/guided");
-  if (!io::dirExists(m_stage_path + "/normals"))
+  if (!io::dirExists(m_stage_path + "/normals") && m_settings_save.save_normals)
     io::createDir(m_stage_path + "/normals");
-  if (!io::dirExists(m_stage_path + "/imgs"))
+  if (!io::dirExists(m_stage_path + "/imgs") && m_settings_save.save_imgs)
     io::createDir(m_stage_path + "/imgs");
-  if (!io::dirExists(m_stage_path + "/thumb"))
+  if (!io::dirExists(m_stage_path + "/thumb") && m_settings_save.save_thumb)
     io::createDir(m_stage_path + "/thumb");
 }
 

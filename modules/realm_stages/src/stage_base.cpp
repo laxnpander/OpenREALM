@@ -6,11 +6,12 @@
 
 using namespace realm;
 
-StageBase::StageBase(const std::string &name, const std::string &path, double rate, int queue_size)
+StageBase::StageBase(const std::string &name, const std::string &path, double rate, int queue_size, bool log_to_file)
 : WorkerThreadBase("Stage [" + name + "]", static_cast<int64_t>(1/rate*1000.0), true),
   m_stage_name(name),
   m_stage_path(path),
   m_queue_size(queue_size),
+  m_log_to_file(log_to_file),
   m_is_output_dir_initialized(false),
   m_t_statistics_period(10),
   m_counter_frames_in(0),
@@ -32,8 +33,11 @@ void StageBase::initStagePath(const std::string &abs_path)
   initStageCallback();
   m_is_output_dir_initialized = true;
 
-  // Init logging
-  loguru::add_file((m_stage_path + "/stage.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+  // Init logging if enabled
+  if (m_log_to_file)
+  {
+    loguru::add_file((m_stage_path + "/stage.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
+  }
 
   LOG_F(INFO, "Successfully initialized!");
   LOG_F(INFO, "Stage path set to: %s", m_stage_path.c_str());
@@ -68,7 +72,7 @@ void StageBase::registerDepthMapTransport(const std::function<void(const cv::Mat
   m_transport_depth_map = func;
 }
 
-void StageBase::registerPointCloudTransport(const std::function<void(const cv::Mat&, const std::string&)> &func)
+void StageBase::registerPointCloudTransport(const std::function<void(const PointCloud::Ptr &, const std::string&)> &func)
 {
   m_transport_pointcloud = func;
 }
@@ -90,15 +94,26 @@ void StageBase::registerCvGridMapTransport(const std::function<void(const CvGrid
 
 void StageBase::setStatisticsPeriod(uint32_t s)
 {
-    std::unique_lock<std::mutex> lock(m_mutex_statistics);
+  std::unique_lock<std::mutex> lock(m_mutex_statistics);
   m_t_statistics_period = s;
+}
+
+void StageBase::logCurrentStatistics() const
+{
+  LOG_SCOPE_F(INFO, "Stage [%s] statistics", m_stage_name.c_str());
+  LOG_F(INFO, "Total frames: %i ", m_stage_statistics.frames_total);
+  LOG_F(INFO, "Processed frames: %i ", m_stage_statistics.frames_processed);
+  LOG_F(INFO, "Bad frames: %i ", m_stage_statistics.frames_bad);
+  LOG_F(INFO, "Dropped frames: %i ", m_stage_statistics.frames_dropped);
+  LOG_F(INFO, "Fps in: %4.2f ", m_stage_statistics.fps_in);
+  LOG_F(INFO, "Fps out: %4.2f ", m_stage_statistics.fps_out);
 }
 
 void StageBase::updateStatisticsIncoming()
 {
-    std::unique_lock<std::mutex> lock(m_mutex_statistics);
-    m_counter_frames_in++;
-    m_stage_statistics.frames_total++;
+  std::unique_lock<std::mutex> lock(m_mutex_statistics);
+  m_counter_frames_in++;
+  m_stage_statistics.frames_total++;
 }
 
 void StageBase::updateStatisticsSkippedFrame()
@@ -111,6 +126,12 @@ void StageBase::updateStatisticsBadFrame()
 {
   std::unique_lock<std::mutex> lock(m_mutex_statistics);
   m_stage_statistics.frames_bad++;
+}
+
+void StageBase::updateStatisticsProcessedFrame()
+{
+  std::unique_lock<std::mutex> lock(m_mutex_statistics);
+  m_stage_statistics.frames_processed++;
 }
 
 void StageBase::updateStatisticsOutgoing()
@@ -142,7 +163,7 @@ void StageBase::evaluateStatistic()
   m_counter_frames_in = 0;
   m_counter_frames_out = 0;
 
-  LOG_F(INFO, "FPS in: %f, out: %f", fps_in, fps_out);
+  logCurrentStatistics();
 
   m_stage_statistics.fps_in = fps_in;
   m_stage_statistics.fps_out = fps_out;

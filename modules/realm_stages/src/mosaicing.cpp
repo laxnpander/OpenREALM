@@ -1,16 +1,18 @@
 
 
 #include <realm_core/loguru.h>
-
 #include <realm_core/tree_node.h>
-
 #include <realm_stages/mosaicing.h>
+
+#ifdef WITH_PCL
+#include <realm_io/pcl_export.h>
+#endif
 
 using namespace realm;
 using namespace stages;
 
 Mosaicing::Mosaicing(const StageSettings::Ptr &stage_set, double rate)
-    : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+    : StageBase("mosaicing", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_utm_reference(nullptr),
       m_global_map(nullptr),
       //m_mesher(nullptr),
@@ -157,6 +159,9 @@ bool Mosaicing::process()
     saveIter(frame->getFrameId(), map_update);
     LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
+    // MVS export
+    //m_frames.push_back(frame);
+
     has_processed = true;
   }
   return has_processed;
@@ -209,6 +214,12 @@ void Mosaicing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 
 void Mosaicing::saveAll()
 {
+  if(!m_global_map || !m_global_map->exists("elevation"))
+  {
+    LOG_F(ERROR, "No global map created, skipping saveAll()");
+    return;
+  }
+
   // Check NaN
   cv::Mat valid = ((*m_global_map)["elevation"] == (*m_global_map)["elevation"]);
 
@@ -229,15 +240,21 @@ void Mosaicing::saveAll()
     io::saveGeoTIFF(m_global_map->getSubmap({"color_rgb"}), m_utm_reference->zone, m_stage_path + "/ortho/ortho.tif", true, m_settings_save.split_gtiff_channels);
   if (m_settings_save.save_elevation_one)
     io::saveGeoTIFF(m_global_map->getSubmap({"elevation"}), m_utm_reference->zone, m_stage_path + "/elevation/gtiff/elevation.tif");
+  if (m_settings_save.save_elevation_obs_angle_one)
+    io::saveGeoTIFF(m_global_map->getSubmap({"elevation_angle"}), m_utm_reference->zone, m_stage_path + "/obs_angle/angle.tif");
+
+  //io::MvsExport::saveFrames(m_frames, m_stage_path + "/mvs");
 
   // 3D Point cloud output
+#if WITH_PCL
   if (m_settings_save.save_dense_ply)
   {
-    //if (_global_map->exists("elevation_normal"))
-    //  io::saveElevationPointsToPLY(*_global_map, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
-    //else
-    //  io::saveElevationPointsToPLY(*_global_map, "elevation", "", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
+    if (m_global_map->exists("elevation_normal"))
+      io::saveElevationPointsToPLY(*m_global_map, "elevation", "elevation_normal", "color_rgb", "valid", m_stage_path + "/elevation/ply", "elevation");
+    else
+      io::saveElevationPointsToPLY(*m_global_map, "elevation", "", "color_rgb", "valid", m_stage_path + "/elevation/ply", "elevation");
   }
+#endif
 
   // 3D Mesh output
   if (m_settings_save.save_elevation_mesh_one)
@@ -270,8 +287,8 @@ void Mosaicing::finishCallback()
   saveAll();
 
   // Publish final mesh at the end
-  if (m_do_publish_mesh_at_finish)
-    m_transport_mesh(createMeshFaces(m_global_map), "output/mesh");
+  //if (m_do_publish_mesh_at_finish)
+  //  m_transport_mesh(createMeshFaces(m_global_map), "output/mesh");
 }
 
 void Mosaicing::runPostProcessing()
@@ -284,36 +301,44 @@ Frame::Ptr Mosaicing::getNewFrame()
   std::unique_lock<std::mutex> lock(m_mutex_buffer);
   Frame::Ptr frame = m_buffer.front();
   m_buffer.pop_front();
-  return (std::move(frame));
+  updateStatisticsProcessedFrame();
+  return std::move(frame);
 }
 
 void Mosaicing::initStageCallback()
 {
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/elevation"))
+  if (!io::dirExists(m_stage_path + "/elevation") && m_settings_save.save_elevation())
     io::createDir(m_stage_path + "/elevation");
-  if (!io::dirExists(m_stage_path + "/elevation/color_map"))
+  if (!io::dirExists(m_stage_path + "/elevation/color_map") && m_settings_save.save_elevation_map())
     io::createDir(m_stage_path + "/elevation/color_map");
-  if (!io::dirExists(m_stage_path + "/elevation/ply"))
+  if (!io::dirExists(m_stage_path + "/elevation/ply") && m_settings_save.save_dense_ply)
     io::createDir(m_stage_path + "/elevation/ply");
-  if (!io::dirExists(m_stage_path + "/elevation/pcd"))
-    io::createDir(m_stage_path + "/elevation/pcd");
-  if (!io::dirExists(m_stage_path + "/elevation/mesh"))
+  if (!io::dirExists(m_stage_path + "/elevation/mesh") && m_settings_save.save_elevation_mesh_one)
     io::createDir(m_stage_path + "/elevation/mesh");
-  if (!io::dirExists(m_stage_path + "/elevation/gtiff"))
+  if (!io::dirExists(m_stage_path + "/elevation/gtiff") && m_settings_save.save_elevation_map())
     io::createDir(m_stage_path + "/elevation/gtiff");
-  if (!io::dirExists(m_stage_path + "/obs_angle"))
+
+  if (!io::dirExists(m_stage_path + "/obs_angle") && m_settings_save.save_obs_angle())
     io::createDir(m_stage_path + "/obs_angle");
-  if (!io::dirExists(m_stage_path + "/variance"))
+  if (!io::dirExists(m_stage_path + "/variance") && m_settings_save.save_variance())
     io::createDir(m_stage_path + "/variance");
-  if (!io::dirExists(m_stage_path + "/ortho"))
+  if (!io::dirExists(m_stage_path + "/ortho") && m_settings_save.save_ortho())
     io::createDir(m_stage_path + "/ortho");
-  if (!io::dirExists(m_stage_path + "/nobs"))
+  if (!io::dirExists(m_stage_path + "/nobs") && m_settings_save.save_nobs())
     io::createDir(m_stage_path + "/nobs");
+  if (!io::dirExists(m_stage_path + "/mvs"))
+    io::createDir(m_stage_path + "/mvs");
 }
 
 void Mosaicing::printSettingsToLog()
@@ -353,25 +378,32 @@ std::vector<Face> Mosaicing::createMeshFaces(const CvGridMap::Ptr &map)
   CvGridMap::Ptr mesh_sampled;
   if (m_downsample_publish_mesh > 10e-6)
   {
-    // Downsampling was set by the user in settings
-    LOG_F(INFO, "Downsampling mesh publish to %4.2f [m/gridcell]...", m_downsample_publish_mesh);
-    mesh_sampled = std::make_shared<CvGridMap>(map->cloneSubmap({"elevation", "color_rgb"}));
+    if (map && map->exists("elevation") && map->exists("color_rgb")) {
 
-    cv::Mat valid = ((*mesh_sampled)["elevation"] == (*mesh_sampled)["elevation"]);
+      // Downsampling was set by the user in settings
+      LOG_F(INFO, "Downsampling mesh publish to %4.2f [m/gridcell]...", m_downsample_publish_mesh);
+      mesh_sampled = std::make_shared<CvGridMap>(map->cloneSubmap({"elevation", "color_rgb"}));
 
-    // TODO: Change resolution correction is not cool -> same in ortho rectification
-    // Check ranges of input elevation, this is necessary to correct resizing interpolation errors
-    double ele_min, ele_max;
-    cv::Point2i min_loc, max_loc;
-    cv::minMaxLoc((*mesh_sampled)["elevation"], &ele_min, &ele_max, &min_loc, &max_loc, valid);
+      cv::Mat valid = ((*mesh_sampled)["elevation"] == (*mesh_sampled)["elevation"]);
 
-    mesh_sampled->changeResolution(m_downsample_publish_mesh);
+      // TODO: Change resolution correction is not cool -> same in ortho rectification
+      // Check ranges of input elevation, this is necessary to correct resizing interpolation errors
+      double ele_min, ele_max;
+      cv::Point2i min_loc, max_loc;
+      cv::minMaxLoc((*mesh_sampled)["elevation"], &ele_min, &ele_max, &min_loc, &max_loc, valid);
 
-    // After resizing through bilinear interpolation there can occure bad elevation values at the border
-    cv::Mat mask_low = ((*mesh_sampled)["elevation"] < ele_min);
-    cv::Mat mask_high = ((*mesh_sampled)["elevation"] > ele_max);
-    (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_low);
-    (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_high);
+      mesh_sampled->changeResolution(m_downsample_publish_mesh);
+
+      // After resizing through bilinear interpolation there can occure bad elevation values at the border
+      cv::Mat mask_low = ((*mesh_sampled)["elevation"] < ele_min);
+      cv::Mat mask_high = ((*mesh_sampled)["elevation"] > ele_max);
+      (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_low);
+      (*mesh_sampled)["elevation"].setTo(std::numeric_limits<float>::quiet_NaN(), mask_high);
+    }
+    else
+    {
+      LOG_F(WARNING, "Could not publish downsampled mesh, no global map existed.");
+    }
   }
   else
   {

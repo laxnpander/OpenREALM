@@ -12,18 +12,23 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
                                const CameraSettings::Ptr &cam_set,
                                const ImuSettings::Ptr &imu_set,
                                double rate)
-    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt()),
+    : StageBase("pose_estimation", (*stage_set)["path_output"].toString(), rate, (*stage_set)["queue_size"].toInt(), bool((*stage_set)["log_to_file"].toInt())),
       m_is_georef_initialized(false),
       m_use_vslam((*stage_set)["use_vslam"].toInt() > 0),
       m_use_imu((*stage_set)["use_imu"].toInt() > 0),
       m_set_all_frames_keyframes((*stage_set)["set_all_frames_keyframes"].toInt() > 0),
       m_strategy_fallback(PoseEstimation::FallbackStrategy((*stage_set)["fallback_strategy"].toInt())),
       m_use_fallback(false),
+      m_init_lost_frames_reset_count((*stage_set)["init_lost_frames_reset_count"].toInt()),
+      m_init_lost_frames(0),
       m_use_initial_guess((*stage_set)["use_initial_guess"].toInt() > 0),
       m_do_update_georef((*stage_set)["update_georef"].toInt() > 0),
       m_do_delay_keyframes((*stage_set)["do_delay_keyframes"].toInt() > 0),
       m_do_suppress_outdated_pose_pub((*stage_set)["suppress_outdated_pose_pub"].toInt() > 0),
       m_th_error_georef((*stage_set)["th_error_georef"].toDouble()),
+      m_min_nrof_frames_georef((*stage_set)["min_nrof_frames_georef"].toInt()),
+      m_do_auto_reset(false),
+      m_th_scale_change(20.0),
       m_overlap_max((*stage_set)["overlap_max"].toDouble()),
       m_overlap_max_fallback((*stage_set)["overlap_max_fallback"].toDouble()),
       m_settings_save({(*stage_set)["save_trajectory_gnss"].toInt() > 0,
@@ -50,8 +55,7 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
 
     // Set reset callback from vSLAM to this node
     // therefore if SLAM resets itself, node is being informed
-    std::function<void(void)> reset_func = std::bind(&PoseEstimation::reset, this);
-    m_vslam->registerResetCallback(reset_func);
+    m_vslam->registerResetCallback([=](){ reset(); });
 
     // Set pose update callback
     namespace ph = std::placeholders;
@@ -59,13 +63,13 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
     m_vslam->registerUpdateTransport(update_func);
 
     // Create geo reference initializer
-    m_georeferencer = std::make_shared<GeometricReferencer>(m_th_error_georef);
+    m_georeferencer = std::make_shared<GeometricReferencer>(m_th_error_georef, m_min_nrof_frames_georef);
   }
 
   evaluateFallbackStrategy(m_strategy_fallback);
 
   // Create Pose Estimation publisher
-  m_stage_publisher.reset(new PoseEstimationIO(this, rate, m_do_delay_keyframes));
+  m_stage_publisher.reset(new PoseEstimationIO(this, 2*rate, m_do_delay_keyframes));
   m_stage_publisher->start();
 
   // Creation of reference plane, currently only the one below is supported
@@ -77,6 +81,10 @@ PoseEstimation::PoseEstimation(const StageSettings::Ptr &stage_set,
 }
 
 PoseEstimation::~PoseEstimation()
+{
+}
+
+void PoseEstimation::finishCallback()
 {
   if (m_use_vslam) {
     m_vslam->close();
@@ -147,9 +155,6 @@ bool PoseEstimation::process()
   // Trigger; true if there happened any processing in this cycle.
   bool has_processed = false;
 
-  // Prepare timing
-  long t;
-
   // Grab georeference flag once at the beginning, to avoid multithreading problems
   if (m_use_vslam)
     m_is_georef_initialized = m_georeferencer->isInitialized();
@@ -160,12 +165,11 @@ bool PoseEstimation::process()
     // Grab frame from buffer with no poses
     Frame::Ptr frame = getNewFrameTracking();
 
-    LOG_F(INFO, "Processing frame #%i with timestamp %lu!", frame->getFrameId(), frame->getTimestamp());
+    LOG_IF_F(INFO, m_stage_statistics.frames_processed % 10 == 0, "Buffer [all, init, publish]: %lu, %lu, %lu",
+             m_buffer_pose_all.size(), m_buffer_pose_init.size(), m_buffer_do_publish.size());
 
     // Track current frame -> compute visual accurate pose
-    t = getCurrentTimeMilliseconds();
     track(frame);
-    LOG_F(INFO, "Timing [Tracking]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     // Identify buffer for push
     if (frame->hasAccuratePose())
@@ -173,10 +177,33 @@ bool PoseEstimation::process()
       // Branch accurate pose and georef initialized
       if (m_is_georef_initialized)
       {
+        double scale_change = m_georeferencer->computeScaleChange(frame);
+        LOG_F(INFO, "Info [Scale Drift]: Scale change of current frame: %4.2f%%", scale_change);
+
+        bool is_scale_consistent = (scale_change < m_th_scale_change);
+        if (!is_scale_consistent)
+        {
+          LOG_F(WARNING, "Detected scale divergence.");
+
+          // For now, just warn that our scale may be off until we resolve the issues discussed here:
+          // https://github.com/laxnpander/OpenREALM/pull/59
+
+          // frame->setPoseAccurate(false);
+          // frame->setKeyframe(false);
+          //
+          // if (m_do_auto_reset)
+          // {
+          //   LOG_F(WARNING, "Resetting.");
+          //   m_reset_requested = true;
+          // reset();
+          // }
+        }
+
+        // if (is_scale_consistent && m_do_update_georef && !m_georeferencer->isBuisy())
         if (m_do_update_georef && !m_georeferencer->isBuisy())
         {
-          std::thread t(std::bind(&GeospatialReferencerIF::update, m_georeferencer, frame));
-          t.detach();
+          std::thread th(std::bind(&GeospatialReferencerIF::update, m_georeferencer, frame));
+          th.detach();
         }
         pushToBufferAll(frame);
       }
@@ -199,8 +226,8 @@ bool PoseEstimation::process()
     {
       // Branch: Georef is not calculated yet
       LOG_F(INFO, "Size of init buffer: %lu", m_buffer_pose_init.size());
-      std::thread t(std::bind(&GeospatialReferencerIF::init, m_georeferencer, m_buffer_pose_init));
-      t.detach();
+      std::thread th(std::bind(&GeospatialReferencerIF::init, m_georeferencer, m_buffer_pose_init));
+      th.detach();
       has_processed = true;
     }
     else if (m_is_georef_initialized && !m_buffer_pose_all.empty())
@@ -210,8 +237,8 @@ bool PoseEstimation::process()
       if (!m_buffer_pose_init.empty())
         m_buffer_pose_init.clear();
 
-      std::thread t(std::bind(&PoseEstimation::applyGeoreferenceToBuffer, this));
-      t.detach();
+      std::thread th(std::bind(&PoseEstimation::applyGeoreferenceToBuffer, this));
+      th.detach();
       has_processed = true;
     }
   }
@@ -220,7 +247,8 @@ bool PoseEstimation::process()
 
 void PoseEstimation::track(Frame::Ptr &frame)
 {
-  LOG_F(INFO, "Tracking frame #%i in visual SLAM...!", frame->getFrameId());
+  LOG_SCOPE_FUNCTION(INFO);
+  LOG_F(INFO, "Frame id: #%i, timestamp: %lu", frame->getFrameId(), frame->getTimestamp());
 
   // Check if initial guess should be computed
   cv::Mat T_c2w_initial;
@@ -244,6 +272,20 @@ void PoseEstimation::track(Frame::Ptr &frame)
   switch (state)
   {
     case VisualSlamIF::State::LOST:
+
+      // If we haven't yet initialized, make sure we haven't completely lost tracking.  If we have, force a reset
+      // to hopefully recover.
+      if (!m_is_georef_initialized) {
+        m_init_lost_frames++;
+
+        if (m_init_lost_frames > m_init_lost_frames_reset_count) {
+          LOG_F(WARNING, "Lost tracking while initializing georeferencing, resetting VSLAM to reacquire reference...");
+          std::unique_lock<std::mutex> lock(m_mutex_vslam);
+          m_vslam->reset();
+          m_init_lost_frames = 0;
+        }
+      }
+
       if (estimatePercOverlap(frame) < m_overlap_max_fallback)
         pushToBufferPublish(frame);
       LOG_F(WARNING, "No tracking.");
@@ -295,9 +337,11 @@ void PoseEstimation::reset()
   m_buffer_no_pose.clear();
   m_buffer_pose_init.clear();
 
+  m_init_lost_frames = 0;
+
   // Reset georeferencing
   if (m_use_vslam)
-    m_georeferencer.reset(new GeometricReferencer(m_th_error_georef));
+    m_georeferencer.reset(new GeometricReferencer(m_th_error_georef, m_min_nrof_frames_georef));
   m_stage_publisher->requestReset();
   m_is_georef_initialized = false;
   m_reset_requested = false;
@@ -321,21 +365,30 @@ bool PoseEstimation::changeParam(const std::string& name, const std::string &val
 
 void PoseEstimation::initStageCallback()
 {
+  // The publisher has to decide on it's own to create folders
+  // So inform it, even if we don't log ourselves
+  m_stage_publisher->setOutputPath(m_stage_path);
+
+  // If we aren't saving any information, skip directory creation
+  if (!(m_log_to_file || m_settings_save.save_required()))
+  {
+    return;
+  }
+
   // Stage directory first
   if (!io::dirExists(m_stage_path))
     io::createDir(m_stage_path);
 
   // Then sub directories
-  if (!io::dirExists(m_stage_path + "/trajectory"))
+  if (!io::dirExists(m_stage_path + "/trajectory") && m_settings_save.save_trajectory())
     io::createDir(m_stage_path + "/trajectory");
-  if (!io::dirExists(m_stage_path + "/keyframes"))
+  if (!io::dirExists(m_stage_path + "/keyframes") && m_settings_save.save_keyframes)
     io::createDir(m_stage_path + "/keyframes");
-  if (!io::dirExists(m_stage_path + "/keyframes_full"))
+  if (!io::dirExists(m_stage_path + "/keyframes_full") && m_settings_save.save_keyframes_full)
     io::createDir(m_stage_path + "/keyframes_full");
-  if (!io::dirExists(m_stage_path + "/frames"))
+  if (!io::dirExists(m_stage_path + "/frames") && m_settings_save.save_frames)
     io::createDir(m_stage_path + "/frames");
 
-  m_stage_publisher->setOutputPath(m_stage_path);
 }
 
 void PoseEstimation::printSettingsToLog()
@@ -346,6 +399,8 @@ void PoseEstimation::printSettingsToLog()
   LOG_F(INFO, "- do_update_georef: %i", m_do_update_georef);
   LOG_F(INFO, "- do_suppress_outdated_pose_pub: %i", m_do_suppress_outdated_pose_pub);
   LOG_F(INFO, "- th_error_georef: %4.2f", m_th_error_georef);
+  LOG_F(INFO, "- min_nrof_frames_georef: %d", m_min_nrof_frames_georef);
+  LOG_F(INFO, "- init_lost_frames_reset_count: %df", m_init_lost_frames_reset_count);
   LOG_F(INFO, "- overlap_max: %4.2f", m_overlap_max);
   LOG_F(INFO, "- overlap_max_fallback: %4.2f", m_overlap_max_fallback);
 
@@ -391,28 +446,28 @@ void PoseEstimation::updatePreviousRoi(const Frame::Ptr &frame)
 
 void PoseEstimation::updateKeyframeCb(int id, const cv::Mat &pose, const cv::Mat &points)
 {
-  std::unique_lock<std::mutex> lock(m_mutex_buffer_pose_all);
-
-  // Find frame in "all" buffer for updating
-  for (auto &frame : m_buffer_pose_all)
-    if (frame->getFrameId() == (uint32_t)id)
-    {
-      if (!pose.empty())
-        frame->setVisualPose(pose);
-      if (!points.empty())
-        frame->setSparseCloud(points, true);
-      frame->setKeyframe(true);
-    }
-
-  for (auto &frame : m_buffer_do_publish)
-    if (frame->getFrameId() == (uint32_t)id)
-    {
-      if (!pose.empty())
-        frame->setVisualPose(pose);
-      //if (!points.empty())
-      //  frame->setSurfacePoints(points);
-      //frame->setKeyframe(true);
-    }
+//  std::unique_lock<std::mutex> lock(m_mutex_buffer_pose_all);
+//
+//  // Find frame in "all" buffer for updating
+//  for (auto &frame : m_buffer_pose_all)
+//    if (frame->getFrameId() == (uint32_t)id)
+//    {
+//      if (!pose.empty())
+//        frame->setVisualPose(pose);
+//      if (!points.empty())
+//        frame->setSparseCloud(points, true);
+//      frame->setKeyframe(true);
+//    }
+//
+//  for (auto &frame : m_buffer_do_publish)
+//    if (frame->getFrameId() == (uint32_t)id)
+//    {
+//      if (!pose.empty())
+//        frame->setVisualPose(pose);
+//      //if (!points.empty())
+//      //  frame->setSurfacePoints(points);
+//      //frame->setKeyframe(true);
+//    }
 }
 
 double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
@@ -423,9 +478,16 @@ double PoseEstimation::estimatePercOverlap(const Frame::Ptr &frame)
 
 Frame::Ptr PoseEstimation::getNewFrameTracking()
 {
+  double perc_queue = static_cast<double>(m_buffer_no_pose.size()) / m_queue_size * 100.0;
+  LOG_IF_F(INFO,    perc_queue <  80, "Input frame buffer at %4.2f%%", perc_queue);
+  LOG_IF_F(WARNING, perc_queue >= 80, "Input frame buffer at %4.2f%%", perc_queue);
+
   std::unique_lock<std::mutex> lock(m_mutex_buffer_no_pose);
   Frame::Ptr frame = m_buffer_no_pose.front();
   m_buffer_no_pose.pop_front();
+
+  updateStatisticsProcessedFrame();
+
   return std::move(frame);
 }
 
@@ -513,7 +575,7 @@ void PoseEstimation::printGeoReferenceInfo(const Frame::Ptr &frame)
 }
 
 PoseEstimationIO::PoseEstimationIO(PoseEstimation* stage, double rate, bool do_delay_keyframes)
-    : WorkerThreadBase("Publisher [pose_estimation]", static_cast<int64_t>(1/rate*1000.0), true),
+    : WorkerThreadBase("Publisher [pose_estimation]", static_cast<int64_t>(1/rate*1000.0), false),
       m_is_time_ref_set(false),
       m_is_new_output_path_set(false),
       m_do_delay_keyframes(do_delay_keyframes),
@@ -530,18 +592,10 @@ void PoseEstimationIO::setOutputPath(const std::string &path)
   m_is_new_output_path_set = true;
 }
 
-void PoseEstimationIO::initLog(const std::string &filepath)
-{
-  loguru::add_file((filepath + "/publisher.log").c_str(), loguru::Append, loguru::Verbosity_MAX);
-
-  LOG_F(INFO, "Successfully initialized %s publisher!", m_stage_handle->m_stage_name.c_str());
-}
-
 bool PoseEstimationIO::process()
 {
   if (m_is_new_output_path_set)
   {
-    initLog(m_path_output);
     m_is_new_output_path_set = false;
   }
 
@@ -555,11 +609,18 @@ bool PoseEstimationIO::process()
     if (!(m_stage_handle->m_do_suppress_outdated_pose_pub && m_stage_handle->m_buffer_do_publish.size() > 1))
       publishPose(frame);
 
+    // Check what type of frame
+    bool is_gnss_frame = !m_stage_handle->m_use_vslam && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback;
+    bool is_vslam_frame = frame->isKeyframe() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max;
+    bool is_vslam_fallback_frame = m_stage_handle->m_use_fallback && !frame->hasAccuratePose() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback;
+
     // Keyframes to be published (big data packages -> publish only if needed)
-    if ((m_stage_handle->m_use_fallback && !frame->hasAccuratePose() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback)
-         ||(!m_stage_handle->m_use_vslam && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max_fallback)
-         || (frame->isKeyframe() && m_stage_handle->estimatePercOverlap(frame) < m_stage_handle->m_overlap_max))
+    if (is_gnss_frame || is_vslam_frame || is_vslam_fallback_frame)
     {
+      if (is_vslam_fallback_frame)
+      {
+        LOG_F(INFO, "VSLAM tracking lost, using GNSS fallback for frame %d!", frame->getFrameId());
+      }
       m_stage_handle->updatePreviousRoi(frame);
       if (m_do_delay_keyframes)
         scheduleFrame(frame);
@@ -604,9 +665,11 @@ void PoseEstimationIO::publishPose(const Frame::Ptr &frame)
 
 void PoseEstimationIO::publishSparseCloud(const Frame::Ptr &frame)
 {
-  cv::Mat sparse_cloud = frame->getSparseCloud();
-  if (!sparse_cloud.empty())
-    m_stage_handle->m_transport_pointcloud(sparse_cloud, "output/pointcloud");
+  PointCloud::Ptr sparse_cloud = frame->getSparseCloud();
+  if (!sparse_cloud || sparse_cloud->empty())
+    return;
+
+  m_stage_handle->m_transport_pointcloud(sparse_cloud, "output/pointcloud");
 }
 
 void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
@@ -645,8 +708,8 @@ void PoseEstimationIO::publishFrame(const Frame::Ptr &frame)
 
 void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
 {
-  long t_world = getCurrentTimeMilliseconds();       // millisec
-  uint64_t t_frame = frame->getTimestamp()/10e6;  // millisec
+  long t_world = Timer::getCurrentTimeMilliseconds();       // millisec
+  uint64_t t_frame = frame->getTimestamp();  	              // millisec
 
   // Check if either first measurement ever (does not have to be keyframe)
   // Or if first keyframe
@@ -666,6 +729,7 @@ void PoseEstimationIO::scheduleFrame(const Frame::Ptr &frame)
 
   // Time until schedule
   long t_remain = ((long)dt) - (getCurrentTimeMilliseconds() - m_t_ref.first);
+
   LOG_F(INFO, "Scheduled publish frame #%u in %4.2fs", frame->getFrameId(), (double)t_remain/10e3);
 }
 

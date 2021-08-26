@@ -64,12 +64,6 @@ std::string getTempDirectoryPath();
 std::string getDateTime();
 
 /*!
- * @brief Function to get current time in nanoseconds
- * @return Current time since epoch in nanoseconds
- */
-uint64_t getCurrentTimeNano();
-
-/*!
  * @brief Extracts the frame id from a file path, e.g. /home/user/img_000015.jpeg -> returns 15
  * @param filepath Filepath
  * @return Frame id

@@ -11,7 +11,9 @@
 #include <openvslam/system.h>
 #include <openvslam/type.h>
 #include <openvslam/data/keyframe.h>
+#include <openvslam/data/landmark.h>
 #include <yaml-cpp/yaml.h>
+#include <future>
 
 namespace realm
 {
@@ -31,9 +33,15 @@ public:
 
   bool drawTrackedImage(cv::Mat &img) const override;
 
-  cv::Mat getTrackedMapPoints() const override;
+  PointCloud::Ptr getTrackedMapPoints() override;
 
 private:
+
+  //! We need to assign points a unique id, so they can be identified across several resets of the visual SLAM system.
+  //! We do that by saving the maximum, recognized point id and using this as starting point on a reset. The m_base_point_id
+  //! is set to the max id on reset.
+  uint32_t m_max_point_id;
+  uint32_t m_base_point_id;
 
   unsigned int m_nrof_keyframes;
 
@@ -47,33 +55,30 @@ private:
   mutable std::mutex m_mutex_last_keyframe;
   openvslam::data::keyframe* m_last_keyframe;
 
+  unsigned int m_max_keyframe_links;
+  std::list<std::pair<std::weak_ptr<Frame>, openvslam::data::keyframe*>> m_keyframe_links;
+
+  openvslam::tracker_state_t m_previous_state;
+
   std::shared_ptr<openvslam::system> m_vslam;
   std::shared_ptr<openvslam::config> m_config;
   std::shared_ptr<openvslam::publish::frame_publisher> m_frame_publisher;
   std::shared_ptr<openvslam::publish::map_publisher> m_map_publisher;
-  std::unique_ptr<OpenVslamKeyframeUpdater> m_keyframe_updater;
+
+  VisualSlamIF::ResetFuncCb m_reset_callback;
+
+  std::future<void> m_future_update_keyframes;
+
+  uint32_t extractPointId(openvslam::data::landmark* lm);
 
   cv::Mat getLastDrawnFrame() const;
   cv::Mat invertPose(const cv::Mat &pose) const;
   cv::Mat convertToCv(const openvslam::Mat44_t &mat) const;
-};
 
-class OpenVslamKeyframeUpdater : public WorkerThreadBase
-{
-public:
-  OpenVslamKeyframeUpdater(const std::string &thread_name, int64_t sleep_time, bool verbose);
-
-  void add(const std::weak_ptr<Frame> &frame_realm, openvslam::data::keyframe* frame_vslam);
-
-private:
-
-  /// Container for OpenREALM frames to corresponding OpenVSLAM keyframe
-  std::list<std::pair<std::weak_ptr<Frame>, openvslam::data::keyframe*>> m_keyframe_links;
-
-  bool process() override;
-
-  void reset() override;
-
+  void internalReset();
+  void addKeyframeLink(Frame::Ptr &frame_realm, openvslam::data::keyframe* frame_ovslam);
+  void updateKeyframes();
+  void registerResetCallback(const ResetFuncCb &func) override;
 };
 
 } // namespace realm

@@ -71,13 +71,6 @@ std::string io::getDateTime()
   return std::string(tim);
 }
 
-uint64_t io::getCurrentTimeNano()
-{
-  using namespace std::chrono;
-  nanoseconds ms = duration_cast<nanoseconds>(system_clock::now().time_since_epoch());
-  return static_cast<uint64_t>(ms.count());
-}
-
 uint32_t io::extractFrameIdFromFilepath(const std::string &filepath)
 {
   std::vector<std::string> tokens_path = io::split(filepath.c_str(), '/');
