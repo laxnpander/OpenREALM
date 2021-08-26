@@ -3,6 +3,7 @@
 #ifndef PROJECT_GEOSPATIAL_REFERENCER_IF_H
 #define PROJECT_GEOSPATIAL_REFERENCER_IF_H
 
+#include <limits>
 #include <vector>
 #include <memory>
 #include <mutex>
@@ -24,7 +25,7 @@ class GeospatialReferencerIF
     virtual void update(const Frame::Ptr &frame) = 0;
     virtual bool isBuisy() = 0;
     virtual bool isInitialized() = 0;
-    virtual double computeScaleChange(const Frame::Ptr &frame) {};
+    virtual double computeScaleChange(const Frame::Ptr &frame) { return std::numeric_limits<double>::quiet_NaN(); };
 };
 
 } // namespace realm
