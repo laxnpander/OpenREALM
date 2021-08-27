@@ -132,16 +132,16 @@ else
 fi
 
 # DBoW2
-cd ~ && mkdir DBoW2 && cd DBoW2
-git clone https://github.com/shinsumicco/DBoW2.git
-cd DBoW2
+cd ~ && mkdir FBoW && cd FBoW
+git clone https://github.com/OpenVSLAM-Community/FBoW.git
+cd FBoW
 mkdir build && cd build
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
     ..
 make -j4
-sudo make install
+make install
 
 # G2O
 cd ~ && mkdir g2o && cd g2o
@@ -155,7 +155,6 @@ cmake \
     -DCMAKE_CXX_FLAGS=-std=c++11 \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_UNITTESTS=OFF \
-    -DBUILD_WITH_MARCH_NATIVE=ON \
     -DG2O_USE_CHOLMOD=OFF \
     -DG2O_USE_CSPARSE=ON \
     -DG2O_USE_OPENGL=OFF \
@@ -169,12 +168,12 @@ cd ~ && mkdir openvslam && cd openvslam
 git clone https://github.com/laxnpander/openvslam.git
 cd openvslam && mkdir build && cd build
 cmake \
-    -DBUILD_WITH_MARCH_NATIVE=ON \
-    -DUSE_PANGOLIN_VIEWER=OFF \
+    -DUSE_PANGOLIN_VIEWER=ON \
+    -DINSTALL_PANGOLIN_VIEWER=ON \
     -DUSE_SOCKET_PUBLISHER=OFF \
     -DUSE_STACK_TRACE_LOGGER=ON \
-    -DBOW_FRAMEWORK=DBoW2 \
     -DBUILD_TESTS=ON \
+    -DBUILD_EXAMPLES=ON \
     ..
 make -j4
 sudo make install
