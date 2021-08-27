@@ -34,7 +34,7 @@ void saveImage(const cv::Mat &img,
 void saveImageToBinary(const cv::Mat &data,
                        const std::string &filepath);
 
-void saveDepthMap(const cv::Mat &img,
+void saveDepthMap(const Depthmap::Ptr &img,
                   const std::string &filename,
                   uint32_t id);
 

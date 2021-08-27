@@ -104,13 +104,15 @@ void saveImageToBinary(const cv::Mat &data, const std::string &filepath)
   fclose(file);
 }
 
-void saveDepthMap(const cv::Mat &img, const std::string &filename, uint32_t id)
+void saveDepthMap(const Depthmap::Ptr &depthmap, const std::string &filename, uint32_t id)
 {
-  cv::Mat mask = (img > 0.0);
+  cv::Mat data = depthmap->data();
+
+  cv::Mat mask = (data > 0.0);
 
   cv::Mat img_normalized;
-  if (img.type() == CV_32FC1 || img.type() == CV_64FC1)
-    cv::normalize(img, img_normalized, 0, 65535, cv::NormTypes::NORM_MINMAX, CV_16UC1, mask);
+  if (data.type() == CV_32FC1 || data.type() == CV_64FC1)
+    cv::normalize(data, img_normalized, 0, 65535, cv::NormTypes::NORM_MINMAX, CV_16UC1, mask);
   else
     throw(std::invalid_argument("Error saving depth map: Mat type not supported!"));
 
@@ -118,11 +120,17 @@ void saveDepthMap(const cv::Mat &img, const std::string &filename, uint32_t id)
   sprintf(buffer, filename.c_str(), id);
 
   double min_depth, max_depth;
-  cv::minMaxLoc(img, &min_depth, &max_depth, nullptr, nullptr, mask);
+  cv::minMaxLoc(data, &min_depth, &max_depth, nullptr, nullptr, mask);
 
   std::string full_filename = std::string(buffer);
   std::ofstream metafile(full_filename.substr(0, full_filename.size()-3) + "txt");
   metafile << "Scaling\nMin: " << min_depth << "\nMax: " << max_depth;
+
+  cv::Mat pose = depthmap->getCamera()->pose();
+  metafile << "\nPose:";
+  metafile << "\n" << pose.at<double>(0, 0) << " " << pose.at<double>(0, 1) << " " << pose.at<double>(0, 2) << " " << pose.at<double>(0, 3);
+  metafile << "\n" << pose.at<double>(1, 0) << " " << pose.at<double>(1, 1) << " " << pose.at<double>(1, 2) << " " << pose.at<double>(1, 3);
+  metafile << "\n" << pose.at<double>(2, 0) << " " << pose.at<double>(2, 1) << " " << pose.at<double>(2, 2) << " " << pose.at<double>(2, 3);
   metafile.close();
 
   cv::imwrite(full_filename, img_normalized);

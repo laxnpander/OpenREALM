@@ -307,11 +307,11 @@ void Densification::saveIter(const Frame::Ptr &frame, const cv::Mat &normals)
     io::saveImageColorMap(normals, (depthmap_data > 0), m_stage_path + "/normals", "normals", frame->getFrameId(), io::ColormapType::NORMALS);
   if (m_settings_save.save_sparse)
   {
-    cv::Mat depthmap_sparse = stereo::computeDepthMapFromPointCloud(frame->getResizedCamera(), frame->getSparseCloud()->data().colRange(0, 3));
-    io::saveDepthMap(depthmap_sparse, m_stage_path + "/sparse/sparse_%06i.tif", frame->getFrameId());
+    //cv::Mat depthmap_sparse = stereo::computeDepthMapFromPointCloud(frame->getResizedCamera(), frame->getSparseCloud()->data().colRange(0, 3));
+    //io::saveDepthMap(depthmap_sparse, m_stage_path + "/sparse/sparse_%06i.tif", frame->getFrameId());
   }
   if (m_settings_save.save_dense)
-    io::saveDepthMap(depthmap_data, m_stage_path + "/dense/dense_%06i.tif", frame->getFrameId());
+    io::saveDepthMap(frame->getDepthmap(), m_stage_path + "/dense/dense_%06i.tif", frame->getFrameId());
 }
 
 void Densification::pushToBufferReco(const Frame::Ptr &frame)
