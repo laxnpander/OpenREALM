@@ -8,7 +8,7 @@
 
 #include <realm_ortho/rectification.h>
 #include <realm_ortho/gdal_warper.h>
-#include <realm_ortho/tile_cache.h>
+#include <realm_ortho/tile.h>
 #include <realm_core/conversions.h>
 #include <realm_core/loguru.h>
 
@@ -62,6 +62,38 @@ public:
 
   double getResolution(int zoom_level);
 
+  /*!
+   * @brief Computes one lat-lon coordinate for a given tile. It represents the upper left corner of the tile.
+   * @param x Coordinate of tile in x-direction
+   * @param y Coordinate of tile in y-direction
+   * @param zoom_level Zoom level of the map
+   * @param tms Whether TMS or Google standard is used (inverts y axis)
+   * @return (longitude, latitude) of upper left tile corner
+   */
+  static WGSPose computeLatLonForTile(int x, int y, int zoom_level, bool tms);
+
+  /*!
+   * @brief Computes one lat-lon coordinate for a given tile. It represents the center of the tile.  This can be useful
+   * when converting from tiles to CoG as it can prevent including edge tiles along the boundary.
+   * @param x Coordinate of tile in x-direction
+   * @param y Coordinate of tile in y-direction
+   * @param zoom_level Zoom level of the map
+   * @param tms Whether TMS or Google standard is used (inverts y axis)
+   * @return (longitude, latitude) of the center of the tile
+   */
+  static WGSPose computeCenterLatLonForTile(int x, int y, int zoom_level, bool tms);
+
+  /*!
+   * @brief Computes the slippy tile index for a given zoom level that contains the requested coordinate in WGS84. The
+   * specifications are documented: https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Pseudo-code
+   * @param lat Latitude in WGS84
+   * @param lon Longitude in WGS84
+   * @param zoom_level Zoom level of the map
+   * @param tms Whether TMS or Google standard is used (inverts y axis)
+   * @return Tile coordinate according to slippy tile standard
+   */
+  static cv::Point2i computeTileFromLatLon(double lat, double lon, int zoom_level, bool tms) ;
+
 private:
 
   /// Flag to set verbose output
@@ -87,16 +119,6 @@ private:
 
   /// Lookup table to map zoom levels to an absolute number of tiles
   std::map<int, long>   m_lookup_nrof_tiles_from_zoom;
-
-  /*!
-   * @brief Computes the slippy tile index for a given zoom level that contains the requested coordinate in WGS84. The
-   * specifications are documented: https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Pseudo-code
-   * @param lat Latitude in WGS84
-   * @param lon Longitude in WGS84
-   * @param zoom_level Zoom level 0 - 35
-   * @return Tile coordinate according to slippy tile standard
-   */
-  cv::Point2i computeTileFromLatLon(double lat, double lon, int zoom_level) const;
 
   /*!
    * @brief Each tile is indexed with (tx, ty). Together with the corresponding tile size this coordinate can be
@@ -176,15 +198,6 @@ private:
    * @return Boundaries of the tile in meters with (mx, my, width, height)
    */
   cv::Rect2d computeTileBoundsMeters(const cv::Rect2i &idx_roi, int zoom_level);
-
-  /*!
-   * @brief Computes one lat-lon coordinate for a given tile. It represents the upper left corner of the tile.
-   * @param x Coordinate of tile in x-direction
-   * @param y Coordinate of tile in y-direction
-   * @param zoom_level Zoon level of the map
-   * @return (longitude, latitude) of upper left tile corner
-   */
-  WGSPose computeLatLonForTile(int x, int y, int zoom_level) const;
 
   /*!
    * @brief Maximal scale down zoom of the pyramid closest to the pixelSize.

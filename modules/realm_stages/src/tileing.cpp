@@ -17,10 +17,14 @@
 * You should have received a copy of the GNU General Public License
 * along with OpenREALM. If not, see <http://www.gnu.org/licenses/>.
 */
+#include <cstdio>
+#include <memory>
+#include <utility>
 
 #include <realm_core/loguru.h>
-
 #include <realm_stages/tileing.h>
+#include <realm_io/cv_import.h>
+#include <realm_io/cv_export.h>
 
 using namespace realm;
 using namespace stages;
@@ -80,9 +84,7 @@ bool Tileing::process()
     // Prepare timing
     long t;
 
-    // Prepare output of incremental map update
-    CvGridMap::Ptr map_update;
-
+    // Get the image to add to the tile cache
     Frame::Ptr frame = getNewFrame();
 
     LOG_F(INFO, "Processing frame #%u...", frame->getFrameId());
@@ -190,6 +192,7 @@ bool Tileing::process()
     map_3857->remove("elevated");
 
     std::map<int, MapTiler::TiledMap> tiled_map_range = m_map_tiler->createTiles(map_3857, m_min_tile_zoom, zoom_level_max - 1);
+    std::map<int, cv::Rect2i> tiles_merged_roi;
 
     for (const auto& tiled_map : tiled_map_range)
     {
@@ -219,6 +222,7 @@ bool Tileing::process()
       }
 
       m_tile_cache->add(zoom_level, tiles_merged, tiled_map.second.roi);
+      tiles_merged_roi[zoom_level] = tiled_map.second.roi;
     }
 
     LOG_F(INFO, "Timing [Downscaling]: %lu ms", getCurrentTimeMilliseconds()-t);
@@ -229,17 +233,15 @@ bool Tileing::process()
     //
     //=======================================//
 
-    // Publishings every iteration
+    // Publishings every iteration, most publishing is done by separate IO thread when map is updated
     LOG_F(INFO, "Publishing...");
-
     t = getCurrentTimeMilliseconds();
-    //publish(frame, _global_map, map_update, frame->getTimestamp());
+    publish(frame, *m_tile_cache.get(), tiles_merged_roi, frame->getTimestamp());
     LOG_F(INFO, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
-
 
     // Savings every iteration
     t = getCurrentTimeMilliseconds();
-    saveIter(frame->getFrameId(), map_update);
+    //saveIter(frame->getFrameId(), map_update);
     LOG_F(INFO, "Timing [Saving]: %lu ms", getCurrentTimeMilliseconds()-t);
 
     has_processed = true;
@@ -290,62 +292,13 @@ Tile::Ptr Tileing::blend(const Tile::Ptr &t1, const Tile::Ptr &t2)
 
 void Tileing::saveIter(uint32_t id, const CvGridMap::Ptr &map_update)
 {
-  /*if (_settings_save.save_valid)
-    io::saveImage((*_global_map)["valid"], io::createFilename(_stage_path + "/valid/valid_", id, ".png"));
-  if (_settings_save.save_ortho_rgb_all)
-    io::saveImage((*_global_map)["color_rgb"], io::createFilename(_stage_path + "/ortho/ortho_", id, ".png"));
-  if (_settings_save.save_elevation_all)
-    io::saveImageColorMap((*_global_map)["elevation"], (*_global_map)["valid"], _stage_path + "/elevation/color_map", "elevation", id, io::ColormapType::ELEVATION);
-  if (_settings_save.save_elevation_var_all)
-    io::saveImageColorMap((*_global_map)["elevation_var"], (*_global_map)["valid"], _stage_path + "/variance", "variance", id,io::ColormapType::ELEVATION);
-  if (_settings_save.save_elevation_obs_angle_all)
-    io::saveImageColorMap((*_global_map)["elevation_angle"], (*_global_map)["valid"], _stage_path + "/obs_angle", "angle", id, io::ColormapType::ELEVATION);
-  if (_settings_save.save_num_obs_all)
-    io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", id, io::ColormapType::ELEVATION);
-  if (_settings_save.save_ortho_gtiff_all && _gdal_writer != nullptr)
-    _gdal_writer->requestSaveGeoTIFF(std::make_shared<CvGridMap>(_global_map->getSubmap({"color_rgb"})), _utm_reference->zone, _stage_path + "/ortho/ortho_iter.tif", true, _settings_save.split_gtiff_channels);*/
-
-    //io::saveGeoTIFF(*map_update, "color_rgb", _utm_reference->zone, io::createFilename(_stage_path + "/ortho/ortho_", id, ".tif"));
+   // Not really a good save iter, though we could save png representations of the tile cache?
 }
 
 void Tileing::saveAll()
 {
-  // 2D map output
-//  if (_settings_save.save_ortho_rgb_one)
-//    io::saveCvGridMapLayer(*_global_map, _utm_reference->zone, _utm_reference->band, "color_rgb", _stage_path + "/ortho/ortho.png");
-//  if (_settings_save.save_elevation_one)
-//    io::saveImageColorMap((*_global_map)["elevation"], (*_global_map)["valid"], _stage_path + "/elevation/color_map", "elevation", io::ColormapType::ELEVATION);
-//  if (_settings_save.save_elevation_var_one)
-//    io::saveImageColorMap((*_global_map)["elevation_var"], (*_global_map)["valid"], _stage_path + "/variance", "variance", io::ColormapType::ELEVATION);
-//  if (_settings_save.save_elevation_obs_angle_one)
-//    io::saveImageColorMap((*_global_map)["elevation_angle"], (*_global_map)["valid"], _stage_path + "/obs_angle", "angle", io::ColormapType::ELEVATION);
-//  if (_settings_save.save_num_obs_one)
-//    io::saveImageColorMap((*_global_map)["num_observations"], (*_global_map)["valid"], _stage_path + "/nobs", "nobs", io::ColormapType::ELEVATION);
-//  if (_settings_save.save_num_obs_one)
-//    io::saveGeoTIFF(_global_map->getSubmap({"num_observations"}), _utm_reference->zone, _stage_path + "/nobs/nobs.tif");
-//  if (_settings_save.save_ortho_gtiff_one)
-//    io::saveGeoTIFF(_global_map->getSubmap({"color_rgb"}), _utm_reference->zone, _stage_path + "/ortho/ortho.tif", true, _settings_save.split_gtiff_channels);
-//  if (_settings_save.save_elevation_one)
-//    io::saveGeoTIFF(_global_map->getSubmap({"elevation"}), _utm_reference->zone, _stage_path + "/elevation/gtiff/elevation.tif");
-//
-//  // 3D Point cloud output
-//  if (_settings_save.save_dense_ply)
-//  {
-//    if (_global_map->exists("elevation_normal"))
-//      io::saveElevationPointsToPLY(*_global_map, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
-//    else
-//      io::saveElevationPointsToPLY(*_global_map, "elevation", "", "color_rgb", "valid", _stage_path + "/elevation/ply", "elevation");
-//  }
-//
-//  // 3D Mesh output
-//  if (_settings_save.save_elevation_mesh_one)
-//  {
-//    std::vector<cv::Point2i> vertex_ids = _mesher->buildMesh(*_global_map, "valid");
-//    if (_global_map->exists("elevation_normal"))
-//      io::saveElevationMeshToPLY(*_global_map, vertex_ids, "elevation", "elevation_normal", "color_rgb", "valid", _stage_path + "/elevation/mesh", "elevation");
-//    else
-//      io::saveElevationMeshToPLY(*_global_map, vertex_ids, "elevation", "", "color_rgb", "valid", _stage_path + "/elevation/mesh", "elevation");
-//  }
+  // Possibly merge tiles with gdal CoG if save option is set?
+  // Easier CoG support would require GDAL 3.2.1, or custom calls
 }
 
 void Tileing::reset()
@@ -403,7 +356,7 @@ void Tileing::initStageCallback()
   if (!m_map_tiler)
   {
     m_map_tiler = std::make_shared<MapTiler>(true, m_generate_tms_tiles);
-    m_tile_cache = std::make_shared<TileCache>("tile_cache", 500, m_cache_path, false);
+    m_tile_cache = std::make_unique<TileCache>(this, 500, m_cache_path, true);
     if (m_delete_cache_on_init) {
       deleteCache();
     }
@@ -417,32 +370,513 @@ void Tileing::printSettingsToLog()
   //LOG_F(INFO, "- publish_mesh_nth_iter: %i", _publish_mesh_nth_iter);
 }
 
-void Tileing::publish(const Frame::Ptr &frame, const CvGridMap::Ptr &map, const CvGridMap::Ptr &update, uint64_t timestamp)
-{
+void Tileing::publish(const Frame::Ptr &frame, TileCache &cache, std::map<int, cv::Rect2i> updated_tiles, uint64_t timestamp) {
   // First update statistics about outgoing frame rate
   updateStatisticsOutgoing();
 
-//  _transport_img((*_global_map)["color_rgb"], "output/rgb");
-//  _transport_img(analysis::convertToColorMapFromCVC1((*_global_map)["elevation"],
-//                                                      (*_global_map)["valid"],
-//                                                      cv::COLORMAP_JET), "output/elevation");
-//  _transport_cvgridmap(update->getSubmap({"color_rgb"}), _utm_reference->zone, _utm_reference->band,
-//                       "output/update/ortho");
-//  //_transport_cvgridmap(update->getSubmap({"elevation", "valid"}), _utm_reference->zone, _utm_reference->band, "output/update/elevation");
-//
-//  if (_publish_mesh_every_nth_kf > 0 && _publish_mesh_every_nth_kf == _publish_mesh_nth_iter)
-//  {
-//    std::vector <Face> faces = createMeshFaces(map);
-//    std::thread t(_transport_mesh, faces, "output/mesh");
-//    t.detach();
-//    _publish_mesh_nth_iter = 0;
-//  } else if (_publish_mesh_every_nth_kf > 0)
-//  {
-//    _publish_mesh_nth_iter++;
-//  }
+  // Right now we only update when we write tiles to the drive.  Optionally, we could publish changed tiles here, but since
+  // we don't have anything that consumes them, we skip this step
 }
 
 uint32_t Tileing::getQueueDepth()
 {
   return m_buffer.size();
+}
+
+
+
+TileCache::TileCache(Tileing *tiling_stage, double sleep_time, std::string output_directory, bool verbose)
+    : WorkerThreadBase("tile_cache_io", sleep_time, verbose),
+      m_dir_toplevel(std::move(output_directory)),
+      m_has_init_directories(false),
+      m_do_update(false),
+      m_tiling_stage(tiling_stage)
+{
+  m_data_ready_functor = [=]{ return (m_do_update || isFinishRequested()); };
+}
+
+TileCache::~TileCache()
+{
+  flushAll();
+  for (auto it = m_cache_bounds.begin(); it != m_cache_bounds.end(); it++) {
+    LOG_F(INFO, "Final cache bounds for zoom %d : X %d - %d : Y %d - %d", it->first,
+          it->second.x, it->second.x + it->second.width - 1,
+          it->second.y, it->second.y + it->second.height - 1);
+  }
+}
+
+void TileCache::setOutputFolder(const std::string &dir)
+{
+  std::lock_guard<std::mutex> lock(m_mutex_settings);
+  m_dir_toplevel = dir;
+}
+
+std::string TileCache::getCachePath(const std::string &layer)
+{
+  std::string filename = m_dir_toplevel + "/"+ layer + "/";
+  return filename;
+}
+
+bool TileCache::process()
+{
+  bool has_processed = false;
+
+  if (m_mutex_do_update.try_lock())
+  {
+    long t;
+
+    // Give update lock free as fast as possible, so we won't block other threads from adding data
+    bool do_update = m_do_update;
+    m_do_update = false;
+    m_mutex_do_update.unlock();
+
+    // Calculate the region where tiles were updated
+    std::map<int, cv::Rect2i> write_region;
+
+    if (do_update)
+    {
+      int n_tiles_written = 0;
+
+      t = getCurrentTimeMilliseconds();
+
+      for (auto &cached_elements_zoom : m_cache)
+      {
+        cv::Rect2i roi_prediction = m_roi_prediction.at(cached_elements_zoom.first);
+        for (auto &cached_elements_column : cached_elements_zoom.second)
+        {
+          for (auto &cached_elements : cached_elements_column.second)
+          {
+            std::lock_guard<std::mutex> lock(cached_elements.second->mutex);
+            cached_elements.second->tile->lock();
+
+            if (!cached_elements.second->was_written)
+            {
+              n_tiles_written++;
+              write(cached_elements.second);
+
+              // Update our roi containing written tiles
+              auto write_roi = write_region.find(cached_elements_zoom.first);
+              if (write_roi != write_region.end()) {
+                write_roi->second |= cv::Rect2i(cached_elements.second->tile->x(), cached_elements.second->tile->y(), 1, 1);
+              } else {
+                write_region[cached_elements_zoom.first] = cv::Rect2i(cached_elements.second->tile->x(), cached_elements.second->tile->y(), 1, 1);
+              }
+            }
+
+            if (isCached(cached_elements.second))
+            {
+              int tx = cached_elements.second->tile->x();
+              int ty = cached_elements.second->tile->y();
+              if (tx < roi_prediction.x || tx > roi_prediction.x + roi_prediction.width
+                  || ty < roi_prediction.y || ty > roi_prediction.y + roi_prediction.height)
+              {
+                flush(cached_elements.second);
+              }
+            }
+            cached_elements.second->tile->unlock();
+          }
+        }
+      }
+
+      if (n_tiles_written > 0) {
+        // TODO: Update cache here instead of main, so we write when file system updates have occurred
+        for (auto it = write_region.begin(); it != write_region.end(); it++) {
+          LOG_IF_F(INFO, m_verbose, "Cache File Update for zoom %d : X %d - %d : Y %d - %d", it->first,
+                it->second.x, it->second.x + it->second.width - 1,
+                it->second.y, it->second.y + it->second.height - 1);
+        }
+
+        // Publish update files by zoom and region
+        LOG_F(INFO, "Publishing...");
+        t = getCurrentTimeMilliseconds();
+        publishWrittenTiles(write_region, n_tiles_written);
+        LOG_F(INFO, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
+
+      }
+      LOG_IF_F(INFO, m_verbose, "Tiles written: %i", n_tiles_written);
+      LOG_IF_F(INFO, m_verbose, "Timing [Cache Flush]: %lu ms", getCurrentTimeMilliseconds() - t);
+
+      has_processed = true;
+    }
+  }
+  return has_processed;
+}
+
+void TileCache::reset()
+{
+  m_cache.clear();
+  m_cache_bounds.clear();
+}
+
+void TileCache::add(int zoom_level, const std::vector<Tile::Ptr> &tiles, const cv::Rect2i &roi_idx)
+{
+  std::lock_guard<std::mutex> lock(m_mutex_cache);
+
+  // Assuming all tiles are based on the same data, therefore have the same number of layers and layer names
+  std::vector<std::string> layer_names = tiles[0]->data()->getAllLayerNames();
+
+  std::vector<LayerMetaData> layer_meta;
+  for (const auto &layer_name : layer_names)
+  {
+    // Saving the name and the type of the layer into the meta data
+    CvGridMap::Layer layer = tiles[0]->data()->getLayer(layer_name);
+    layer_meta.emplace_back(LayerMetaData{layer_name, layer.data.type(), layer.interpolation});
+  }
+
+  if (!m_has_init_directories)
+  {
+    createDirectories(m_dir_toplevel + "/", layer_names, "");
+    m_has_init_directories = true;
+  }
+
+  auto it_zoom = m_cache.find(zoom_level);
+
+  long timestamp = getCurrentTimeMilliseconds();
+
+  long t = getCurrentTimeMilliseconds();
+
+  // Cache for this zoom level already exists
+  if (it_zoom != m_cache.end())
+  {
+    for (const auto &t : tiles)
+    {
+      // Here we find a tile grid for a specific zoom level and add the new tiles to it.
+      // Important: Tiles that already exist will be overwritten!
+      t->lock();
+      auto it_tile_x = it_zoom->second.find(t->x());
+      if (it_tile_x == it_zoom->second.end())
+      {
+        // Zoom level exists, but tile column is
+        createDirectories(m_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
+        it_zoom->second[t->x()][t->y()].reset(new CacheElement{timestamp, layer_meta, t, false});
+      }
+      else
+      {
+        auto it_tile_xy = it_tile_x->second.find(t->y());
+        if (it_tile_xy == it_tile_x->second.end())
+        {
+          // Zoom level and column was found, but tile did not yet exist
+          it_tile_x->second[t->y()].reset(new CacheElement{timestamp, layer_meta, t, false});
+        }
+        else
+        {
+          // Existing tile was found inside zoom level and column
+          it_tile_xy->second->mutex.lock(); // note: mutex goes out of scope after this operation, no unlock needed.
+          it_tile_xy->second.reset(new CacheElement{timestamp, layer_meta, t, false});
+        }
+      }
+      t->unlock();
+    }
+  }
+    // Cache for this zoom level does not yet exist
+  else
+  {
+    createDirectories(m_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level));
+
+    CacheElementGrid tile_grid;
+    for (const auto &t : tiles)
+    {
+      // By assigning a new grid of tiles to the zoom level we overwrite all existing data. But in this case there was
+      // no prior data found for the specific zoom level.
+      t->lock();
+      auto it_tile_x = it_zoom->second.find(t->x());
+      if (it_tile_x == it_zoom->second.end())
+        createDirectories(m_dir_toplevel + "/", layer_names, "/" + std::to_string(zoom_level) + "/" + std::to_string(t->x()));
+
+      tile_grid[t->x()][t->y()].reset(new CacheElement{timestamp, layer_meta, t, false});
+      t->unlock();
+    }
+    m_cache[zoom_level] = tile_grid;
+  }
+
+  LOG_IF_F(INFO, m_verbose, "Timing [Cache Push]: %lu ms", getCurrentTimeMilliseconds() - t);
+
+  // Finally, update the bounds to take into account the newly added tile
+  auto bounds_iter = m_cache_bounds.find(zoom_level);
+  if(bounds_iter != m_cache_bounds.end()) {
+    bounds_iter->second |= roi_idx;
+  } else {
+    m_cache_bounds[zoom_level] = roi_idx;
+  }
+
+  updatePrediction(zoom_level, roi_idx);
+
+  std::lock_guard<std::mutex> lock1(m_mutex_do_update);
+  m_do_update = true;
+  notify();
+}
+
+Tile::Ptr TileCache::get(int tx, int ty, int zoom_level)
+{
+  auto it_zoom = m_cache.find(zoom_level);
+  if (it_zoom == m_cache.end())
+  {
+    return nullptr;
+  }
+
+  auto it_tile_x = it_zoom->second.find(tx);
+  if (it_tile_x == it_zoom->second.end())
+  {
+    return nullptr;
+  }
+
+  auto it_tile_xy = it_tile_x->second.find(ty);
+  if (it_tile_xy == it_tile_x->second.end())
+  {
+    return nullptr;
+  }
+
+  std::lock_guard<std::mutex> lock(it_tile_xy->second->mutex);
+
+  // Warning: We lock the tile now and return it to the calling thread locked. Therefore the responsibility to unlock
+  // it is on the calling thread!
+  it_tile_xy->second->tile->lock();
+  if (!isCached(it_tile_xy->second))
+  {
+    load(it_tile_xy->second);
+  }
+
+  return it_tile_xy->second->tile;
+}
+
+std::map<int, cv::Rect2i> TileCache::getBounds() const
+{
+  return m_cache_bounds;
+}
+
+void TileCache::publishWrittenTiles(std::map<int, cv::Rect2i> &update_region, int num_tiles) {
+  LOG_IF_F(INFO, m_verbose, "Publishing %d tiles...", num_tiles);
+  m_tiling_stage->m_transport_tiling(getCachePath("rgb_color"), "png", update_region, "output/update/rgb_color");
+  m_tiling_stage->m_transport_tiling(getCachePath("rgb_color"), "png", getBounds(), "output/full/rgb_color");
+}
+
+void TileCache::flushAll()
+{
+  int n_tiles_written = 0;
+
+  // Calculate the region where tiles were updated
+  std::map<int, cv::Rect2i> write_region;
+
+  LOG_IF_F(INFO, m_verbose, "Flushing all tiles...");
+
+  long t = getCurrentTimeMilliseconds();
+
+  for (auto &zoom_levels : m_cache)
+    for (auto &cache_column : zoom_levels.second)
+      for (auto &cache_element : cache_column.second)
+      {
+        std::lock_guard<std::mutex> lock(cache_element.second->mutex);
+        cache_element.second->tile->lock();
+        if (!cache_element.second->was_written)
+        {
+          write(cache_element.second);
+          n_tiles_written++;
+
+          // Update our roi containing written tiles
+          auto write_roi = write_region.find(zoom_levels.first);
+          if (write_roi != write_region.end()) {
+            write_roi->second |= cv::Rect2i(cache_element.second->tile->x(), cache_element.second->tile->y(), 1, 1);
+          } else {
+            write_region[zoom_levels.first] = cv::Rect2i(cache_element.second->tile->x(), cache_element.second->tile->y(), 1, 1);
+          }
+        }
+
+        cache_element.second->tile->data() = nullptr;
+        cache_element.second->tile->unlock();
+      }
+
+  if (n_tiles_written > 0) {
+    // TODO: Update cache here instead of main, so we write when file system updates have occurred
+    for (auto it = write_region.begin(); it != write_region.end(); it++) {
+      LOG_IF_F(INFO, m_verbose, "Flushall File Update for zoom %d : X %d - %d : Y %d - %d", it->first,
+            it->second.x, it->second.x + it->second.width - 1,
+            it->second.y, it->second.y + it->second.height - 1);
+    }
+
+    // Publish update files by zoom and region
+    LOG_F(INFO, "Publishing...");
+    t = getCurrentTimeMilliseconds();
+    publishWrittenTiles(write_region, n_tiles_written);
+    LOG_F(INFO, "Timing [Publish]: %lu ms", getCurrentTimeMilliseconds()-t);
+    publishWrittenTiles(write_region, n_tiles_written);
+  }
+}
+
+void TileCache::loadAll()
+{
+  for (auto &zoom_levels : m_cache)
+    for (auto &cache_column : zoom_levels.second)
+      for (auto &cache_element : cache_column.second)
+      {
+        std::lock_guard<std::mutex> lock(cache_element.second->mutex);
+        cache_element.second->tile->lock();
+        if (!isCached(cache_element.second))
+          load(cache_element.second);
+        cache_element.second->tile->unlock();
+      }
+}
+
+void TileCache::deleteCache()
+{
+  // Remove all cache items
+  flushAll();
+  m_has_init_directories = false;
+  auto files = io::getFileList(m_dir_toplevel, "");
+  for (auto & file : files) {
+    if (!file.empty()) io::removeFileOrDirectory(file);
+  }
+}
+
+void TileCache::deleteCache(std::string layer)
+{
+  // Attempt to remove the specific layer name
+  flushAll();
+  m_has_init_directories = false;
+  io::removeFileOrDirectory(m_dir_toplevel + "/" + layer);
+}
+
+void TileCache::load(const CacheElement::Ptr &element)
+{
+  for (const auto &meta : element->layer_meta)
+  {
+    std::string filename = m_dir_toplevel + "/"
+                           + meta.name + "/"
+                           + std::to_string(element->tile->zoom_level()) + "/"
+                           + std::to_string(element->tile->x()) + "/"
+                           + std::to_string(element->tile->y());
+
+    int type = meta.type & CV_MAT_DEPTH_MASK;
+
+    switch(type)
+    {
+      case CV_8U:
+        filename += ".png";
+        break;
+      case CV_16U:
+        filename += ".bin";
+        break;
+      case CV_32F:
+        filename += ".bin";
+        break;
+      case CV_64F:
+        filename += ".bin";
+        break;
+      default:
+        throw(std::invalid_argument("Error reading tile: data type unknown!"));
+    }
+
+    if (io::fileExists(filename))
+    {
+      cv::Mat data = io::loadImage(filename);
+
+      element->tile->data()->add(meta.name, data, meta.interpolation_flag);
+
+      LOG_IF_F(INFO, m_verbose, "Read tile from disk: %s", filename.c_str());
+    }
+    else
+    {
+      LOG_IF_F(WARNING, m_verbose, "Failed reading tile from disk: %s", filename.c_str());
+      throw(std::invalid_argument("Error loading tile."));
+    }
+  }
+}
+
+void TileCache::write(const CacheElement::Ptr &element)
+{
+  for (const auto &meta : element->layer_meta)
+  {
+    cv::Mat data = element->tile->data()->get(meta.name);
+
+    std::string filename = m_dir_toplevel + "/"
+                           + meta.name + "/"
+                           + std::to_string(element->tile->zoom_level()) + "/"
+                           + std::to_string(element->tile->x()) + "/"
+                           + std::to_string(element->tile->y());
+
+    int type = data.type() & CV_MAT_DEPTH_MASK;
+
+    switch(type)
+    {
+      case CV_8U:
+        filename += ".png";
+        break;
+      case CV_16U:
+        filename += ".bin";
+        break;
+      case CV_32F:
+        filename += ".bin";
+        break;
+      case CV_64F:
+        filename += ".bin";
+        break;
+      default:
+        throw(std::invalid_argument("Error writing tile: data type unknown!"));
+    }
+
+    io::saveImage(data, filename);
+
+    element->was_written = true;
+  }
+}
+
+void TileCache::flush(const CacheElement::Ptr &element)
+{
+  if (!element->was_written)
+    write(element);
+
+  for (const auto &meta : element->layer_meta)
+  {
+    element->tile->data()->remove(meta.name);
+  }
+
+  LOG_IF_F(INFO, m_verbose, "Flushed tile (%i, %i, %i) [zoom, x, y]", element->tile->zoom_level(), element->tile->x(), element->tile->y());
+}
+
+bool TileCache::isCached(const CacheElement::Ptr &element) const
+{
+  return !(element->tile->data()->empty());
+}
+
+size_t TileCache::estimateByteSize(const Tile::Ptr &tile) const
+{
+  tile->lock();
+  //size_t bytes = tile->data().total() * tile->data().elemSize();
+  tile->unlock();
+
+  //return bytes;
+  return 0;
+}
+
+void TileCache::updatePrediction(int zoom_level, const cv::Rect2i &roi_current)
+{
+  std::lock_guard<std::mutex> lock(m_mutex_roi_prev_request);
+  std::lock_guard<std::mutex> lock1(m_mutex_roi_prediction);
+
+  auto it_roi_prev_request = m_roi_prev_request.find(zoom_level);
+  if (it_roi_prev_request == m_roi_prev_request.end())
+  {
+    // There was no previous request, so there can be no prediction which region of tiles might be needed in the next
+    // processing step. Therefore set the current roi to be the prediction for the next request.
+    m_roi_prediction[zoom_level] = roi_current;
+  }
+  else
+  {
+    // We have a previous roi that was requested, therefore we can extrapolate what the next request might look like
+    // utilizing our current roi
+    auto it_roi_prediction = m_roi_prediction.find(zoom_level);
+    it_roi_prediction->second.x = roi_current.x + (roi_current.x - it_roi_prev_request->second.x);
+    it_roi_prediction->second.y = roi_current.y + (roi_current.y - it_roi_prev_request->second.y);
+    it_roi_prediction->second.width = roi_current.width + (roi_current.width - it_roi_prev_request->second.width);
+    it_roi_prediction->second.height = roi_current.height + (roi_current.height - it_roi_prev_request->second.height);
+  }
+
+  it_roi_prev_request->second = roi_current;
+}
+
+void TileCache::createDirectories(const std::string &toplevel, const std::vector<std::string> &layer_names, const std::string &tile_tree)
+{
+  for (const auto &layer_name : layer_names)
+  {
+    io::createDir(toplevel + layer_name + tile_tree);
+  }
 }

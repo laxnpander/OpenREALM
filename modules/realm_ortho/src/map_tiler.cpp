@@ -121,15 +121,43 @@ void MapTiler::computeLookupResolutionFromZoom(double latitude)
   }
 }
 
-cv::Point2i MapTiler::computeTileFromLatLon(double lat, double lon, int zoom_level) const
+cv::Point2i MapTiler::computeTileFromLatLon(double lat, double lon, int zoom_level, bool tms)
 {
   double lat_rad = lat * M_PI / 180.0;
-  auto n = static_cast<double>(m_lookup_nrof_tiles_from_zoom.at(zoom_level));
+  int n = static_cast<int>(std::pow(2, zoom_level));
 
   cv::Point2i pos;
   pos.x = static_cast<int>(std::floor((lon + 180.0) / 360.0 * n));
   pos.y = static_cast<int>(std::floor((1.0 - asinh(tan(lat_rad)) / M_PI) / 2.0 * n));
+
+  if (tms) pos.y = n - pos.y - 1;
   return pos;
+}
+
+WGSPose MapTiler::computeLatLonForTile(int x, int y, int zoom_level, bool tms)
+{
+  double n = std::pow(2, zoom_level);
+  if (tms) y = static_cast<int>((n - 1) - y);
+  double k = M_PI - 2.0 * M_PI * y / n;
+
+  WGSPose wgs{};
+  wgs.latitude = 180.0 / M_PI * atan(0.5 * (exp(k) - exp(-k)));
+  wgs.longitude = x / n * 360.0 - 180;
+
+  return wgs;
+}
+
+WGSPose MapTiler::computeCenterLatLonForTile(int x, int y, int zoom_level, bool tms)
+{
+  double n = std::pow(2, zoom_level);
+  if (tms) y = static_cast<int>((n - 1) - y);
+  double k = M_PI - 2.0 * M_PI * (y + 0.5) / n;
+
+  WGSPose wgs{};
+  wgs.latitude = 180.0 / M_PI * atan(0.5 * (exp(k) - exp(-k)));
+  wgs.longitude = (x + 0.5) / n * 360.0 - 180;
+
+  return wgs;
 }
 
 cv::Point2d MapTiler::computeMetersFromPixels(int px, int py, int zoom_level)
@@ -215,18 +243,6 @@ cv::Rect2d MapTiler::computeTileBoundsMeters(const cv::Rect2i &idx_roi, int zoom
   cv::Rect2d tile_bounds_low = computeTileBoundsMeters(idx_roi.x, y_low, zoom_level);
   cv::Rect2d tile_bounds_high = computeTileBoundsMeters(idx_roi.x + idx_roi.width + 1, y_high, zoom_level);
   return cv::Rect2d(tile_bounds_low.x, tile_bounds_low.y, tile_bounds_high.x - tile_bounds_low.x, tile_bounds_high.y - tile_bounds_low.y);
-}
-
-WGSPose MapTiler::computeLatLonForTile(int x, int y, int zoom_level) const
-{
-  auto n = static_cast<double>(m_lookup_nrof_tiles_from_zoom.at(zoom_level));
-  double k = M_PI - 2.0 * M_PI * y / n;
-
-  WGSPose wgs{};
-  wgs.latitude = 180.0 / M_PI * atan(0.5 * (exp(k) - exp(-k)));
-  wgs.longitude = x / n * 360.0 - 180;
-
-  return wgs;
 }
 
 int MapTiler::computeZoomForPixelSize(double GSD, bool do_upscale) const
