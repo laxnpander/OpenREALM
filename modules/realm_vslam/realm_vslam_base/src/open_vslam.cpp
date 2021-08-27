@@ -157,7 +157,7 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
   else if ((m_previous_state == openvslam::tracker_state_t::Tracking || m_previous_state == openvslam::tracker_state_t::Lost) &&
             (tracker_state == openvslam::tracker_state_t::NotInitialized || tracker_state == openvslam::tracker_state_t::Initializing)) {
     // If we had tracking, then lost it then OpenVSlam initiated a reset and we should reset our local frames as well
-    LOG_F(INFO, "Internal OpenVSLAM reset detected (State: %d was %d)", tracker_state, m_previous_state);
+    LOG_F(INFO, "Internal OpenVSLAM reset detected (State: %i was %i)", (int)tracker_state, (int)m_previous_state);
     internalReset();
     m_reset_callback();
   }
