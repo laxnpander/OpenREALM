@@ -35,6 +35,7 @@ Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
       m_min_tile_zoom((*stage_set)["min_zoom"].toInt()),
       m_max_tile_zoom((*stage_set)["max_zoom"].toInt()),
       m_delete_cache_on_init((*stage_set)["delete_cache_on_init"].toInt() > 0),
+      m_load_cache_on_init((*stage_set)["load_cache_on_init"].toInt() > 0),
       m_utm_reference(nullptr),
       m_map_tiler(nullptr),
       m_tile_cache(nullptr),
@@ -357,9 +358,15 @@ void Tileing::initStageCallback()
   {
     m_map_tiler = std::make_shared<MapTiler>(true, m_generate_tms_tiles);
     m_tile_cache = std::make_unique<TileCache>(this, 500, m_cache_path, true);
+
+    // If both delete and load are selected, delete first, which will override the load
     if (m_delete_cache_on_init) {
       deleteCache();
     }
+    if (m_load_cache_on_init) {
+      m_tile_cache->loadDiskCache();
+    }
+
     m_tile_cache->start();
   }
 }
@@ -441,7 +448,12 @@ bool TileCache::process()
 
       for (auto &cached_elements_zoom : m_cache)
       {
-        cv::Rect2i roi_prediction = m_roi_prediction.at(cached_elements_zoom.first);
+        // Find our prediction region, default to a zero area prediction if it doesn't exist
+        cv::Rect2i roi_prediction(0,0,0,0);
+        if (m_roi_prediction.find(cached_elements_zoom.first) != m_roi_prediction.end()) {
+          roi_prediction = m_roi_prediction.at(cached_elements_zoom.first);
+        }
+
         for (auto &cached_elements_column : cached_elements_zoom.second)
         {
           for (auto &cached_elements : cached_elements_column.second)
@@ -635,7 +647,6 @@ Tile::Ptr TileCache::get(int tx, int ty, int zoom_level)
   {
     load(it_tile_xy->second);
   }
-
   return it_tile_xy->second->tile;
 }
 
@@ -681,7 +692,10 @@ void TileCache::flushAll()
           }
         }
 
-        cache_element.second->tile->data() = nullptr;
+        auto layers = cache_element.second->tile->data()->getAllLayerNames();
+        for (auto layer : layers) {
+          cache_element.second->tile->data()->remove(layer);
+        }
         cache_element.second->tile->unlock();
       }
 
@@ -714,6 +728,108 @@ void TileCache::loadAll()
           load(cache_element.second);
         cache_element.second->tile->unlock();
       }
+}
+
+
+void TileCache::loadDiskCache()
+{
+  LOG_F(INFO, "Attempting to load pre-existing map from cache...");
+
+  // Read which folders are present.  Ensure all folders required to load the cache are there
+  if (!(boost::filesystem::exists(m_dir_toplevel + "/color_rgb") &&
+        boost::filesystem::exists(m_dir_toplevel + "/elevation_angle") &&
+        boost::filesystem::exists(m_dir_toplevel + "/elevation") &&
+        boost::filesystem::exists(m_dir_toplevel + "/elevated"))) {
+    LOG_F(WARNING, "One or more items required to load cache does NOT exist.  Creating new cache...");
+    return;
+  }
+
+  int element_count = 0;
+
+  // If all major folders are present, load all items that are on disk into, using RGB as a reference
+  if (boost::filesystem::is_directory(m_dir_toplevel + "/color_rgb")) {
+
+    // Sort in reverse order, so we add higher zoom levels first
+    auto cache_files = io::getFileList(m_dir_toplevel + "/color_rgb", ".png", std::greater<>());
+
+    for (auto& file : cache_files) {
+
+      // Parse zoom, x, any y data from the path
+      auto path = boost::filesystem::path(file);
+      int z = std::stoi(path.parent_path().parent_path().filename().string());
+      int x = std::stoi(path.parent_path().filename().string());
+      int y = std::stoi(path.filename().stem().string());
+
+      // Figure out the tile bounds to load
+      cv::Rect2i data_roi(0, 0, 255, 255);
+      double resolution = 1.0;
+
+      // NOTE:
+      // Currently, we don't store any way to tell the interpolation method used.  The code right now defaults to INTER_LINEAR, so we can assume that for now.
+      // Longer term, it may make sense to write these settings out to the base folder of each category and load it again.
+      std::vector<LayerMetaData> layers;
+
+      // At a minimum, we should have color_rgb, elevation_angle, elevation.  Elevated is optional
+      bool has_required_layers = true;
+
+      // RGB Layer Cache - Should always exist.  To load the others
+      layers.push_back(LayerMetaData{"color_rgb", CV_8UC4, cv::InterpolationFlags::INTER_LINEAR});
+
+      // Elevation Angle Cache
+      if (boost::filesystem::exists(m_dir_toplevel + "/elevation_angle/" + std::to_string(z) + "/" + std::to_string(x) + "/" + std::to_string(y) + ".bin")) {
+        layers.push_back(LayerMetaData{"elevation_angle", CV_32FC1, cv::InterpolationFlags::INTER_LINEAR});
+      } else {
+        LOG_F(WARNING, "Unable to find required elevation_angle layer for z/x/y of %d / %d / %d.", z, x, y);
+        has_required_layers = false;
+      }
+
+      // Elevation Cache
+      if (boost::filesystem::exists(m_dir_toplevel + "/elevation/" + std::to_string(z) + "/" + std::to_string(x) + "/" + std::to_string(y) + ".bin")) {
+        layers.push_back(LayerMetaData{"elevation", CV_32FC1, cv::InterpolationFlags::INTER_LINEAR});
+      } else {
+        LOG_F(WARNING, "Unable to find required elevation layer for z/x/y of %d / %d / %d.", z, x, y);
+        has_required_layers = false;
+      }
+
+      // Elevated Cache (Only exists for highest zoom)
+      if (boost::filesystem::exists(m_dir_toplevel + "/elevated/" + std::to_string(z) + "/" + std::to_string(x) + "/" + std::to_string(y) + ".png")) {
+        layers.push_back(LayerMetaData{"elevated", CV_8UC1, cv::InterpolationFlags::INTER_LINEAR});
+      }
+
+      if (has_required_layers) {
+        // Check if zoom already exists
+        auto it_zoom = m_cache.find(z);
+        if (it_zoom != m_cache.end()) {
+          // Zoom exists
+
+          // Check if x map already exists
+          auto it_x = it_zoom->second.find(x);
+          if (it_x != it_zoom->second.end()) {
+            // X exists
+            it_x->second[y].reset(new CacheElement{getCurrentTimeMilliseconds(), layers, Tile::Ptr(new Tile(z,x,y, CvGridMap(data_roi, 1.0), false)), true});
+          } else {
+            // X doesn't exist
+            CacheElementItem x_entry;
+            x_entry[y].reset(new CacheElement{getCurrentTimeMilliseconds(), layers, Tile::Ptr(new Tile(z,x,y, CvGridMap(data_roi, 1.0), false)), true});
+            m_cache[z][x] = x_entry;
+          }
+        } else {
+          // Zoom doesn't exist
+          // Add to cache, but don't load any of the tiles
+          CacheElementGrid tile_grid;
+          tile_grid[x][y].reset(new CacheElement{getCurrentTimeMilliseconds(), layers, Tile::Ptr(new Tile(z,x,y, CvGridMap(data_roi, 1.0), false)), true});
+          m_cache[z] = tile_grid;
+        }
+
+        element_count++;
+      } else {
+        LOG_F(WARNING, "Unable to find all layers for z/x/y of %d / %d / %d, skipping add to cache!", z, x, y);
+      }
+    }
+  }
+
+  LOG_F(INFO, "Loaded %d existing tiles from cache.", element_count);
+
 }
 
 void TileCache::deleteCache()

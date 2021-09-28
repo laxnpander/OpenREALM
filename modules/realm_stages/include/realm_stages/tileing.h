@@ -93,6 +93,9 @@ class Tileing : public StageBase
     /// Indicates we should wipe the cache directory when starting or resetting the stage
     bool m_delete_cache_on_init;
 
+    /// If true, files from disk will be loaded into the tile cache before stitching begins
+    bool m_load_cache_on_init;
+
     /// The directory to store the output map tiles in, defaults to log directory
     std::string m_cache_path;
 
@@ -142,6 +145,7 @@ class Tileing : public StageBase
     };
 
     using CacheElementGrid = std::map<int, std::map<int, CacheElement::Ptr>>;
+    using CacheElementItem = std::map<int, CacheElement::Ptr>;
 
   public:
     TileCache(Tileing *tiling_stage, double sleep_time, std::string output_directory, bool verbose);
@@ -161,6 +165,7 @@ class Tileing : public StageBase
     void flushAll();
     void loadAll();
 
+    void loadDiskCache();
     void deleteCache();
     void deleteCache(std::string layer);
 
