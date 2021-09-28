@@ -986,7 +986,8 @@ void TileCache::updatePrediction(int zoom_level, const cv::Rect2i &roi_current)
     it_roi_prediction->second.height = roi_current.height + (roi_current.height - it_roi_prev_request->second.height);
   }
 
-  it_roi_prev_request->second = roi_current;
+  // Create or update the previous request for this zoom.  This will overwrite the old entry.
+  m_roi_prev_request[zoom_level] = roi_current;
 }
 
 void TileCache::createDirectories(const std::string &toplevel, const std::vector<std::string> &layer_names, const std::string &tile_tree)
