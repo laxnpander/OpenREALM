@@ -96,6 +96,9 @@ class Tileing : public StageBase
     /// If true, files from disk will be loaded into the tile cache before stitching begins
     bool m_load_cache_on_init;
 
+    /// Indicates we have published that initial tile cache update for our cache_on_init load
+    bool m_initial_cache_published;
+
     /// The directory to store the output map tiles in, defaults to log directory
     std::string m_cache_path;
 

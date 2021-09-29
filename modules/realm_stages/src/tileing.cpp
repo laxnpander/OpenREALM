@@ -36,6 +36,7 @@ Tileing::Tileing(const StageSettings::Ptr &stage_set, double rate)
       m_max_tile_zoom((*stage_set)["max_zoom"].toInt()),
       m_delete_cache_on_init((*stage_set)["delete_cache_on_init"].toInt() > 0),
       m_load_cache_on_init((*stage_set)["load_cache_on_init"].toInt() > 0),
+      m_initial_cache_published(false),
       m_utm_reference(nullptr),
       m_map_tiler(nullptr),
       m_tile_cache(nullptr),
@@ -79,6 +80,16 @@ void Tileing::addFrame(const Frame::Ptr &frame)
 
 bool Tileing::process()
 {
+  // Check if we have published our initial tile cache load if that option is set
+  // This is delayed to the first processing loop since on init, we may not have
+  // all listeners connected yet.  this loop shoun after start() is called.
+  if (m_load_cache_on_init && !m_initial_cache_published) {
+    auto bounds = m_tile_cache->getBounds();
+    LOG_F(INFO, "Initial publish of %d loaded cache tiles", bounds.size());
+    m_tile_cache->publishWrittenTiles(bounds, bounds.size());
+    m_initial_cache_published = true;
+  }
+
   bool has_processed = false;
   if (!m_buffer.empty() && m_map_tiler && m_tile_cache)
   {
@@ -821,6 +832,14 @@ void TileCache::loadDiskCache()
           m_cache[z] = tile_grid;
         }
 
+        // Update cache bounds
+        auto bounds_iter = m_cache_bounds.find(z);
+        if(bounds_iter != m_cache_bounds.end()) {
+          bounds_iter->second |= cv::Rect2i(x, y, 1, 1);
+        } else {
+          m_cache_bounds[z] = cv::Rect2i(x, y, 1, 1);
+        }
+
         element_count++;
       } else {
         LOG_F(WARNING, "Unable to find all layers for z/x/y of %d / %d / %d, skipping add to cache!", z, x, y);
@@ -829,7 +848,6 @@ void TileCache::loadDiskCache()
   }
 
   LOG_F(INFO, "Loaded %d existing tiles from cache.", element_count);
-
 }
 
 void TileCache::deleteCache()
