@@ -92,6 +92,11 @@ void StageBase::registerCvGridMapTransport(const std::function<void(const CvGrid
   m_transport_cvgridmap = func;
 }
 
+void StageBase::registerTilingTransport(const std::function<void(const std::string &, const std::string &, std::map<int, cv::Rect2i> updated_tiles, const std::string &)> &func)
+{
+  m_transport_tiling = func;
+}
+
 void StageBase::setStatisticsPeriod(uint32_t s)
 {
   std::unique_lock<std::mutex> lock(m_mutex_statistics);

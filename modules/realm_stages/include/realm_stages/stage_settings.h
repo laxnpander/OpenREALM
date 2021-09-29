@@ -133,7 +133,11 @@ class TileingSettings : public StageSettings
 public:
   TileingSettings()
   {
-
+    add("tms_tiles", Parameter_t<int>{1, "Generate output tiles using TMS standard. If false, Google/OSM standard is used."});
+    add("min_zoom", Parameter_t<int>{11, "The minimum tile zoom to generate for the output tiles."});
+    add("max_zoom", Parameter_t<int>{20, "The maximum tile zoom to generate for the output tiles. (Set to -1 for maximum zoom based on GSD)"});
+    add("delete_cache_on_init", Parameter_t<int>{0, "If there are leftover cache items in the cache folder, delete them before starting the stage."});
+    add("load_cache_on_init", Parameter_t<int>{0, "If there are leftover cache items in the cache folder, load them into cache before starting the stage."});
   }
 };
 

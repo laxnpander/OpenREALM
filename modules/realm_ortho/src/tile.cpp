@@ -4,10 +4,11 @@
 
 using namespace realm;
 
-Tile::Tile(int zoom_level, int tx, int ty, const CvGridMap &map)
+Tile::Tile(int zoom_level, int tx, int ty, const CvGridMap &map, bool is_tms)
  : m_zoom_level(zoom_level),
    m_index(tx, ty),
-   m_data(std::make_shared<CvGridMap>(map))
+   m_data(std::make_shared<CvGridMap>(map)),
+   m_tms(is_tms)
 {
 }
 
@@ -19,6 +20,11 @@ void Tile::lock()
 void Tile::unlock()
 {
   m_mutex_data.unlock();
+}
+
+bool Tile::is_tms() const
+{
+  return m_tms;
 }
 
 int Tile::zoom_level() const

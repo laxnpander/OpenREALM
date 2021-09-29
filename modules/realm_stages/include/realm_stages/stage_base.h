@@ -9,6 +9,7 @@
 #include <chrono>
 #include <mutex>
 #include <string>
+#include <map>
 
 #include <opencv2/core.hpp>
 
@@ -62,6 +63,7 @@ class StageBase : public WorkerThreadBase
     using ImageTransportFunc = std::function<void(const cv::Mat &, const std::string &)>;
     using MeshTransportFunc = std::function<void(const std::vector<Face> &, const std::string &)>;
     using CvGridMapTransportFunc = std::function<void(const CvGridMap &, uint8_t zone, char band, const std::string &)>;
+    using TilingTransportFunc = std::function<void(const std::string &, const std::string &, std::map<int, cv::Rect2i> updated_tiles, const std::string &)>;
   public:
     /*!
      * @brief Basic constructor for stage class
@@ -171,8 +173,18 @@ class StageBase : public WorkerThreadBase
      * triggered inside the derived stage to transport results. Therefore the callbacks MUST be set, otherwise no data
      * will leave the stage.
      * @param func This function consists of a CvGridMap type, a defined topic as description for the data (for example:
-     * "output/result_gridmap". Timestamp may or may not be set inside the stage fo  */
+     * "output/result_gridmap". Timestamp may or may not be set inside the stage */
     void registerCvGridMapTransport(const CvGridMapTransportFunc &func);
+
+    /*!
+     * @brief Because REALM is independent from the communication infrastructure (e.g. ROS), a transport to the
+     * corresponding communication interface has to be defined. We chose to use callback functions, that can be
+     * triggered inside the derived stage to transport results. Therefore the callbacks MUST be set, otherwise no data
+     * will leave the stage.
+     * @param func This function consists of a TileCache type, a std::map with tile bounds and zoom levels, and
+     *  a defined topic as description for the data (for example:
+     * "output/update/tile_cache". Timestamp may or may not be set inside the stage */
+    void registerTilingTransport(const TilingTransportFunc &func);
 
   protected:
 
@@ -255,6 +267,13 @@ class StageBase : public WorkerThreadBase
      * "output/result_gridmap".  be set through "registerCvGridMapTransport".
      */
     CvGridMapTransportFunc m_transport_cvgridmap;
+
+    /*!
+     * @brief This function consists of a reference to a tile cache with the current tiles, and a std::map that contains
+     * the 2d tile boundaries in the current map for each zoom level in the map and a defined topic as a description
+     * for the data.
+     */
+     TilingTransportFunc m_transport_tiling;
 
     /*!
      * @brief Setting an async data ready functor allows the thread to wake up from sleep outside the sleep time. It

@@ -83,7 +83,7 @@ std::vector<std::string> split(const char *str, char c = ' ');
  * @param dir Directory to grab the filenames
  * @return Vector of all files with absolute path
  */
-std::vector<std::string> getFileList(const std::string& dir, const std::string &suffix = "");
+std::vector<std::string> getFileList(const std::string& dir, const std::string &suffix = "", const std::function<bool(std::string, std::string)>& sort = std::less<>());
 
 /*! TODO: Einbaurichtung implementieren?
  * @brief Function to compute a 3x3 rotation matrix based on heading data. It is assumed, that the camera is pointing

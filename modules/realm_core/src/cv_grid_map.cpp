@@ -121,7 +121,21 @@ void CvGridMap::add(const CvGridMap &submap, int flag_overlap_handle, bool do_ex
       }
     }
 
-    // Get the data in the overlapping area of both mat
+    // Hack, don't access larger area than we have
+    // This should be handled above, but something is a few pixels off
+    if (m_layers[idx_layer].data.cols < dst_roi.x + dst_roi.width) {
+      dst_roi.width = submap_layer.data.cols - dst_roi.x;
+    }
+    if (m_layers[idx_layer].data.rows < dst_roi.y + dst_roi.height) {
+      dst_roi.height = submap_layer.data.rows - dst_roi.y;
+    }
+    if (submap_layer.data.cols < src_roi.x + src_roi.width) {
+      src_roi.width = submap_layer.data.cols - src_roi.x;
+    }
+    if (submap_layer.data.rows < src_roi.y + src_roi.height) {
+      src_roi.height = submap_layer.data.rows - src_roi.y;
+    }
+
     cv::Mat src_data_roi = submap_layer.data(src_roi);
     cv::Mat dst_data_roi = m_layers[idx_layer].data(dst_roi);
 
@@ -480,10 +494,15 @@ void CvGridMap::mergeMatrices(const cv::Mat &from, cv::Mat &to, int flag_merge_h
       break;
     case REALM_OVERWRITE_ZERO:
       cv::Mat mask;
-      if (to.type() == CV_32F || to.type() == CV_64F)
-        mask = (to != to) & (from == from);
-      else
+      if (to.type() == CV_32F || to.type() == CV_64F) {
+        cv::Mat to_mask = to.clone();
+        cv::Mat from_mask = from.clone();
+        cv::patchNaNs(to_mask, 0);
+        cv::patchNaNs(from_mask, 0);
+        mask = (to_mask == 0) & (from_mask != 0);
+      } else {
         mask = (to == 0) & (from > 0);
+      }
       from.copyTo(to, mask);
       break;
   }

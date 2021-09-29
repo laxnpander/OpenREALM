@@ -97,7 +97,7 @@ std::vector<std::string> io::split(const char *str, char c)
   return result;
 }
 
-std::vector<std::string> io::getFileList(const std::string& dir, const std::string &suffix)
+std::vector<std::string> io::getFileList(const std::string& dir, const std::string &suffix,  const std::function<bool(std::string, std::string)>& sort)
 {
   std::vector<std::string> filenames;
   if (!dir.empty())
@@ -105,16 +105,19 @@ std::vector<std::string> io::getFileList(const std::string& dir, const std::stri
     boost::filesystem::path apk_path(dir);
     boost::filesystem::recursive_directory_iterator end;
 
-    for (boost::filesystem::recursive_directory_iterator it(apk_path); it != end; ++it)
-    {
+    for (boost::filesystem::recursive_directory_iterator it(apk_path); it != end; ++it) {
       const boost::filesystem::path cp = (*it);
 
-      const std::string &filepath = cp.string();
-      if (suffix.empty() || filepath.substr(filepath.size() - suffix.size(), filepath.size()) == suffix)
-        filenames.push_back(cp.string());
+      auto canon_path = boost::filesystem::canonical(cp, "/");
+      const std::string &filepath = canon_path.string();
+      if (suffix.empty() || filepath.substr(filepath.size() - suffix.size(), suffix.size()) == suffix) {
+        filenames.push_back(filepath);
+      }
     }
   }
-  std::sort(filenames.begin(), filenames.end());
+
+  // By default, return in reverse sort order, useful for zoom level creating / deletion
+  std::sort(filenames.begin(), filenames.end(), sort);
   return filenames;
 }
 

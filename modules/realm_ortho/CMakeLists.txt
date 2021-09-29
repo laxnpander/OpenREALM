@@ -54,7 +54,6 @@ set(HEADER_FILES
         ${root}/include/realm_ortho/nearest_neighbor.h
         ${root}/include/realm_ortho/rectification.h
         ${root}/include/realm_ortho/tile.h
-        ${root}/include/realm_ortho/tile_cache.h
 )
 
 set(SOURCE_FILES
@@ -63,7 +62,6 @@ set(SOURCE_FILES
         ${root}/src/map_tiler.cpp
         ${root}/src/rectification.cpp
         ${root}/src/tile.cpp
-        ${root}/src/tile_cache.cpp
 )
 
 # delaunay relies on CGAL to work

@@ -62,12 +62,14 @@ if(WITH_ortho)
             include/realm_stages/ortho_rectification.h
             include/realm_stages/surface_generation.h
             include/realm_stages/mosaicing.h
-            include/realm_stages/tileing.h)
+            include/realm_stages/tileing.h
+    )
     list(APPEND SOURCE_FILES
             src/ortho_rectification.cpp
             src/surface_generation.cpp
             src/mosaicing.cpp
-            src/tileing.cpp)
+            src/tileing.cpp
+    )
 endif()
 
 if(WITH_vslam_base)
