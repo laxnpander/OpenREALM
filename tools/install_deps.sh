@@ -11,9 +11,9 @@ sudo apt-get install -y build-essential pkg-config git wget curl unzip
 OUTPUT=$(cmake --version)
 read CMAKE_VERSION_MAJOR CMAKE_VERSION_MINOR CMAKE_VERSION_PATCH <<< ${OUTPUT//[^0-9]/ }
 
-if [ "${CMAKE_VERSION_MINOR}" -le 15 ]; then
+if [ $CMAKE_VERSION_MINOR < 15 ]; then
 
-  echo 'CMake Version is too old! Trying to download newer version '
+  echo "CMake Version $CMAKE_VERSION_MAJOR.$CMAKE_VERSION_MINOR.$CMAKE_VERSION_PATCH is too old! Trying to download newer version "
 
   if [ $ARCH == "aarch64" ]; then
     CMAKE_FILE="cmake-3.15.7"
@@ -116,7 +116,9 @@ else
        echo "No problems to repair."
 fi
 
-OPENCV_VERSION=$(pkg-config --modversion opencv)
+OPENCV_VERSION=$(/usr/bin/opencv_version)
+read OPENCV_VERSION_MAJOR OPENCV_VERSION_MINOR OPENCV_VERSION_PATCH <<< ${OPENCV_VERSION//[^0-9]/ }
+
 if [[ $OPENCV_VERSION == "3.3.1" ]]; then
         echo "[OK] OpenCV Version is 3.3.1"
 else
