@@ -130,7 +130,7 @@ cv::Mat PlaneSweep::fixImageType(const cv::Mat &img)
   else
   {
     if (img.channels() == 4)
-      cv::cvtColor(img, img_fixed, CV_BGRA2BGR);
+      cv::cvtColor(img, img_fixed, cv::BGRA2BGR);
     else
       img_fixed = img;
   }
