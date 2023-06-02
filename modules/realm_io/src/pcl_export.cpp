@@ -60,7 +60,7 @@ void saveElevationPointsRGB(const CvGridMap &map,
   auto n = static_cast<uint32_t>(size.width*size.height);
 
   cv::Mat elevation = map[ele_layer_name];
-  cv::Mat mask = map[mask_layer_name];
+  cv::Mat mask = (elevation == elevation);
   cv::Mat color = map[color_layer_name];
   if (color.type() == CV_8UC4)
     cv::cvtColor(color, color, cv::ColorConversionCodes::COLOR_BGRA2BGR);
