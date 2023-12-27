@@ -29,8 +29,8 @@ OrbSlam::OrbSlam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   cam.K = K_32f;
   cam.distCoeffs = dist_coeffs_32f;
   cam.fps        = (*cam_set)["fps"].toFloat();
-  cam.width      = (*cam_set)["width"].toInt();
-  cam.height     = (*cam_set)["height"].toInt();
+  cam.width      =  static_cast<int>((*cam_set)["width"].toInt() * m_resizing);
+  cam.height     =  static_cast<int>((*cam_set)["height"].toInt() * m_resizing);
   cam.isRGB      = false; // BGR
 
   ORB_SLAM::OrbParameters orb{};
@@ -86,7 +86,7 @@ VisualSlamIF::State OrbSlam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(m_resizing);
 
-  double timestamp = static_cast<double>(frame->getTimestamp() - m_timestamp_reference)/10e3;
+  double timestamp = static_cast<double>(frame->getTimestamp() - m_timestamp_reference)/10e9;
   LOG_IF_F(INFO, true, "Time elapsed since first frame: %4.2f [s]", timestamp);
 
   // ORB SLAM returns a transformation from the world to the camera frame (T_w2c). In case we provide an initial guess
