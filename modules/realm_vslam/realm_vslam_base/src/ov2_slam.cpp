@@ -106,7 +106,7 @@ VisualSlamIF::State Ov2Slam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(m_resizing);
 
-  const double timestamp = static_cast<double>(frame->getTimestamp())/10e9;
+  const double timestamp = static_cast<double>(frame->getTimestamp())/1e9;
   LOG_IF_F(INFO, true, "Time stamp of frame: %4.2f [s]", timestamp);
 
   cv::Mat img = frame->getResizedImageRaw();
