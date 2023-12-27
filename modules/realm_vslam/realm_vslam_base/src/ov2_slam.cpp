@@ -68,12 +68,12 @@ Ov2Slam::Ov2Slam(const VisualSlamSettings::Ptr &vslam_set, const CameraSettings:
   m_slam_params->do_full_ba_                  = (*vslam_set)["do_full_ba"].toInt() > 0;
 
   m_slam_params->cam_left_model_ = "pinhole";
-  m_slam_params->img_left_w_     = (*cam_set)["width"].toDouble();
-  m_slam_params->img_left_h_    = (*cam_set)["height"].toDouble();
-  m_slam_params->fxl_ = (*cam_set)["fx"].toDouble();
-  m_slam_params->fyl_ = (*cam_set)["fy"].toDouble();
-  m_slam_params->cxl_ = (*cam_set)["cx"].toDouble();
-  m_slam_params->cyl_ = (*cam_set)["cy"].toDouble();
+  m_slam_params->img_left_w_     = (*cam_set)["width"].toDouble()*static_cast<double>(m_resizing);;
+  m_slam_params->img_left_h_    = (*cam_set)["height"].toDouble()*static_cast<double>(m_resizing);;
+  m_slam_params->fxl_ = (*cam_set)["fx"].toDouble()*static_cast<double>(m_resizing);
+  m_slam_params->fyl_ = (*cam_set)["fy"].toDouble()*static_cast<double>(m_resizing);;
+  m_slam_params->cxl_ = (*cam_set)["cx"].toDouble()*static_cast<double>(m_resizing);;
+  m_slam_params->cyl_ = (*cam_set)["cy"].toDouble()*static_cast<double>(m_resizing);;
   m_slam_params->k1l_ = (*cam_set)["k1"].toDouble();
   m_slam_params->k2l_ = (*cam_set)["k2"].toDouble();
   m_slam_params->p1l_ = (*cam_set)["p1"].toDouble();
@@ -106,7 +106,7 @@ VisualSlamIF::State Ov2Slam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(m_resizing);
 
-  const double timestamp = static_cast<double>(frame->getTimestamp())/10e3;
+  const double timestamp = static_cast<double>(frame->getTimestamp())/1e9;
   LOG_IF_F(INFO, true, "Time stamp of frame: %4.2f [s]", timestamp);
 
   cv::Mat img = frame->getResizedImageRaw();
