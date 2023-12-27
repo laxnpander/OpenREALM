@@ -76,7 +76,7 @@ VisualSlamIF::State OpenVslam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_ini
   std::shared_ptr<openvslam::Mat44_t> T_w2c_eigen;
   if (T_c2w_initial.empty())
   {
-    T_w2c_eigen = m_vslam->feed_monocular_frame(frame->getResizedImageRaw(), frame->getTimestamp() * 10e-9);
+    T_w2c_eigen = m_vslam->feed_monocular_frame(frame->getResizedImageRaw(), frame->getTimestamp() * 1e-9);
 
     if (T_w2c_eigen != nullptr)
       T_w2c = convertToCv(*T_w2c_eigen);
