@@ -86,7 +86,7 @@ VisualSlamIF::State OrbSlam::track(Frame::Ptr &frame, const cv::Mat &T_c2w_initi
   // Set image resizing accoring to settings
   frame->setImageResizeFactor(m_resizing);
 
-  double timestamp = static_cast<double>(frame->getTimestamp() - m_timestamp_reference)/10e9;
+  double timestamp = static_cast<double>(frame->getTimestamp() - m_timestamp_reference)/1e9;
   LOG_IF_F(INFO, true, "Time elapsed since first frame: %4.2f [s]", timestamp);
 
   // ORB SLAM returns a transformation from the world to the camera frame (T_w2c). In case we provide an initial guess
